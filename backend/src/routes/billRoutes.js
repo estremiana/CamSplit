@@ -1,9 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const billController = require('../controllers/billController');
+const upload = require('../config/multer');
 
-// Example endpoints
-router.post('/upload', billController.uploadBill);
+// POST /api/bills/upload
+router.post('/upload', upload.single('image'), billController.uploadBill);
+
+// GET /api/bills/:id
 router.get('/:id', billController.getBill);
 
-module.exports = router; 
+// GET /api/bills/:id/settle
+router.get('/:id/settle', billController.settleBill);
+
+module.exports = router;
