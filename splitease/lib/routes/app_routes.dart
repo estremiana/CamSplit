@@ -8,10 +8,13 @@ import '../presentation/expense_dashboard/expense_dashboard.dart';
 import '../presentation/receipt_ocr_review/receipt_ocr_review.dart';
 import '../presentation/item_assignment/item_assignment.dart';
 import '../presentation/settlement_summary/settlement_summary.dart';
+import '../presentation/item_assignment/widgets/dynamic_participant_demo.dart';
+import '../presentation/item_assignment/widgets/assignment_reset_demo.dart';
 
 class AppRoutes {
   // TODO: Add your routes here
-  static const String initial = '/';
+  // TODO: Change initial route back to splashScreen after development convenience
+  static const String initial = expenseDashboard; // was: '/'
   static const String splashScreen = '/splash-screen';
   static const String loginScreen = '/login-screen';
   static const String cameraReceiptCapture = '/camera-receipt-capture';
@@ -21,9 +24,11 @@ class AppRoutes {
   static const String receiptOcrReview = '/receipt-ocr-review';
   static const String itemAssignment = '/item-assignment';
   static const String settlementSummary = '/settlement-summary';
+  static const String dynamicParticipantDemo = '/dynamic-participant-demo';
+  static const String assignmentResetDemo = '/assignment-reset-demo';
 
   static Map<String, WidgetBuilder> routes = {
-    initial: (context) => const SplashScreen(),
+    initial: (context) => const ExpenseDashboard(), // was: SplashScreen()
     splashScreen: (context) => const SplashScreen(),
     loginScreen: (context) => const LoginScreen(),
     cameraReceiptCapture: (context) => const CameraReceiptCapture(),
@@ -33,6 +38,8 @@ class AppRoutes {
     receiptOcrReview: (context) => const ReceiptOcrReview(),
     itemAssignment: (context) => const ItemAssignment(),
     settlementSummary: (context) => const SettlementSummary(),
+    dynamicParticipantDemo: (context) => const DynamicParticipantDemo(),
+    assignmentResetDemo: (context) => const AssignmentResetDemo(),
     // TODO: Add your other routes here
   };
 }

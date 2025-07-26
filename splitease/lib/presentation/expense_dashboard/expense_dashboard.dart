@@ -23,6 +23,12 @@ class _ExpenseDashboardState extends State<ExpenseDashboard>
   bool _isLoading = false;
   int _currentBottomNavIndex = 0;
 
+  // FAB menu state
+  late AnimationController _fabController;
+  late Animation<double> _fabRotation;
+  late Animation<double> _fabTranslation;
+  bool _fabMenuOpen = false;
+
   // Mock data for expenses
   final List<Map<String, dynamic>> _recentExpenses = [
     {
@@ -91,10 +97,77 @@ class _ExpenseDashboardState extends State<ExpenseDashboard>
   };
 
   @override
+  void initState() {
+    super.initState();
+    _fabController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+    _fabRotation = Tween<double>(begin: 0, end: 0.25).animate(
+      CurvedAnimation(parent: _fabController, curve: Curves.easeInOut),
+    );
+    _fabTranslation = Tween<double>(begin: 0, end: 70).animate(
+      CurvedAnimation(parent: _fabController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _fabController.dispose();
+    super.dispose();
+  }
+
+  void _toggleFabMenu() {
+    setState(() {
+      _fabMenuOpen = !_fabMenuOpen;
+      if (_fabMenuOpen) {
+        _fabController.forward();
+      } else {
+        _fabController.reverse();
+      }
+    });
+  }
+
+  void _openCameraCapture() {
+    HapticFeedback.mediumImpact();
+    Navigator.pushNamed(context, '/camera-receipt-capture');
+    _closeFabMenu();
+  }
+
+  void _openDynamicParticipantDemo() {
+    HapticFeedback.mediumImpact();
+    Navigator.pushNamed(context, '/dynamic-participant-demo');
+    _closeFabMenu();
+  }
+
+  void _openExpenseCreation() {
+    HapticFeedback.mediumImpact();
+    Navigator.pushNamed(context, '/expense-creation');
+    _closeFabMenu();
+  }
+
+  void _closeFabMenu() {
+    setState(() {
+      _fabMenuOpen = false;
+      _fabController.reverse();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return WillPopScope(
+      onWillPop: () async {
+        if (_fabMenuOpen) {
+          _closeFabMenu();
+          return false;
+        }
+        return true;
+      },
+      child: Scaffold(
       backgroundColor: AppTheme.lightTheme.scaffoldBackgroundColor,
-      body: SafeArea(
+        body: Stack(
+          children: [
+            SafeArea(
         child: RefreshIndicator(
           key: _refreshIndicatorKey,
           onRefresh: _handleRefresh,
@@ -135,18 +208,233 @@ class _ExpenseDashboardState extends State<ExpenseDashboard>
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _openCameraCapture,
+            // Modal barrier for closing FAB menu on outside tap
+            if (_fabMenuOpen)
+              Positioned.fill(
+                child: GestureDetector(
+                  onTap: _closeFabMenu,
+                  behavior: HitTestBehavior.opaque,
+                  child: Container(),
+                ),
+              ),
+          ],
+        ),
+        floatingActionButton: _buildFabMenu(),
+        bottomNavigationBar: _buildBottomNavigationBar(),
+      ),
+    );
+  }
+
+  Widget _buildFabMenu() {
+    return Stack(
+      alignment: Alignment.bottomRight,
+      children: [
+        // Demo FAB (tertiary)
+        AnimatedBuilder(
+          animation: _fabController,
+          builder: (context, child) {
+            return Positioned(
+              right: 0,
+              bottom: 0 + _fabTranslation.value * 2,
+              child: IgnorePointer(
+                ignoring: !_fabMenuOpen && _fabController.value == 0,
+                child: Opacity(
+                  opacity: _fabController.value,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Label
+                      AnimatedOpacity(
+                        opacity: _fabMenuOpen ? 1 : 0,
+                        duration: const Duration(milliseconds: 200),
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 12.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.05),
+                                      blurRadius: 4,
+                                    ),
+                                  ],
+                                ),
+                                child: Text(
+                                  'Dynamic Participant Demo',
+                                  style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                                    color: AppTheme.lightTheme.primaryColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      FloatingActionButton(
+                        heroTag: 'fab_demo',
+                        backgroundColor: AppTheme.lightTheme.colorScheme.secondary,
+                        foregroundColor: AppTheme.lightTheme.colorScheme.onSecondary,
+                        elevation: 3.0,
+                        onPressed: _fabMenuOpen ? _openDynamicParticipantDemo : null,
+                        child: const Icon(Icons.science, size: 28),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+        // Camera FAB (secondary)
+        AnimatedBuilder(
+          animation: _fabController,
+          builder: (context, child) {
+            return Positioned(
+              right: 0,
+              bottom: 0 + _fabTranslation.value,
+              child: IgnorePointer(
+                ignoring: !_fabMenuOpen && _fabController.value == 0,
+                child: Opacity(
+                  opacity: _fabController.value,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Label
+                      AnimatedOpacity(
+                        opacity: _fabMenuOpen ? 1 : 0,
+                        duration: const Duration(milliseconds: 200),
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 12.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.05),
+                                      blurRadius: 4,
+                                    ),
+                                  ],
+                                ),
+                                child: Text(
+                                  'Scan receipt',
+                                  style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                                    color: AppTheme.lightTheme.primaryColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      FloatingActionButton(
+                        heroTag: 'fab_camera',
+                        // Remove mini: true to make it same size as plus FAB
         backgroundColor: AppTheme.lightTheme.primaryColor,
         foregroundColor: AppTheme.onPrimaryLight,
-        elevation: 4.0,
+                        elevation: 3.0,
+                        onPressed: _fabMenuOpen ? _openCameraCapture : null,
         child: CustomIconWidget(
           iconName: 'camera_alt',
           color: AppTheme.onPrimaryLight,
-          size: 24,
+                          size: 28,
         ),
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+        // Main FAB (plus)
+        Positioned(
+          right: 0,
+          bottom: 0,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Only show label when menu is open
+              if (_fabMenuOpen)
+                AnimatedOpacity(
+                  opacity: 1,
+                  duration: const Duration(milliseconds: 200),
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 4,
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            'Create new expense',
+                            style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                              color: AppTheme.lightTheme.primaryColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              GestureDetector(
+                onTap: () {
+                  if (_fabMenuOpen) {
+                    _openExpenseCreation();
+                  } else {
+                    _toggleFabMenu();
+                  }
+                },
+                child: AnimatedBuilder(
+                  animation: _fabController,
+                  builder: (context, child) {
+                    return Transform.rotate(
+                      angle: _fabRotation.value * 2 * 3.1415926535,
+                      child: FloatingActionButton(
+                        heroTag: 'fab_plus',
+                        backgroundColor: AppTheme.lightTheme.primaryColor,
+                        foregroundColor: AppTheme.onPrimaryLight,
+                        elevation: 4.0,
+                        onPressed: null, // Use GestureDetector's onTap
+                        child: CustomIconWidget(
+                          iconName: 'add',
+                          color: AppTheme.onPrimaryLight,
+                          size: 28,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -396,11 +684,6 @@ class _ExpenseDashboardState extends State<ExpenseDashboard>
     setState(() {
       _isPrivacyMode = !_isPrivacyMode;
     });
-  }
-
-  void _openCameraCapture() {
-    HapticFeedback.mediumImpact();
-    Navigator.pushNamed(context, '/camera-receipt-capture');
   }
 
   void _onBottomNavTap(int index) {

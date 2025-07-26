@@ -2,6 +2,7 @@
 
 ## Table of Contents
 - [User](#user)
+- [Group](#group) - ToDo
 - [Bill](#bill)
 - [Item](#item)
 - [Assignment](#assignment)
@@ -58,6 +59,239 @@
     "created_at": "2024-07-02T00:00:00.000Z"
   },
   "token": "JWT_TOKEN"
+}
+```
+
+---
+
+## Group
+
+### Model Fields
+- `id`: string (UUID)
+- `name`: string
+- `members`: array of GroupMember objects
+- `last_used`: string (ISO timestamp)
+- `created_at`: string (ISO timestamp)
+- `updated_at`: string (ISO timestamp)
+
+### GroupMember Model Fields
+- `id`: string (UUID)
+- `name`: string
+- `email`: string
+- `avatar`: string (URL)
+- `is_current_user`: boolean
+- `joined_at`: string (ISO timestamp)
+
+### Get All Groups (GET `/api/groups`)
+**Headers:**
+```
+Authorization: Bearer JWT_TOKEN
+```
+**Response:**
+```json
+{
+  "groups": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Weekend Getaway",
+      "members": [
+        {
+          "id": "550e8400-e29b-41d4-a716-446655440001",
+          "name": "John Doe",
+          "email": "john@example.com",
+          "avatar": "https://ui-avatars.com/api/?name=John+Doe&background=4F46E5&color=fff",
+          "is_current_user": true,
+          "joined_at": "2024-07-01T00:00:00.000Z"
+        },
+        {
+          "id": "550e8400-e29b-41d4-a716-446655440002",
+          "name": "Sarah Johnson",
+          "email": "sarah@example.com",
+          "avatar": "https://ui-avatars.com/api/?name=Sarah+Johnson&background=059669&color=fff",
+          "is_current_user": false,
+          "joined_at": "2024-07-02T00:00:00.000Z"
+        }
+      ],
+      "last_used": "2024-07-25T10:00:00.000Z",
+      "created_at": "2024-07-20T00:00:00.000Z",
+      "updated_at": "2024-07-25T10:00:00.000Z"
+    }
+  ],
+  "count": 6,
+  "message": "Groups retrieved successfully",
+  "timestamp": "2024-07-25T12:00:00.000Z",
+  "status": "success"
+}
+```
+
+### Get Single Group (GET `/api/groups/:id`)
+**Headers:**
+```
+Authorization: Bearer JWT_TOKEN
+```
+**Response:**
+```json
+{
+  "group": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "Weekend Getaway",
+    "members": [
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440001",
+        "name": "John Doe",
+        "email": "john@example.com",
+        "avatar": "https://ui-avatars.com/api/?name=John+Doe&background=4F46E5&color=fff",
+        "is_current_user": true,
+        "joined_at": "2024-07-01T00:00:00.000Z"
+      }
+    ],
+    "last_used": "2024-07-25T10:00:00.000Z",
+    "created_at": "2024-07-20T00:00:00.000Z",
+    "updated_at": "2024-07-25T10:00:00.000Z"
+  },
+  "message": "Group retrieved successfully",
+  "timestamp": "2024-07-25T12:00:00.000Z",
+  "status": "success"
+}
+```
+
+### Create Group (POST `/api/groups`)
+**Headers:**
+```
+Authorization: Bearer JWT_TOKEN
+Content-Type: application/json
+```
+**Request:**
+```json
+{
+  "name": "New Group Name",
+  "member_emails": ["user1@example.com", "user2@example.com"]
+}
+```
+**Response:**
+```json
+{
+  "group": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "New Group Name",
+    "members": [
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440001",
+        "name": "Current User",
+        "email": "current@example.com",
+        "avatar": "https://ui-avatars.com/api/?name=Current+User&background=4F46E5&color=fff",
+        "is_current_user": true,
+        "joined_at": "2024-07-25T12:00:00.000Z"
+      }
+    ],
+    "last_used": "2024-07-25T12:00:00.000Z",
+    "created_at": "2024-07-25T12:00:00.000Z",
+    "updated_at": "2024-07-25T12:00:00.000Z"
+  },
+  "message": "Group created successfully",
+  "timestamp": "2024-07-25T12:00:00.000Z",
+  "status": "success"
+}
+```
+
+### Update Group (PUT `/api/groups/:id`)
+**Headers:**
+```
+Authorization: Bearer JWT_TOKEN
+Content-Type: application/json
+```
+**Request:**
+```json
+{
+  "name": "Updated Group Name"
+}
+```
+**Response:**
+```json
+{
+  "group": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "Updated Group Name",
+    "members": [...],
+    "last_used": "2024-07-25T10:00:00.000Z",
+    "created_at": "2024-07-20T00:00:00.000Z",
+    "updated_at": "2024-07-25T12:00:00.000Z"
+  },
+  "message": "Group updated successfully",
+  "timestamp": "2024-07-25T12:00:00.000Z",
+  "status": "success"
+}
+```
+
+### Delete Group (DELETE `/api/groups/:id`)
+**Headers:**
+```
+Authorization: Bearer JWT_TOKEN
+```
+**Response:**
+```json
+{
+  "message": "Group deleted successfully",
+  "timestamp": "2024-07-25T12:00:00.000Z",
+  "status": "success"
+}
+```
+
+### Add Member to Group (POST `/api/groups/:id/members`)
+**Headers:**
+```
+Authorization: Bearer JWT_TOKEN
+Content-Type: application/json
+```
+**Request:**
+```json
+{
+  "email": "newmember@example.com",
+  "name": "New Member"
+}
+```
+**Response:**
+```json
+{
+  "member": {
+    "id": "550e8400-e29b-41d4-a716-446655440003",
+    "name": "New Member",
+    "email": "newmember@example.com",
+    "avatar": "https://ui-avatars.com/api/?name=New+Member&background=4F46E5&color=fff",
+    "is_current_user": false,
+    "joined_at": "2024-07-25T12:00:00.000Z"
+  },
+  "message": "Member added successfully",
+  "timestamp": "2024-07-25T12:00:00.000Z",
+  "status": "success"
+}
+```
+
+### Remove Member from Group (DELETE `/api/groups/:id/members/:memberId`)
+**Headers:**
+```
+Authorization: Bearer JWT_TOKEN
+```
+**Response:**
+```json
+{
+  "message": "Member removed successfully",
+  "timestamp": "2024-07-25T12:00:00.000Z",
+  "status": "success"
+}
+```
+
+### Update Last Used Timestamp (PATCH `/api/groups/:id/last-used`)
+**Headers:**
+```
+Authorization: Bearer JWT_TOKEN
+```
+**Response:**
+```json
+{
+  "message": "Last used timestamp updated",
+  "timestamp": "2024-07-25T12:00:00.000Z",
+  "status": "success"
 }
 ```
 

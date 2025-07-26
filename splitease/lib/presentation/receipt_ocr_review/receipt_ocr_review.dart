@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
+import 'dart:math';
 
 import '../../core/app_export.dart';
 import '../../services/api_service.dart';
@@ -57,11 +58,14 @@ class _ReceiptOcrReviewState extends State<ReceiptOcrReview> {
       if (args is Map && args['ocrResult'] != null) {
         // Use the OCR result directly if provided
         setState(() {
+          final rand = Random();
           _extractedItems = List<Map<String, dynamic>>.from(args['ocrResult']['items'] ?? [])
             .map((item) {
               if (item.containsKey('description') && !item.containsKey('name')) {
                 item['name'] = item['description'];
               }
+              // Always assign a random id
+              item['id'] = rand.nextInt(1 << 31);
               return item;
             }).toList();
           _isLoading = false;
@@ -73,7 +77,7 @@ class _ReceiptOcrReviewState extends State<ReceiptOcrReview> {
           _isLoading = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load OCR data: ${e.toString()}')),
+          SnackBar(content: Text('Failed to load OCR data:  ${e.toString()}')),
         );
       }
     }
@@ -254,8 +258,9 @@ class _ReceiptOcrReviewState extends State<ReceiptOcrReview> {
                         final int quantity = 1;
                         if (unitPrice != null) {
                           setState(() {
+                            final rand = Random();
                             _extractedItems.add({
-                              'id': DateTime.now().millisecondsSinceEpoch,
+                              'id': rand.nextInt(1 << 31),
                               'name': nameController.text,
                               'unit_price': unitPrice,
                               'quantity': quantity,

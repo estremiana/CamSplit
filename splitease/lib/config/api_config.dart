@@ -17,6 +17,7 @@ class ApiConfig {
   // API endpoints
   static const String loginEndpoint = '/users/login';
   static const String registerEndpoint = '/users/register';
+  static const String groupsEndpoint = '/groups';
   static const String uploadBillEndpoint = '/bills/upload';
   static const String getBillEndpoint = '/bills';
   static const String settleBillEndpoint = '/bills/settle';

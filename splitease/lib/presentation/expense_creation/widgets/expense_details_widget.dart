@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 
 import '../../../core/app_export.dart';
+import '../../../models/receipt_mode_config.dart';
+import 'group_dropdown_widget.dart';
+import 'package:currency_picker/currency_picker.dart';
 
 class ExpenseDetailsWidget extends StatelessWidget {
   final String selectedGroup;
@@ -10,9 +13,17 @@ class ExpenseDetailsWidget extends StatelessWidget {
   final TextEditingController notesController;
   final List<String> groups;
   final List<String> categories;
-  final Function(String) onGroupChanged;
+  final Function(String)? onGroupChanged;
   final Function(String) onCategoryChanged;
   final VoidCallback onDateTap;
+  // Add these new parameters
+  final TextEditingController totalController;
+  final Currency currency;
+  final Function(Currency?) onCurrencyChanged;
+  final String mode;
+  // Receipt mode parameters
+  final bool isReceiptMode;
+  final ReceiptModeConfig receiptModeConfig;
 
   const ExpenseDetailsWidget({
     super.key,
@@ -22,9 +33,15 @@ class ExpenseDetailsWidget extends StatelessWidget {
     required this.notesController,
     required this.groups,
     required this.categories,
-    required this.onGroupChanged,
+    this.onGroupChanged,
     required this.onCategoryChanged,
     required this.onDateTap,
+    required this.totalController,
+    required this.currency,
+    required this.onCurrencyChanged,
+    required this.mode,
+    this.isReceiptMode = false,
+    this.receiptModeConfig = ReceiptModeConfig.manualMode,
   });
 
   String _formatDate(DateTime date) {
@@ -54,6 +71,14 @@ class ExpenseDetailsWidget extends StatelessWidget {
               color: AppTheme.lightTheme.colorScheme.secondary,
               size: 20,
             ),
+            // Add visual indicator for disabled state
+            suffixIcon: !receiptModeConfig.isGroupEditable && isReceiptMode
+                ? Icon(
+                    Icons.lock_outline,
+                    color: AppTheme.lightTheme.colorScheme.secondary.withOpacity(0.6),
+                    size: 16,
+                  )
+                : null,
           ),
           items: groups.map<DropdownMenuItem<String>>((String group) {
             return DropdownMenuItem<String>(
@@ -61,11 +86,13 @@ class ExpenseDetailsWidget extends StatelessWidget {
               child: Text(group),
             );
           }).toList(),
-          onChanged: (value) {
-            if (value != null) {
-              onGroupChanged(value);
-            }
-          },
+          onChanged: receiptModeConfig.isGroupEditable && onGroupChanged != null
+              ? (value) {
+                  if (value != null) {
+                    onGroupChanged!(value);
+                  }
+                }
+              : null,
           validator: (value) {
             if (value == null || value.isEmpty) {
               return 'Please select a group';
@@ -133,6 +160,88 @@ class ExpenseDetailsWidget extends StatelessWidget {
           ),
         ),
 
+        SizedBox(height: 2.h),
+
+        // Total + Currency Row
+        Row(
+          children: [
+            Expanded(
+              child: TextFormField(
+                controller: totalController,
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  labelText: 'Total',
+                  hintText: '0.00',
+                  prefixIcon: CustomIconWidget(
+                    iconName: 'payments',
+                    color: AppTheme.lightTheme.colorScheme.secondary,
+                    size: 20,
+                  ),
+                  // Add visual indicator for disabled state
+                  suffixIcon: !receiptModeConfig.isTotalEditable && isReceiptMode
+                      ? Icon(
+                          Icons.lock_outline,
+                          color: AppTheme.lightTheme.colorScheme.secondary.withValues(alpha: 0.6),
+                          size: 16,
+                        )
+                      : null,
+                ),
+                enabled: receiptModeConfig.isTotalEditable,
+                readOnly: !receiptModeConfig.isTotalEditable,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter a total amount';
+                  }
+                  final double? total = double.tryParse(value);
+                  if (total == null || total < 0) {
+                    return 'Enter a valid amount';
+                  }
+                  return null;
+                },
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+              ),
+            ),
+            SizedBox(width: 2.w),
+            SizedBox(
+              width: 80,
+              child: GestureDetector(
+                onTap: receiptModeConfig.isTotalEditable
+                    ? () {
+                        showCurrencyPicker(
+                          context: context,
+                          showFlag: true,
+                          showCurrencyName: true,
+                          showCurrencyCode: true,
+                          onSelect: (Currency currencyObj) {
+                            onCurrencyChanged(currencyObj);
+                          },
+                        );
+                      }
+                    : null,
+                child: AbsorbPointer(
+                  child: TextFormField(
+                    decoration: InputDecoration(
+                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                      suffixIcon: receiptModeConfig.isTotalEditable
+                          ? CustomIconWidget(
+                              iconName: 'arrow_drop_down',
+                              color: AppTheme.lightTheme.colorScheme.secondary,
+                              size: 20,
+                            )
+                          : Icon(
+                              Icons.lock_outline,
+                              color: AppTheme.lightTheme.colorScheme.secondary.withValues(alpha: 0.6),
+                              size: 16,
+                            ),
+                    ),
+                    controller: TextEditingController(text: currency.symbol),
+                    enabled: receiptModeConfig.isTotalEditable,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
         SizedBox(height: 2.h),
 
         // Notes Field

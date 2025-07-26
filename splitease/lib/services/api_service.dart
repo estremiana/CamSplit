@@ -216,6 +216,88 @@ class ApiService {
     }
   }
   
+  // Group endpoints
+  // TODO: Implement these methods when backend group endpoints are ready
+  Future<Map<String, dynamic>> getGroups() async {
+    try {
+      final response = await _dio.get('/groups');
+      return response.data;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+  
+  Future<Map<String, dynamic>> getGroup(String groupId) async {
+    try {
+      final response = await _dio.get('/groups/$groupId');
+      return response.data;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+  
+  Future<Map<String, dynamic>> createGroup(String name, List<String> memberEmails) async {
+    try {
+      final response = await _dio.post('/groups', data: {
+        'name': name,
+        'member_emails': memberEmails,
+      });
+      return response.data;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+  
+  Future<Map<String, dynamic>> updateGroup(String groupId, String name) async {
+    try {
+      final response = await _dio.put('/groups/$groupId', data: {
+        'name': name,
+      });
+      return response.data;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+  
+  Future<Map<String, dynamic>> deleteGroup(String groupId) async {
+    try {
+      final response = await _dio.delete('/groups/$groupId');
+      return response.data;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+  
+  Future<Map<String, dynamic>> addGroupMember(String groupId, String email, String name) async {
+    try {
+      final response = await _dio.post('/groups/$groupId/members', data: {
+        'email': email,
+        'name': name,
+      });
+      return response.data;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+  
+  Future<Map<String, dynamic>> removeGroupMember(String groupId, String memberId) async {
+    try {
+      final response = await _dio.delete('/groups/$groupId/members/$memberId');
+      return response.data;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+  
+  Future<Map<String, dynamic>> updateGroupLastUsed(String groupId) async {
+    try {
+      final response = await _dio.patch('/groups/$groupId/last-used');
+      return response.data;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
   // Utility methods
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();

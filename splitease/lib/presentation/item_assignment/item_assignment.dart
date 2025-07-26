@@ -3,6 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
 
 import '../../core/app_export.dart';
+import '../../models/receipt_mode_data.dart';
+import '../../models/participant_amount.dart';
+import '../../models/group.dart';
+import '../../models/mock_group_data.dart';
+import '../../services/group_service.dart';
 import '../receipt_ocr_review/widgets/progress_indicator_widget.dart';
 import './widgets/assignment_instructions_widget.dart';
 import './widgets/assignment_summary_widget.dart';
@@ -31,9 +36,18 @@ class _ItemAssignmentState extends State<ItemAssignment>
   bool _showInstructions = true;
   int _expandedItemId = -1;
   int _expandedQuantityItemId = -1;
+  
+  // State management for assignment summary
+  Map<String, double>? _previousIndividualTotals;
+  Map<String, double>? _currentIndividualTotals;
+  Map<String, double>? _equalSplitTotals;
 
   List<Map<String, dynamic>> _items = [];
   List<Map<String, dynamic>> _quantityAssignments = [];
+
+  // Group selection state
+  List<Group> _availableGroups = [];
+  String? _selectedGroupId;
 
   // Mock group members data
   List<Map<String, dynamic>> _groupMembers = [
@@ -67,6 +81,7 @@ class _ItemAssignmentState extends State<ItemAssignment>
   void initState() {
     super.initState();
     _loadData();
+    _loadGroupData();
   }
 
   @override
@@ -97,6 +112,128 @@ class _ItemAssignmentState extends State<ItemAssignment>
     });
   }
 
+  void _loadGroupData() {
+    // TODO: Replace with actual backend API calls when backend integration is implemented
+    // Load mock groups data sorted by most recent usage
+    setState(() {
+      _availableGroups = MockGroupData.getGroupsSortedByMostRecent();
+      // Pre-select the most recent group (first in sorted list)
+      if (_availableGroups.isNotEmpty) {
+        _selectedGroupId = _availableGroups.first.id;
+        _updateGroupMembers(_selectedGroupId!);
+      }
+    });
+  }
+
+  void _onGroupChanged(String groupId) {
+    // Update selected group and members
+    _selectedGroupId = groupId;
+    _updateGroupMembers(groupId);
+    
+    // Clear all existing assignments when group changes
+    _clearAllAssignments();
+    
+    // Force UI refresh to ensure all widgets reflect the new participant list
+    // This ensures QuantityAssignmentWidget and AssignmentSummaryWidget update properly
+    if (mounted) {
+      setState(() {
+        // State has been updated in _updateGroupMembers and _clearAllAssignments
+        // This setState ensures all child widgets receive the updated member list
+      });
+    }
+  }
+
+  void _updateGroupMembers(String groupId) {
+    final selectedGroup = _availableGroups.firstWhere(
+      (group) => group.id == groupId,
+      orElse: () => _availableGroups.first,
+    );
+
+    // Convert Group members to the format expected by the existing code
+    final newGroupMembers = selectedGroup.members.map((member) => {
+      'id': int.parse(member.id),
+      'name': member.name,
+      'avatar': member.avatar,
+    }).toList();
+
+    // Update group members and maintain UI state consistency
+    setState(() {
+      _groupMembers = newGroupMembers;
+      
+      // Reset assignment totals to ensure clean state with new participants
+      _previousIndividualTotals = null;
+      _currentIndividualTotals = null;
+      _equalSplitTotals = null;
+      
+      // Maintain expanded states but reset selection states that depend on members
+      // Keep _expandedQuantityItemId and _expandedItemId as they are item-specific
+      // Reset any member-specific selections if they exist
+    });
+  }
+
+  void _clearAllAssignments() {
+    setState(() {
+      // Clear all item assignments
+      for (var item in _items) {
+        item['assignedMembers'] = <String>[];
+        item['remainingQuantity'] = item['originalQuantity'];
+        item['quantityAssignments'] = <Map<String, dynamic>>[];
+      }
+      
+      // Clear quantity assignments
+      _quantityAssignments.clear();
+      
+      // Clear assignment totals
+      _previousIndividualTotals = null;
+      _currentIndividualTotals = null;
+      _equalSplitTotals = null;
+      
+      // Reset bulk selection state as member IDs may have changed
+      _selectedItems.clear();
+      
+      // Keep UI expansion states as they are item-specific, not member-specific
+      // _expandedQuantityItemId and _expandedItemId remain unchanged
+    });
+  }
+
+  bool _hasExistingAssignments() {
+    // Check if any items have assignments
+    final hasItemAssignments = _items.any((item) {
+      final assignedMembers = item['assignedMembers'] as List<String>? ?? [];
+      return assignedMembers.isNotEmpty;
+    });
+
+    // Check if there are any quantity assignments
+    final hasQuantityAssignments = _quantityAssignments.isNotEmpty;
+
+    return hasItemAssignments || hasQuantityAssignments;
+  }
+
+  /// Validates that all assignment data is consistent with current member list
+  void _validateAssignmentConsistency() {
+    final currentMemberIds = _groupMembers.map((m) => m['id'].toString()).toSet();
+    
+    // Validate quantity assignments
+    for (var assignment in _quantityAssignments) {
+      final memberIds = assignment['memberIds'] as List<dynamic>? ?? [];
+      for (var memberId in memberIds) {
+        if (!currentMemberIds.contains(memberId.toString())) {
+          print('WARNING: Assignment contains invalid member ID: $memberId');
+        }
+      }
+    }
+    
+    // Validate item assignments
+    for (var item in _items) {
+      final assignedMembers = item['assignedMembers'] as List<String>? ?? [];
+      for (var memberId in assignedMembers) {
+        if (!currentMemberIds.contains(memberId)) {
+          print('WARNING: Item assignment contains invalid member ID: $memberId');
+        }
+      }
+    }
+  }
+
   void _onQuantityAssigned(Map<String, dynamic> assignment) {
     setState(() {
       _quantityAssignments.add(assignment);
@@ -117,6 +254,14 @@ class _ItemAssignmentState extends State<ItemAssignment>
         _items[itemIndex]['remainingQuantity'] =
             (_items[itemIndex]['originalQuantity'] as int) -
                 totalAssignedQuantity;
+        
+        // ALSO update assignedMembers to include all members from quantity assignments
+        final allAssignedMemberIds = <String>{};
+        for (var assign in currentAssignments) {
+          final memberIds = assign['memberIds'] as List<dynamic>? ?? [];
+          allAssignedMemberIds.addAll(memberIds.map((id) => id.toString()));
+        }
+        _items[itemIndex]['assignedMembers'] = allAssignedMemberIds.toList();
       }
     });
   }
@@ -143,22 +288,56 @@ class _ItemAssignmentState extends State<ItemAssignment>
         _items[itemIndex]['remainingQuantity'] =
             (_items[itemIndex]['originalQuantity'] as int) -
                 totalAssignedQuantity;
+        
+        // ALSO update assignedMembers to include all members from remaining quantity assignments
+        final allAssignedMemberIds = <String>{};
+        for (var assign in currentAssignments) {
+          final memberIds = assign['memberIds'] as List<dynamic>? ?? [];
+          allAssignedMemberIds.addAll(memberIds.map((id) => id.toString()));
+        }
+        _items[itemIndex]['assignedMembers'] = allAssignedMemberIds.toList();
       }
     });
   }
 
   void _toggleEqualSplit() {
     setState(() {
-      _isEqualSplit = !_isEqualSplit;
       if (_isEqualSplit) {
-        // Clear all individual assignments
-        for (var item in _items) {
-          item['assignedMembers'] =
-              _groupMembers.map((m) => m['id'].toString()).toList();
+        // Currently equal split is ON, turning it OFF
+        // Restore individual assignments from previously stored state
+        // The AssignmentSummaryWidget will handle showing individual totals
+        // based on _previousIndividualTotals
+      } else {
+        // Currently equal split is OFF, turning it ON
+        // Store current individual totals before switching to equal split
+        if (_currentIndividualTotals != null) {
+          _previousIndividualTotals = Map<String, double>.from(_currentIndividualTotals!);
+        }
+        
+        // Calculate and store equal split totals for reference
+        final totalAmount = _items.fold(0.0, (sum, item) => sum + (item['total_price'] as double? ?? 0.0));
+        final perMember = _groupMembers.isNotEmpty ? totalAmount / _groupMembers.length : 0.0;
+        
+        _equalSplitTotals = {};
+        for (var member in _groupMembers) {
+          _equalSplitTotals![member['id'].toString()] = perMember;
         }
       }
+      
+      _isEqualSplit = !_isEqualSplit;
     });
     HapticFeedback.lightImpact();
+  }
+
+  void _onIndividualTotalsChanged(Map<String, double> totals) {
+    // Store the current individual totals
+    _currentIndividualTotals = Map<String, double>.from(totals);
+    
+    // If we're not in equal split mode, also update previous individual totals
+    // This ensures we preserve the state when toggling between modes
+    if (!_isEqualSplit) {
+      _previousIndividualTotals = Map<String, double>.from(totals);
+    }
   }
 
   void _toggleBulkMode() {
@@ -321,20 +500,225 @@ class _ItemAssignmentState extends State<ItemAssignment>
       _isLoading = true;
     });
 
-    // Simulate processing
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        Navigator.pushNamed(context, AppRoutes.expenseCreation, arguments: {
-          'items': _items,
-          'isEqualSplit': _isEqualSplit,
-          'groupMembers': _groupMembers,
-          'quantityAssignments': _quantityAssignments,
-        });
+    try {
+      // Calculate total amount and prepare receipt mode data
+      final receiptData = _prepareReceiptModeData();
+      
+      // Validate receipt data
+      final validationError = receiptData.validate();
+      if (validationError != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Data validation error: $validationError')),
+        );
         setState(() {
           _isLoading = false;
         });
+        return;
       }
-    });
+
+      // Simulate processing
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          Navigator.pushNamed(
+            context,
+            AppRoutes.expenseCreation,
+            arguments: {
+              'receiptData': receiptData.toJson(),
+              'mode': 'receipt',
+            },
+          );
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      });
+    } catch (e) {
+      // Handle any errors in data preparation
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error preparing receipt data: $e')),
+      );
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  /// Prepares structured receipt mode data from current assignment state
+  ReceiptModeData _prepareReceiptModeData() {
+    // Calculate total amount - for equal split, always use total of all items
+    // For individual assignments, use assigned items
+    double totalAmount = 0.0;
+    
+    print('DEBUG: Calculating total - isEqualSplit: $_isEqualSplit, quantityAssignments: ${_quantityAssignments.length}, items: ${_items.length}');
+    
+    if (_isEqualSplit) {
+      // Equal split: always use total of all items regardless of assignments
+      for (var item in _items) {
+        final itemPrice = item['total_price'] as double? ?? 0.0;
+        print('DEBUG: Equal split - Item ${item['name']} has total_price: $itemPrice');
+        totalAmount += itemPrice;
+      }
+      print('DEBUG: Equal split - Total from all items: $totalAmount');
+    } else {
+      // Individual assignments: use assigned items only
+      if (_quantityAssignments.isNotEmpty) {
+        // Use quantity assignment prices when available
+        totalAmount = _quantityAssignments.fold(0.0, (sum, assignment) => 
+            sum + (assignment['totalPrice'] as double? ?? 0.0));
+        print('DEBUG: Individual assignments - Total from quantity assignments: $totalAmount');
+      } else {
+        // Fall back to item total prices for assigned items
+        for (var item in _items) {
+          final assignedMembers = item['assignedMembers'] as List<String>? ?? [];
+          if (assignedMembers.isNotEmpty) {
+            final itemPrice = item['total_price'] as double? ?? 0.0;
+            print('DEBUG: Individual assignments - Item ${item['name']} has total_price: $itemPrice');
+            totalAmount += itemPrice;
+          }
+        }
+        print('DEBUG: Individual assignments - Total from assigned items: $totalAmount');
+      }
+    }
+
+    // Create participant amount pairs from assignment data
+    List<ParticipantAmount> participantAmounts = [];
+    
+    print('DEBUG: _prepareReceiptModeData - isEqualSplit: $_isEqualSplit, totalAmount: $totalAmount, groupMembers: ${_groupMembers.length}');
+    
+    if (_isEqualSplit) {
+      // Equal split: divide total equally among all members
+      final perMemberAmount = _groupMembers.isNotEmpty ? totalAmount / _groupMembers.length : 0.0;
+      
+      print('DEBUG: Equal split - perMemberAmount: $perMemberAmount');
+      
+      for (var member in _groupMembers) {
+        final memberName = member['name'] ?? '';
+        print('DEBUG: Adding equal amount for $memberName: $perMemberAmount');
+        participantAmounts.add(ParticipantAmount(
+          name: memberName,
+          amount: perMemberAmount,
+        ));
+      }
+    } else {
+      // Individual assignments: calculate based on assigned items
+      participantAmounts = _calculateIndividualParticipantAmounts();
+    }
+
+    // Transform items to use camelCase keys for validation
+    List<Map<String, dynamic>> transformedItems = _items.map((item) {
+      Map<String, dynamic> transformedItem = Map<String, dynamic>.from(item);
+      // Convert total_price to totalPrice for validation
+      if (transformedItem.containsKey('total_price')) {
+        transformedItem['totalPrice'] = transformedItem['total_price'];
+      }
+      return transformedItem;
+    }).toList();
+
+    // Transform quantity assignments to individual participant entries for validation
+    List<Map<String, dynamic>>? transformedQuantityAssignments;
+    if (_quantityAssignments.isNotEmpty) {
+      transformedQuantityAssignments = [];
+      
+      for (var assignment in _quantityAssignments) {
+        final memberIds = assignment['memberIds'] as List<dynamic>? ?? [];
+        final quantity = assignment['quantity'] as int? ?? 1;
+        final totalPrice = assignment['totalPrice'] as double? ?? 0.0;
+        final itemId = assignment['itemId'];
+        
+        // Create individual assignment entries for each participant
+        for (var memberId in memberIds) {
+          // Calculate individual quantity and price for shared assignments
+          final individualQuantity = memberIds.length > 1 ? quantity : quantity;
+          final individualPrice = totalPrice / memberIds.length;
+          
+          transformedQuantityAssignments.add({
+            'itemId': itemId,
+            'participantId': memberId.toString(),
+            'quantity': individualQuantity,
+            'totalPrice': individualPrice,
+            'assignmentId': assignment['assignmentId'],
+            'isShared': memberIds.length > 1,
+          });
+        }
+      }
+    }
+
+    // Get the selected group information
+    final selectedGroup = _availableGroups.firstWhere(
+      (group) => group.id == _selectedGroupId,
+      orElse: () => _availableGroups.first,
+    );
+
+    // Create and return structured receipt mode data
+    return ReceiptModeData(
+      total: totalAmount,
+      participantAmounts: participantAmounts,
+      mode: 'receipt',
+      isEqualSplit: _isEqualSplit,
+      items: transformedItems,
+      groupMembers: _groupMembers,
+      quantityAssignments: transformedQuantityAssignments,
+      selectedGroupId: selectedGroup.id,
+      selectedGroupName: selectedGroup.name,
+    );
+  }
+
+  /// Calculates participant amounts based on individual item assignments
+  List<ParticipantAmount> _calculateIndividualParticipantAmounts() {
+    // Initialize amounts for all members
+    Map<String, double> memberAmounts = {};
+    for (var member in _groupMembers) {
+      memberAmounts[member['id'].toString()] = 0.0;
+    }
+
+    if (_quantityAssignments.isNotEmpty) {
+      // Calculate from quantity assignments
+      for (var assignment in _quantityAssignments) {
+        final memberIds = assignment['memberIds'] as List<dynamic>? ?? [];
+        final totalPrice = assignment['totalPrice'] as double? ?? 0.0;
+        final quantity = assignment['quantity'] as int? ?? 1;
+        
+        if (memberIds.isNotEmpty) {
+          final pricePerMember = totalPrice / memberIds.length;
+          for (var memberId in memberIds) {
+            final memberIdStr = memberId.toString();
+            if (memberAmounts.containsKey(memberIdStr)) {
+              memberAmounts[memberIdStr] = memberAmounts[memberIdStr]! + pricePerMember;
+            }
+          }
+        }
+      }
+    } else {
+      // Calculate from regular item assignments
+      for (var item in _items) {
+        final assignedMembers = item['assignedMembers'] as List<String>? ?? [];
+        final itemPrice = item['total_price'] as double? ?? 0.0;
+        
+        if (assignedMembers.isNotEmpty) {
+          final pricePerMember = itemPrice / assignedMembers.length;
+          for (var memberId in assignedMembers) {
+            if (memberAmounts.containsKey(memberId)) {
+              memberAmounts[memberId] = memberAmounts[memberId]! + pricePerMember;
+            }
+          }
+        }
+      }
+    }
+
+    // Convert to ParticipantAmount objects
+    List<ParticipantAmount> participantAmounts = [];
+    for (var member in _groupMembers) {
+      final memberId = member['id'].toString();
+      final memberName = member['name'] ?? '';
+      final amount = memberAmounts[memberId] ?? 0.0;
+      
+      participantAmounts.add(ParticipantAmount(
+        name: memberName,
+        amount: amount,
+      ));
+    }
+
+    return participantAmounts;
   }
 
   void _addParticipant() {
@@ -405,8 +789,15 @@ class _ItemAssignmentState extends State<ItemAssignment>
                   child: ElevatedButton(
                     onPressed: () {
                       if (nameController.text.isNotEmpty) {
+                        // Generate a unique random ID that doesn't conflict with existing members
+                        final existingIds = _groupMembers.map((m) => m['id'] as int).toSet();
+                        int newId;
+                        do {
+                          newId = DateTime.now().millisecondsSinceEpoch.remainder(1000000) + (existingIds.length + 1);
+                        } while (existingIds.contains(newId));
+                        
                         final newParticipant = {
-                          "id": _groupMembers.length + 1,
+                          "id": newId,
                           "name": nameController.text.trim(),
                           "avatar": avatarUrl,
                         };
@@ -664,7 +1055,13 @@ class _ItemAssignmentState extends State<ItemAssignment>
                         isEqualSplit: _isEqualSplit,
                         onToggleEqualSplit: _toggleEqualSplit,
                         onAddParticipant: _addParticipant,
-                        quantityAssignments: _quantityAssignments),
+                        quantityAssignments: _quantityAssignments,
+                        previousIndividualTotals: _previousIndividualTotals,
+                        onIndividualTotalsChanged: _onIndividualTotalsChanged,
+                        availableGroups: _availableGroups,
+                        selectedGroupId: _selectedGroupId,
+                        onGroupChanged: _onGroupChanged,
+                        hasExistingAssignments: _hasExistingAssignments()),
 
                     SizedBox(height: 3.h),
 

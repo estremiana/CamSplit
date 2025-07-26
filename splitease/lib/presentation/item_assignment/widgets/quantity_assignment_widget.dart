@@ -42,6 +42,18 @@ class _QuantityAssignmentWidgetState extends State<QuantityAssignmentWidget> {
   }
 
   @override
+  void didUpdateWidget(QuantityAssignmentWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    
+    // Handle dynamic participant list updates
+    if (oldWidget.members != widget.members) {
+      // Clear selected members if they no longer exist in the new member list
+      final newMemberIds = widget.members.map((m) => m['id'].toString()).toSet();
+      _selectedMemberIds.removeWhere((memberId) => !newMemberIds.contains(memberId));
+    }
+  }
+
+  @override
   void dispose() {
     _quantityController.dispose();
     super.dispose();
