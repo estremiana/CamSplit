@@ -12,6 +12,7 @@ class GroupCardWidget extends StatefulWidget {
   final VoidCallback? onEdit;
   final VoidCallback? onInvite;
   final VoidCallback? onSettings;
+  final VoidCallback? onViewDetails;
   final VoidCallback? onArchive;
   final VoidCallback? onLeave;
 
@@ -25,6 +26,7 @@ class GroupCardWidget extends StatefulWidget {
     this.onEdit,
     this.onInvite,
     this.onSettings,
+    this.onViewDetails,
     this.onArchive,
     this.onLeave,
   }) : super(key: key);
@@ -46,6 +48,7 @@ class _GroupCardWidgetState extends State<GroupCardWidget>
       duration: Duration(milliseconds: 300),
       vsync: this,
     );
+    _animationController.value = 0.0; // Explicitly set to collapsed
     _expandAnimation = CurvedAnimation(
       parent: _animationController,
       curve: Curves.easeInOut,
@@ -112,7 +115,10 @@ class _GroupCardWidgetState extends State<GroupCardWidget>
               : BorderSide.none,
         ),
         child: InkWell(
-          onTap: widget.isMultiSelectMode ? widget.onTap : _toggleExpanded,
+          key: Key('group_card_main_inkwell'),
+          onTap: widget.isMultiSelectMode 
+              ? widget.onTap 
+              : _toggleExpanded,
           onLongPress: widget.onLongPress,
           borderRadius: BorderRadius.circular(12.0),
           child: Column(
@@ -226,19 +232,20 @@ class _GroupCardWidgetState extends State<GroupCardWidget>
                   ],
                 ),
               ),
-              AnimatedBuilder(
-                animation: _expandAnimation,
-                builder: (context, child) {
-                  return ClipRect(
-                    child: Align(
-                      alignment: Alignment.topCenter,
-                      heightFactor: _expandAnimation.value,
-                      child: child,
-                    ),
-                  );
-                },
-                child: _buildExpandedContent(members, recentExpenses),
-              ),
+              if (_isExpanded)
+                AnimatedBuilder(
+                  animation: _animationController,
+                  builder: (context, child) {
+                    return ClipRect(
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        heightFactor: _animationController.value,
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: _buildExpandedContent(members, recentExpenses),
+                ),
             ],
           ),
         ),
@@ -478,13 +485,13 @@ class _GroupCardWidgetState extends State<GroupCardWidget>
       children: [
         Expanded(
           child: OutlinedButton.icon(
-            onPressed: widget.onEdit,
+            onPressed: widget.onViewDetails,
             icon: CustomIconWidget(
-              iconName: 'edit',
+              iconName: 'visibility',
               color: AppTheme.lightTheme.colorScheme.primary,
               size: 16,
             ),
-            label: Text('Edit'),
+            label: Text('View Details'),
           ),
         ),
         SizedBox(width: 2.w),
@@ -497,18 +504,6 @@ class _GroupCardWidgetState extends State<GroupCardWidget>
               size: 16,
             ),
             label: Text('Invite'),
-          ),
-        ),
-        SizedBox(width: 2.w),
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: widget.onSettings,
-            icon: CustomIconWidget(
-              iconName: 'settings',
-              color: AppTheme.lightTheme.colorScheme.primary,
-              size: 16,
-            ),
-            label: Text('Settings'),
           ),
         ),
       ],

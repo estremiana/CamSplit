@@ -18,6 +18,7 @@ class SplitOptionsWidget extends StatefulWidget {
   // Receipt mode parameters
   final bool isReceiptMode;
   final Map<String, double>? prefilledCustomAmounts;
+  final bool isReadOnly;
 
   const SplitOptionsWidget({
     super.key,
@@ -33,6 +34,7 @@ class SplitOptionsWidget extends StatefulWidget {
     required this.currencySymbol,
     this.isReceiptMode = false,
     this.prefilledCustomAmounts,
+    this.isReadOnly = false,
   });
 
   @override
@@ -210,7 +212,7 @@ class _SplitOptionsWidgetState extends State<SplitOptionsWidget> {
 
   Widget _buildSplitOption(
       String value, String label, IconData icon, bool isSelected) {
-    final isEnabled = !widget.isReceiptMode && widget.onSplitTypeChanged != null;
+    final isEnabled = !widget.isReceiptMode && !widget.isReadOnly && widget.onSplitTypeChanged != null;
     
     return Semantics(
       button: true,
@@ -220,7 +222,9 @@ class _SplitOptionsWidgetState extends State<SplitOptionsWidget> {
           ? 'Currently selected' 
           : isEnabled 
               ? 'Tap to select $label split'
-              : 'Disabled in receipt mode',
+              : widget.isReadOnly 
+                  ? 'Disabled in read-only mode'
+                  : 'Disabled in receipt mode',
       child: InkWell(
           onTap: isEnabled ? () {
             // Add haptic feedback for split type selection
@@ -317,7 +321,7 @@ class _SplitOptionsWidgetState extends State<SplitOptionsWidget> {
             label: 'Member $memberName',
             hint: isSelected ? 'Tap to deselect' : 'Tap to select',
             child: InkWell(
-                onTap: () => _toggleMember(memberName),
+                onTap: !widget.isReadOnly ? () => _toggleMember(memberName) : null,
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
                     padding: EdgeInsets.all(3.w),
@@ -573,10 +577,10 @@ class _SplitOptionsWidgetState extends State<SplitOptionsWidget> {
                                         return null;
                                       },
                                       autovalidateMode: AutovalidateMode.onUserInteraction,
-                                      onChanged: (value) {
+                                      onChanged: (!widget.isReceiptMode && !widget.isReadOnly) ? (value) {
                                         HapticFeedback.lightImpact();
                                         _updatePercentage(memberName, value);
-                                      },
+                                      } : null,
                                       onFieldSubmitted: (_) {
                                         final memberIndex = widget.groupMembers.indexWhere((m) => m['name'] == memberName);
                                         if (memberIndex < widget.groupMembers.length - 1) {
@@ -726,8 +730,8 @@ class _SplitOptionsWidgetState extends State<SplitOptionsWidget> {
                                       focusNode: _customAmountFocusNodes[memberName],
                                       keyboardType: TextInputType.numberWithOptions(decimal: true),
                                       textAlign: TextAlign.center,
-                                      enabled: !widget.isReceiptMode,
-                                      readOnly: widget.isReceiptMode,
+                                      enabled: !widget.isReceiptMode && !widget.isReadOnly,
+                                      readOnly: widget.isReceiptMode || widget.isReadOnly,
                                       decoration: InputDecoration(
                                         isDense: true,
                                         contentPadding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 1.h),
@@ -738,7 +742,7 @@ class _SplitOptionsWidgetState extends State<SplitOptionsWidget> {
                                           borderRadius: BorderRadius.circular(8),
                                           borderSide: BorderSide(color: AppTheme.lightTheme.colorScheme.primary)),
                                         hintText: '0.00',
-                                        suffixIcon: widget.isReceiptMode
+                                        suffixIcon: (widget.isReceiptMode || widget.isReadOnly)
                                             ? Icon(
                                                 Icons.lock_outline,
                                                 color: AppTheme.lightTheme.colorScheme.secondary.withOpacity(0.6),
@@ -760,18 +764,18 @@ class _SplitOptionsWidgetState extends State<SplitOptionsWidget> {
                                         return null;
                                       },
                                       autovalidateMode: AutovalidateMode.onUserInteraction,
-                                      onChanged: widget.isReceiptMode ? null : (value) {
+                                      onChanged: (widget.isReceiptMode || widget.isReadOnly) ? null : (value) {
                                         HapticFeedback.lightImpact();
                                         _updateCustomAmount(memberName, value);
                                       },
-                                      onFieldSubmitted: widget.isReceiptMode ? null : (_) {
+                                      onFieldSubmitted: (widget.isReceiptMode || widget.isReadOnly) ? null : (_) {
                                         final memberIndex = widget.groupMembers.indexWhere((m) => m['name'] == memberName);
                                         if (memberIndex < widget.groupMembers.length - 1) {
                                           final nextMember = widget.groupMembers[memberIndex + 1]['name'].toString();
                                           _customAmountFocusNodes[nextMember]?.requestFocus();
                                         }
                                       },
-                                      inputFormatters: widget.isReceiptMode ? [] : [
+                                      inputFormatters: (widget.isReceiptMode || widget.isReadOnly) ? [] : [
                                         FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
                                       ],
                                     ),
@@ -816,7 +820,7 @@ class _SplitOptionsWidgetState extends State<SplitOptionsWidget> {
           Text('Split Options',
               style: AppTheme.lightTheme.textTheme.titleMedium
                   ?.copyWith(fontWeight: FontWeight.w600)),
-          if (widget.isReceiptMode)
+          if (widget.isReceiptMode || widget.isReadOnly)
             Container(
               margin: EdgeInsets.only(left: 2.w),
               padding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 0.5.h),
@@ -838,7 +842,7 @@ class _SplitOptionsWidgetState extends State<SplitOptionsWidget> {
                   ),
                   SizedBox(width: 1.w),
                   Text(
-                    'Locked',
+                    widget.isReadOnly ? 'Read Only' : 'Locked',
                     style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
                       color: AppTheme.lightTheme.colorScheme.primary,
                       fontWeight: FontWeight.w500,

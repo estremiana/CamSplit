@@ -181,10 +181,21 @@ class _ExpenseCreationState extends State<ExpenseCreation>
   }
 
   void _initializeFromArguments() {
-    // Read arguments for receipt mode initialization
+    // Read arguments for receipt mode initialization and group context
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     
     if (args != null && !_isReceiptMode) {
+      // Handle group context from group detail page
+      if (args['groupId'] != null) {
+        final groupId = args['groupId'] as int;
+        final group = MockGroupData.getGroupById(groupId.toString());
+        if (group != null) {
+          setState(() {
+            _selectedGroup = group.name;
+          });
+        }
+      }
+      
       // Handle backward compatibility for receipt mode via arguments
       if (args['receiptData'] != null) {
         try {

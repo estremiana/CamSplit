@@ -617,23 +617,8 @@ class _ExpenseDashboardState extends State<ExpenseDashboard>
         ),
         BottomNavigationBarItem(
           icon: CustomIconWidget(
-            iconName: 'receipt_outlined',
-            color: _currentBottomNavIndex == 2
-                ? AppTheme.lightTheme.primaryColor
-                : AppTheme.textSecondaryLight,
-            size: 24,
-          ),
-          activeIcon: CustomIconWidget(
-            iconName: 'receipt',
-            color: AppTheme.lightTheme.primaryColor,
-            size: 24,
-          ),
-          label: 'Receipts',
-        ),
-        BottomNavigationBarItem(
-          icon: CustomIconWidget(
             iconName: 'person_outlined',
-            color: _currentBottomNavIndex == 3
+            color: _currentBottomNavIndex == 2
                 ? AppTheme.lightTheme.primaryColor
                 : AppTheme.textSecondaryLight,
             size: 24,
@@ -700,16 +685,13 @@ class _ExpenseDashboardState extends State<ExpenseDashboard>
         Navigator.pushNamed(context, '/group-management');
         break;
       case 2:
-        // Navigate to receipts screen
-        break;
-      case 3:
-        // Navigate to profile screen
+        Navigator.pushNamed(context, '/profile-settings');
         break;
     }
   }
 
   void _navigateToProfile() {
-    // Navigate to profile screen
+    Navigator.pushNamed(context, '/profile-settings');
   }
 
   void _showNotifications() {

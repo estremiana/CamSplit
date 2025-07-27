@@ -297,6 +297,52 @@ class ApiService {
       throw _handleDioError(e);
     }
   }
+  
+  // Group detail endpoints for comprehensive group information
+  Future<Map<String, dynamic>> getGroupDetails(String groupId) async {
+    try {
+      final response = await _dio.get('/groups/$groupId/details');
+      return response.data;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+  
+  Future<Map<String, dynamic>> getUserBalance(String groupId) async {
+    try {
+      final response = await _dio.get('/groups/$groupId/balance');
+      return response.data;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+  
+  Future<Map<String, dynamic>> getDebtRelationships(String groupId) async {
+    try {
+      final response = await _dio.get('/groups/$groupId/debts');
+      return response.data;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+  
+  Future<Map<String, dynamic>> shareGroup(String groupId) async {
+    try {
+      final response = await _dio.post('/groups/$groupId/share');
+      return response.data;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+  
+  Future<Map<String, dynamic>> leaveGroup(String groupId) async {
+    try {
+      final response = await _dio.post('/groups/$groupId/leave');
+      return response.data;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
 
   // Utility methods
   Future<void> logout() async {

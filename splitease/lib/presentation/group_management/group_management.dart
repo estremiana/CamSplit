@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
 
 import '../../core/app_export.dart';
@@ -15,7 +16,6 @@ class GroupManagement extends StatefulWidget {
 
 class _GroupManagementState extends State<GroupManagement>
     with TickerProviderStateMixin {
-  late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
   final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
       GlobalKey<RefreshIndicatorState>();
@@ -25,6 +25,7 @@ class _GroupManagementState extends State<GroupManagement>
   String _searchQuery = '';
   List<int> _selectedGroupIds = [];
   bool _isMultiSelectMode = false;
+  int _currentBottomNavIndex = 1;
 
   // Mock data for groups
   final List<Map<String, dynamic>> _allGroups = [
@@ -210,14 +211,12 @@ class _GroupManagementState extends State<GroupManagement>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this, initialIndex: 2);
     _filteredGroups = List.from(_allGroups);
     _searchController.addListener(_onSearchChanged);
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -340,6 +339,7 @@ class _GroupManagementState extends State<GroupManagement>
       appBar: AppBar(
         backgroundColor: AppTheme.lightTheme.appBarTheme.backgroundColor,
         elevation: AppTheme.lightTheme.appBarTheme.elevation,
+        automaticallyImplyLeading: false,
         title: _isSearching
             ? TextField(
                 controller: _searchController,
@@ -402,59 +402,6 @@ class _GroupManagementState extends State<GroupManagement>
             ),
           ],
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: [
-            Tab(
-              icon: CustomIconWidget(
-                iconName: 'dashboard',
-                color: AppTheme.lightTheme.tabBarTheme.unselectedLabelColor,
-                size: 20,
-              ),
-              text: 'Dashboard',
-            ),
-            Tab(
-              icon: CustomIconWidget(
-                iconName: 'camera_alt',
-                color: AppTheme.lightTheme.tabBarTheme.unselectedLabelColor,
-                size: 20,
-              ),
-              text: 'Capture',
-            ),
-            Tab(
-              icon: CustomIconWidget(
-                iconName: 'group',
-                color: AppTheme.lightTheme.tabBarTheme.labelColor,
-                size: 20,
-              ),
-              text: 'Groups',
-            ),
-            Tab(
-              icon: CustomIconWidget(
-                iconName: 'person',
-                color: AppTheme.lightTheme.tabBarTheme.unselectedLabelColor,
-                size: 20,
-              ),
-              text: 'Profile',
-            ),
-          ],
-          onTap: (index) {
-            switch (index) {
-              case 0:
-                Navigator.pushNamed(context, '/expense-dashboard');
-                break;
-              case 1:
-                Navigator.pushNamed(context, '/camera-receipt-capture');
-                break;
-              case 2:
-                // Current screen - Groups
-                break;
-              case 3:
-                // Profile screen - not implemented
-                break;
-            }
-          },
-        ),
       ),
       body: _filteredGroups.isEmpty && _searchQuery.isNotEmpty
           ? _buildNoSearchResults()
@@ -478,7 +425,86 @@ class _GroupManagementState extends State<GroupManagement>
                 size: 24,
               ),
             ),
+      bottomNavigationBar: _buildBottomNavigationBar(),
     );
+  }
+
+  Widget _buildBottomNavigationBar() {
+    return BottomNavigationBar(
+      currentIndex: _currentBottomNavIndex,
+      onTap: _onBottomNavTap,
+      type: BottomNavigationBarType.fixed,
+      backgroundColor: AppTheme.lightTheme.cardColor,
+      selectedItemColor: AppTheme.lightTheme.primaryColor,
+      unselectedItemColor: AppTheme.textSecondaryLight,
+      elevation: 8.0,
+      items: [
+        BottomNavigationBarItem(
+          icon: CustomIconWidget(
+            iconName: 'dashboard_outlined',
+            color: _currentBottomNavIndex == 0
+                ? AppTheme.lightTheme.primaryColor
+                : AppTheme.textSecondaryLight,
+            size: 24,
+          ),
+          activeIcon: CustomIconWidget(
+            iconName: 'dashboard',
+            color: AppTheme.lightTheme.primaryColor,
+            size: 24,
+          ),
+          label: 'Dashboard',
+        ),
+        BottomNavigationBarItem(
+          icon: CustomIconWidget(
+            iconName: 'group_outlined',
+            color: _currentBottomNavIndex == 1
+                ? AppTheme.lightTheme.primaryColor
+                : AppTheme.textSecondaryLight,
+            size: 24,
+          ),
+          activeIcon: CustomIconWidget(
+            iconName: 'group',
+            color: AppTheme.lightTheme.primaryColor,
+            size: 24,
+          ),
+          label: 'Groups',
+        ),
+        BottomNavigationBarItem(
+          icon: CustomIconWidget(
+            iconName: 'person_outlined',
+            color: _currentBottomNavIndex == 2
+                ? AppTheme.lightTheme.primaryColor
+                : AppTheme.textSecondaryLight,
+            size: 24,
+          ),
+          activeIcon: CustomIconWidget(
+            iconName: 'person',
+            color: AppTheme.lightTheme.primaryColor,
+            size: 24,
+          ),
+          label: 'Profile',
+        ),
+      ],
+    );
+  }
+
+  void _onBottomNavTap(int index) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      _currentBottomNavIndex = index;
+    });
+
+    switch (index) {
+      case 0:
+        Navigator.pushNamed(context, '/expense-dashboard');
+        break;
+      case 1:
+        // Already on groups screen
+        break;
+      case 2:
+        Navigator.pushNamed(context, '/profile-settings');
+        break;
+    }
   }
 
   Widget _buildNoSearchResults() {
@@ -532,6 +558,13 @@ class _GroupManagementState extends State<GroupManagement>
               _toggleMultiSelect();
               _toggleGroupSelection(group['id']);
             }
+          },
+          onViewDetails: () {
+            Navigator.pushNamed(
+              context,
+              AppRoutes.groupDetail,
+              arguments: {'groupId': group['id']},
+            );
           },
           onEdit: () {
             // Navigate to edit group screen
