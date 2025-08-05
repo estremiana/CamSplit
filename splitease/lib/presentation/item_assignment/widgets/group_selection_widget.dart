@@ -19,6 +19,9 @@ class GroupSelectionWidget extends StatefulWidget {
   
   /// Whether there are existing assignments that would be reset on group change
   final bool hasExistingAssignments;
+  
+  /// Whether groups are currently being loaded
+  final bool isLoading;
 
   const GroupSelectionWidget({
     super.key,
@@ -26,6 +29,7 @@ class GroupSelectionWidget extends StatefulWidget {
     this.selectedGroupId,
     required this.onGroupChanged,
     required this.hasExistingAssignments,
+    this.isLoading = false,
   });
 
   @override
@@ -94,7 +98,7 @@ class _GroupSelectionWidgetState extends State<GroupSelectionWidget> {
   /// Builds the dropdown menu item for a group
   DropdownMenuItem<String> _buildGroupDropdownItem(Group group) {
     return DropdownMenuItem<String>(
-      value: group.id,
+      value: group.id.toString(),
       child: Row(
         children: [
           // Group icon/avatar placeholder
@@ -156,36 +160,61 @@ class _GroupSelectionWidgetState extends State<GroupSelectionWidget> {
                   ),
                   borderRadius: BorderRadius.circular(8.0),
                 ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: widget.selectedGroupId,
-                    hint: Semantics(
-                      label: 'Select a group',
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.5.h),
-                        child: Text(
-                          _sortedGroups.isEmpty 
-                            ? 'No groups available'
-                            : 'Select a group',
-                          style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                child: widget.isLoading
+                  ? Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.5.h),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                AppTheme.lightTheme.colorScheme.primary,
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 2.w),
+                          Text(
+                            'Loading groups...',
+                            style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                              color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: widget.selectedGroupId,
+                        hint: Semantics(
+                          label: 'Select a group',
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.5.h),
+                            child: Text(
+                              _sortedGroups.isEmpty 
+                                ? 'No groups available'
+                                : 'Select a group',
+                              style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                                color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        ),
+                        items: _sortedGroups.isEmpty 
+                          ? null
+                          : _sortedGroups.map(_buildGroupDropdownItem).toList(),
+                        onChanged: _sortedGroups.isEmpty ? null : _handleGroupSelection,
+                        isExpanded: true,
+                        icon: Padding(
+                          padding: EdgeInsets.only(right: 3.w),
+                          child: Icon(
+                            Icons.keyboard_arrow_down,
                             color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
                           ),
                         ),
-                      ),
-                    ),
-                    items: _sortedGroups.isEmpty 
-                      ? null
-                      : _sortedGroups.map(_buildGroupDropdownItem).toList(),
-                    onChanged: _sortedGroups.isEmpty ? null : _handleGroupSelection,
-                    isExpanded: true,
-                    icon: Padding(
-                      padding: EdgeInsets.only(right: 3.w),
-                      child: Icon(
-                        Icons.keyboard_arrow_down,
-                        color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    selectedItemBuilder: (BuildContext context) {
+                        selectedItemBuilder: (BuildContext context) {
                       return _sortedGroups.map<Widget>((Group group) {
                         return Padding(
                           padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.5.h),

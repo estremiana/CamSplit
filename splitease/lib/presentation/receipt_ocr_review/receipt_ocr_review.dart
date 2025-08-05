@@ -56,10 +56,16 @@ class _ReceiptOcrReviewState extends State<ReceiptOcrReview> {
       // Get the arguments from the previous screen
       final args = ModalRoute.of(context)?.settings.arguments;
       if (args is Map && args['ocrResult'] != null) {
-        // Use the OCR result directly if provided
+        final ocrResult = args['ocrResult'];
+        final selectedGroup = args['selectedGroup'];
+        
+        // Handle the new backend response structure
+        final data = ocrResult['data'] ?? ocrResult; // Backend returns data field
+        final items = data['items'] ?? [];
+        
         setState(() {
           final rand = Random();
-          _extractedItems = List<Map<String, dynamic>>.from(args['ocrResult']['items'] ?? [])
+          _extractedItems = List<Map<String, dynamic>>.from(items)
             .map((item) {
               if (item.containsKey('description') && !item.containsKey('name')) {
                 item['name'] = item['description'];

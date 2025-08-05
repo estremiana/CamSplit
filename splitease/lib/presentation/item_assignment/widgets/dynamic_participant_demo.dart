@@ -39,7 +39,7 @@ class _DynamicParticipantDemoState extends State<DynamicParticipantDemo> {
         
         // Pre-select the first group
         if (_availableGroups.isNotEmpty) {
-          _selectedGroupId = _availableGroups.first.id;
+          _selectedGroupId = _availableGroups.first.id.toString();
           _updateGroupMembers(_selectedGroupId!);
         }
       });
@@ -79,15 +79,15 @@ class _DynamicParticipantDemoState extends State<DynamicParticipantDemo> {
 
   void _updateGroupMembers(String groupId) {
     final selectedGroup = _availableGroups.firstWhere(
-      (group) => group.id == groupId,
+      (group) => group.id.toString() == groupId,
       orElse: () => _availableGroups.first,
     );
 
     setState(() {
       _groupMembers = selectedGroup.members.map((member) => {
-        'id': int.parse(member.id),
-        'name': member.name,
-        'avatar': member.avatar,
+        'id': member.id,
+        'name': member.nickname,
+        'avatar': 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(member.nickname)}&background=4F46E5&color=fff',
       }).toList();
       
       // Clear assignments when group changes (this handles requirement 3.3)
@@ -240,7 +240,16 @@ class _DynamicParticipantDemoState extends State<DynamicParticipantDemo> {
                 children: _groupMembers.map((member) {
                   return Chip(
                     avatar: CircleAvatar(
-                      backgroundImage: NetworkImage(member['avatar']),
+                      backgroundColor: AppTheme.lightTheme.colorScheme.primaryContainer,
+                      child: ClipOval(
+                        child: CustomImageWidget(
+                          imageUrl: member['avatar'],
+                          width: 24,
+                          height: 24,
+                          fit: BoxFit.cover,
+                          userName: member['name'],
+                        ),
+                      ),
                     ),
                     label: Text(member['name']),
                   );

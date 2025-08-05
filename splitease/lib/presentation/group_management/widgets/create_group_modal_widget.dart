@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 
 import '../../../core/app_export.dart';
+import '../../../models/group.dart';
+import '../../../services/group_service.dart';
+import '../../../routes/app_routes.dart';
+import '../../../widgets/group_creation_progress.dart';
 
 class CreateGroupModalWidget extends StatefulWidget {
-  final Function(Map<String, dynamic>) onGroupCreated;
+  final Function(Group) onGroupCreated;
 
   const CreateGroupModalWidget({
     Key? key,
@@ -25,6 +29,19 @@ class _CreateGroupModalWidgetState extends State<CreateGroupModalWidget> {
   final List<String> _currencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD'];
   final List<String> _inviteEmails = [];
   bool _isLoading = false;
+  bool _isCreating = false;
+  String? _errorMessage;
+  int _creationStep = 0; // 0: form, 1: creating, 2: success, 3: error
+  Group? _createdGroup;
+  
+  // Progress tracking
+  int _currentProgressStep = 1;
+  final List<String> _progressSteps = [
+    'Validating group details',
+    'Creating group',
+    'Sending invitations',
+    'Setting up group settings',
+  ];
 
   @override
   void dispose() {
@@ -60,21 +77,94 @@ class _CreateGroupModalWidgetState extends State<CreateGroupModalWidget> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
-      _isLoading = true;
+      _isCreating = true;
+      _creationStep = 1;
+      _errorMessage = null;
+      _currentProgressStep = 1;
     });
 
-    // Simulate API call
-    await Future.delayed(Duration(seconds: 2));
+    try {
+      // Simulate progress steps
+      await _simulateProgressSteps();
+      
+      // Create group using real service
+      final newGroup = await GroupService.createGroup(
+        _nameController.text.trim(),
+        _inviteEmails,
+      );
 
-    final groupData = {
-      'name': _nameController.text.trim(),
-      'description': _descriptionController.text.trim(),
-      'currency': _selectedCurrency,
-      'inviteEmails': _inviteEmails,
-    };
+      setState(() {
+        _createdGroup = newGroup;
+        _creationStep = 2;
+        _isCreating = false;
+        _currentProgressStep = _progressSteps.length;
+      });
 
-    widget.onGroupCreated(groupData);
-    Navigator.pop(context);
+      // Call the callback to update the parent widget
+      widget.onGroupCreated(newGroup);
+
+      // Auto-navigate to group detail page after a short delay
+      await Future.delayed(const Duration(milliseconds: 1500));
+      
+      if (mounted) {
+        Navigator.pop(context); // Close the modal
+        
+        // Navigate to the group detail page
+        Navigator.pushNamed(
+          context,
+          AppRoutes.groupDetail,
+          arguments: {
+            'groupId': newGroup.id,
+            'isNewGroup': true,
+          },
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+        _creationStep = 3;
+        _isCreating = false;
+      });
+    }
+  }
+
+  Future<void> _simulateProgressSteps() async {
+    // Step 1: Validating group details
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (mounted) {
+      setState(() {
+        _currentProgressStep = 2;
+      });
+    }
+    
+    // Step 2: Creating group
+    await Future.delayed(const Duration(milliseconds: 1200));
+    if (mounted) {
+      setState(() {
+        _currentProgressStep = 3;
+      });
+    }
+    
+    // Step 3: Sending invitations (only if there are emails)
+    if (_inviteEmails.isNotEmpty) {
+      await Future.delayed(const Duration(milliseconds: 1000));
+      if (mounted) {
+        setState(() {
+          _currentProgressStep = 4;
+        });
+      }
+    }
+    
+    // Step 4: Setting up group settings
+    await Future.delayed(const Duration(milliseconds: 600));
+  }
+
+  void _retryCreation() {
+    setState(() {
+      _creationStep = 0;
+      _errorMessage = null;
+    });
+    _createGroup();
   }
 
   void _generateShareLink() {
@@ -167,16 +257,18 @@ class _CreateGroupModalWidgetState extends State<CreateGroupModalWidget> {
             child: Row(
               children: [
                 IconButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: _isCreating ? null : () => Navigator.pop(context),
                   icon: CustomIconWidget(
                     iconName: 'close',
-                    color: AppTheme.lightTheme.colorScheme.onSurface,
+                    color: _isCreating 
+                        ? AppTheme.lightTheme.colorScheme.onSurfaceVariant
+                        : AppTheme.lightTheme.colorScheme.onSurface,
                     size: 24,
                   ),
                 ),
                 Expanded(
                   child: Text(
-                    'Create New Group',
+                    _getHeaderText(),
                     style:
                         AppTheme.lightTheme.textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w600,
@@ -191,24 +283,217 @@ class _CreateGroupModalWidgetState extends State<CreateGroupModalWidget> {
           Divider(color: AppTheme.lightTheme.dividerColor),
           // Content
           Expanded(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.all(4.w),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildBasicInfo(),
-                    SizedBox(height: 3.h),
-                    _buildCurrencySelection(),
-                    SizedBox(height: 3.h),
-                    _buildInviteSection(),
-                    SizedBox(height: 4.h),
-                    _buildCreateButton(),
-                  ],
-                ),
+            child: _buildContent(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getHeaderText() {
+    switch (_creationStep) {
+      case 0:
+        return 'Create New Group';
+      case 1:
+        return 'Creating Group...';
+      case 2:
+        return 'Group Created!';
+      case 3:
+        return 'Creation Failed';
+      default:
+        return 'Create New Group';
+    }
+  }
+
+  Widget _buildContent() {
+    switch (_creationStep) {
+      case 0:
+        return _buildFormContent();
+      case 1:
+        return _buildCreatingContent();
+      case 2:
+        return _buildSuccessContent();
+      case 3:
+        return _buildErrorContent();
+      default:
+        return _buildFormContent();
+    }
+  }
+
+  Widget _buildFormContent() {
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(4.w),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildBasicInfo(),
+            SizedBox(height: 3.h),
+            _buildCurrencySelection(),
+            SizedBox(height: 3.h),
+            _buildInviteSection(),
+            SizedBox(height: 4.h),
+            _buildCreateButton(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCreatingContent() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 20.w,
+            height: 20.w,
+            child: CircularProgressIndicator(
+              strokeWidth: 3.0,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                AppTheme.lightTheme.primaryColor,
               ),
             ),
+          ),
+          SizedBox(height: 4.h),
+          Text(
+            'Creating your group...',
+            style: AppTheme.lightTheme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 2.h),
+          Text(
+            'Please wait while we set up your group and send invitations.',
+            style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+              color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 4.h),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4.w),
+            child: GroupCreationProgress(
+              currentStep: _currentProgressStep,
+              totalSteps: _progressSteps.length,
+              stepLabels: _progressSteps,
+              isAnimating: true,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+
+  Widget _buildSuccessContent() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 20.w,
+            height: 20.w,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.green,
+            ),
+            child: Icon(
+              Icons.check,
+              size: 12.w,
+              color: Colors.white,
+            ),
+          ),
+          SizedBox(height: 4.h),
+          Text(
+            'Group Created Successfully!',
+            style: AppTheme.lightTheme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: Colors.green,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 2.h),
+          Text(
+            'Redirecting to your new group...',
+            style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+              color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorContent() {
+    return Padding(
+      padding: EdgeInsets.all(4.w),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 20.w,
+            height: 20.w,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppTheme.errorLight,
+            ),
+            child: Icon(
+              Icons.error_outline,
+              size: 12.w,
+              color: Colors.white,
+            ),
+          ),
+          SizedBox(height: 4.h),
+          Text(
+            'Creation Failed',
+            style: AppTheme.lightTheme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: AppTheme.errorLight,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 2.h),
+          Container(
+            padding: EdgeInsets.all(3.w),
+            decoration: BoxDecoration(
+              color: AppTheme.lightTheme.colorScheme.errorContainer,
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+            child: Text(
+              _errorMessage ?? 'An unexpected error occurred',
+              style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                color: AppTheme.lightTheme.colorScheme.onErrorContainer,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          SizedBox(height: 4.h),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {
+                    setState(() {
+                      _creationStep = 0;
+                      _errorMessage = null;
+                    });
+                  },
+                  child: Text('Edit Details'),
+                ),
+              ),
+              SizedBox(width: 3.w),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _retryCreation,
+                  child: Text('Try Again'),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -409,8 +694,8 @@ class _CreateGroupModalWidgetState extends State<CreateGroupModalWidget> {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: _isLoading ? null : _createGroup,
-        child: _isLoading
+        onPressed: _isCreating ? null : _createGroup,
+        child: _isCreating
             ? Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

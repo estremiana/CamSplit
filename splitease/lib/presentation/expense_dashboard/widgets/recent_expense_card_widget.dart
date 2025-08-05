@@ -29,12 +29,11 @@ class RecentExpenseCardWidget extends StatelessWidget {
     final amount = expense["amount"] as double;
     final description = expense["description"] as String;
     final group = expense["group"] as String;
-    final category = expense["category"] as String;
     final receiptUrl = expense["receiptUrl"] as String;
     final paidBy = expense["paidBy"] as String;
-    final status = expense["status"] as String;
     final date = expense["date"] as DateTime;
     final splitWith = expense["splitWith"] as List;
+    final amountOwed = expense["amountOwed"] as double? ?? 0.0;
 
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
@@ -103,43 +102,13 @@ class RecentExpenseCardWidget extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                description,
-                                style: AppTheme.lightTheme.textTheme.titleMedium
-                                    ?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 2.w,
-                                vertical: 0.5.h,
-                              ),
-                              decoration: BoxDecoration(
-                                color: status == 'settled'
-                                    ? AppTheme.successLight
-                                        .withValues(alpha: 0.1)
-                                    : AppTheme.warningLight
-                                        .withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(12.0),
-                              ),
-                              child: Text(
-                                status.toUpperCase(),
-                                style: AppTheme.lightTheme.textTheme.labelSmall
-                                    ?.copyWith(
-                                  color: status == 'settled'
-                                      ? AppTheme.successLight
-                                      : AppTheme.warningLight,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ],
+                        Text(
+                          description,
+                          style: AppTheme.lightTheme.textTheme.titleMedium
+                              ?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                         SizedBox(height: 0.5.h),
                         Row(
@@ -157,53 +126,22 @@ class RecentExpenseCardWidget extends StatelessWidget {
                                 color: AppTheme.textSecondaryLight,
                               ),
                             ),
-                            SizedBox(width: 2.w),
-                            CustomIconWidget(
-                              iconName: 'category',
-                              color: AppTheme.textSecondaryLight,
-                              size: 14,
-                            ),
-                            SizedBox(width: 1.w),
-                            Text(
-                              category,
-                              style: AppTheme.lightTheme.textTheme.bodySmall
-                                  ?.copyWith(
-                                color: AppTheme.textSecondaryLight,
-                              ),
-                            ),
                           ],
                         ),
                         SizedBox(height: 0.5.h),
-                        Row(
-                          children: [
-                            Text(
-                              'Paid by $paidBy',
-                              style: AppTheme.lightTheme.textTheme.bodySmall
-                                  ?.copyWith(
-                                color: AppTheme.textSecondaryLight,
-                              ),
-                            ),
-                            SizedBox(width: 2.w),
-                            CustomIconWidget(
-                              iconName: 'schedule',
-                              color: AppTheme.textSecondaryLight,
-                              size: 12,
-                            ),
-                            SizedBox(width: 1.w),
-                            Text(
-                              _formatDate(date),
-                              style: AppTheme.lightTheme.textTheme.bodySmall
-                                  ?.copyWith(
-                                color: AppTheme.textSecondaryLight,
-                              ),
-                            ),
-                          ],
+                        Text(
+                          'Paid by $paidBy',
+                          style: AppTheme.lightTheme.textTheme.bodySmall
+                              ?.copyWith(
+                            color: AppTheme.textSecondaryLight,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
                   ),
                   SizedBox(width: 2.w),
-                  // Amount and split info
+                  // Amount, amount owed, and timestamp info
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
@@ -217,28 +155,39 @@ class RecentExpenseCardWidget extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      SizedBox(height: 0.5.h),
-                      Text(
-                        'Split ${splitWith.length + 1} ways',
-                        style:
-                            AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-                          color: AppTheme.textSecondaryLight,
+                      if (amountOwed > 0) ...[
+                        SizedBox(height: 0.3.h),
+                        Text(
+                          isPrivacyMode
+                              ? '••••••'
+                              : '\$${amountOwed.toStringAsFixed(2)}',
+                          style: AppTheme.getMonospaceStyle(
+                            isLight: true,
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w500,
+                          ).copyWith(
+                            color: AppTheme.errorLight,
+                          ),
                         ),
-                      ),
+                      ],
                       SizedBox(height: 0.5.h),
-                      Text(
-                        isPrivacyMode
-                            ? '••••••'
-                            : '\$${(amount / (splitWith.length + 1)).toStringAsFixed(2)}',
-                        style: AppTheme.getMonospaceStyle(
-                          isLight: true,
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w500,
-                        ).copyWith(
-                          color: paidBy == 'You'
-                              ? AppTheme.successLight
-                              : AppTheme.warningLight,
-                        ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CustomIconWidget(
+                            iconName: 'schedule',
+                            color: AppTheme.textSecondaryLight,
+                            size: 12,
+                          ),
+                          SizedBox(width: 1.w),
+                          Text(
+                            _formatDate(date),
+                            style: AppTheme.lightTheme.textTheme.bodySmall
+                                ?.copyWith(
+                              color: AppTheme.textSecondaryLight,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

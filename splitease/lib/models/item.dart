@@ -4,8 +4,8 @@ class Item {
   final double unitPrice;
   final double totalPrice;
   final int quantity;
-  final int billId;
-  final int? participantId;
+  final int expenseId;
+  final double? confidence;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -15,21 +15,21 @@ class Item {
     required this.unitPrice,
     required this.totalPrice,
     required this.quantity,
-    required this.billId,
-    this.participantId,
+    required this.expenseId,
+    this.confidence,
     required this.createdAt,
     required this.updatedAt,
   });
 
   factory Item.fromJson(Map<String, dynamic> json) {
     return Item(
-      id: json['id'],
-      name: json['name'],
-      unitPrice: (json['unit_price'] ?? 0).toDouble(),
-      totalPrice: (json['total_price'] ?? 0).toDouble(),
-      quantity: json['quantity'] ?? 1,
-      billId: json['bill_id'],
-      participantId: json['participant_id'],
+      id: int.tryParse(json['id'].toString()) ?? 0,
+      name: json['name'] ?? json['description'] ?? '',
+      unitPrice: double.tryParse(json['unit_price'].toString()) ?? 0.0,
+      totalPrice: double.tryParse(json['total_price'].toString()) ?? 0.0,
+      quantity: int.tryParse(json['quantity'].toString()) ?? 1,
+      expenseId: int.tryParse(json['expense_id'].toString()) ?? 0,
+      confidence: json['confidence'] != null ? double.tryParse(json['confidence'].toString()) : null,
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
     );
@@ -42,8 +42,8 @@ class Item {
       'unit_price': unitPrice,
       'total_price': totalPrice,
       'quantity': quantity,
-      'bill_id': billId,
-      'participant_id': participantId,
+      'expense_id': expenseId,
+      'confidence': confidence,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -55,8 +55,8 @@ class Item {
     double? unitPrice,
     double? totalPrice,
     int? quantity,
-    int? billId,
-    int? participantId,
+    int? expenseId,
+    double? confidence,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -66,8 +66,8 @@ class Item {
       unitPrice: unitPrice ?? this.unitPrice,
       totalPrice: totalPrice ?? this.totalPrice,
       quantity: quantity ?? this.quantity,
-      billId: billId ?? this.billId,
-      participantId: participantId ?? this.participantId,
+      expenseId: expenseId ?? this.expenseId,
+      confidence: confidence ?? this.confidence,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

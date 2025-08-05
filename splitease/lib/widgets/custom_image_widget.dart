@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'initials_avatar_widget.dart';
 
 class CustomImageWidget extends StatelessWidget {
   final String? imageUrl;
@@ -9,8 +10,11 @@ class CustomImageWidget extends StatelessWidget {
   final BoxFit fit;
 
   /// Optional widget to show when the image fails to load.
-  /// If null, a default asset image is shown.
+  /// If null, a default initials avatar or asset image is shown.
   final Widget? errorWidget;
+  
+  /// User name for initials fallback
+  final String? userName;
 
   const CustomImageWidget({
     Key? key,
@@ -19,6 +23,7 @@ class CustomImageWidget extends StatelessWidget {
     this.height = 60,
     this.fit = BoxFit.cover,
     this.errorWidget,
+    this.userName,
   }) : super(key: key);
 
   bool get _isNetworkUrl =>
@@ -34,18 +39,49 @@ class CustomImageWidget extends StatelessWidget {
         fit: fit,
         errorWidget: (context, url, error) =>
             errorWidget ??
-            Image.asset(
-              "assets/images/no-image.jpg",
-              fit: fit,
-              width: width,
-              height: height,
-            ),
+            (userName != null 
+              ? InitialsAvatarWidget(
+                  name: userName,
+                  size: width,
+                )
+              : Container(
+                  width: width,
+                  height: height,
+                  color: Colors.grey[200],
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.broken_image,
+                          size: 32,
+                          color: Colors.grey[400],
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Image unavailable',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )),
         placeholder: (context, url) => Container(
           width: width,
           height: height,
           color: Colors.grey[200],
-          child: const Center(child: CircularProgressIndicator()),
+          child: const Center(
+            child: CircularProgressIndicator(),
+          ),
         ),
+        httpHeaders: const {
+          'User-Agent': 'CamSplit/1.0',
+        },
+        maxWidthDiskCache: 1000,
+        maxHeightDiskCache: 1000,
       );
     } else if (imageUrl != null) {
       // Local file path
@@ -54,21 +90,78 @@ class CustomImageWidget extends StatelessWidget {
         width: width,
         height: height,
         fit: fit,
-        errorBuilder: (context, error, stackTrace) => errorWidget ?? Image.asset(
+        errorBuilder: (context, error, stackTrace) => errorWidget ?? 
+          (userName != null 
+            ? InitialsAvatarWidget(
+                name: userName,
+                size: width,
+              )
+            : Container(
+                width: width,
+                height: height,
+                color: Colors.grey[200],
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.broken_image,
+                        size: 32,
+                        color: Colors.grey[400],
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Image unavailable',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )),
+      );
+    } else {
+      // Fallback - use initials if userName is provided, otherwise use asset
+      if (userName != null) {
+        return InitialsAvatarWidget(
+          name: userName,
+          size: width,
+        );
+      } else {
+        return Image.asset(
           "assets/images/no-image.jpg",
           fit: fit,
           width: width,
           height: height,
-        ),
-      );
-    } else {
-      // Fallback
-      return Image.asset(
-        "assets/images/no-image.jpg",
-        fit: fit,
-        width: width,
-        height: height,
-      );
+          errorBuilder: (context, error, stackTrace) => Container(
+            width: width,
+            height: height,
+            color: Colors.grey[200],
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.image_not_supported,
+                    size: 32,
+                    color: Colors.grey[400],
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'No image',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
     }
   }
 }

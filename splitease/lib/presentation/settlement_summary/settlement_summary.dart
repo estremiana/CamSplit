@@ -3,13 +3,17 @@ import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
 
 import '../../core/app_export.dart';
+import '../../models/settlement.dart';
+import '../../services/settlement_service.dart';
 import './widgets/group_settlement_widget.dart';
 import './widgets/payment_method_widget.dart';
 import './widgets/settlement_card_widget.dart';
 import './widgets/settlement_history_widget.dart';
 
 class SettlementSummary extends StatefulWidget {
-  const SettlementSummary({super.key});
+  final String? groupId;
+  
+  const SettlementSummary({super.key, this.groupId});
 
   @override
   State<SettlementSummary> createState() => _SettlementSummaryState();
@@ -23,93 +27,17 @@ class _SettlementSummaryState extends State<SettlementSummary>
 
   bool _isLoading = false;
   bool _isPrivacyMode = false;
+  final SettlementService _settlementService = SettlementService();
 
-  // Mock data for settlements
-  final List<Map<String, dynamic>> _pendingSettlements = [
-    {
-      "id": 1,
-      "creditor": "Sarah Johnson",
-      "creditorAvatar":
-          "https://images.unsplash.com/photo-1494790108755-2616b9e2-c7a4-9b1e-6f4d-8c9a2b3c4d5e",
-      "amount": 45.50,
-      "description": "Restaurant dinner split",
-      "date": DateTime.now().subtract(const Duration(days: 2)),
-      "group": "Work Team",
-      "category": "Food",
-      "suggestedMethods": ["Venmo", "PayPal", "Bank Transfer"],
-      "status": "pending"
-    },
-    {
-      "id": 2,
-      "debtor": "Mike Chen",
-      "debtorAvatar":
-          "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg",
-      "amount": 28.75,
-      "description": "Uber ride home",
-      "date": DateTime.now().subtract(const Duration(hours: 12)),
-      "group": "Friends",
-      "category": "Transportation",
-      "suggestedMethods": ["Venmo", "Cash"],
-      "status": "pending"
-    },
-    {
-      "id": 3,
-      "creditor": "Lisa Park",
-      "creditorAvatar":
-          "https://images.pixabay.com/photo/2016/11-8-15-46-22-1810553_1280.jpg",
-      "amount": 67.20,
-      "description": "Grocery shopping",
-      "date": DateTime.now().subtract(const Duration(days: 1)),
-      "group": "Roommates",
-      "category": "Groceries",
-      "suggestedMethods": ["PayPal", "Bank Transfer", "Cash"],
-      "status": "pending"
-    }
-  ];
-
-  final List<Map<String, dynamic>> _settlementHistory = [
-    {
-      "id": 1,
-      "person": "John Doe",
-      "personAvatar":
-          "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d",
-      "amount": 32.50,
-      "description": "Movie tickets",
-      "date": DateTime.now().subtract(const Duration(days: 3)),
-      "method": "Venmo",
-      "status": "completed",
-      "type": "received"
-    },
-    {
-      "id": 2,
-      "person": "Emma Wilson",
-      "personAvatar":
-          "https://images.pexels.com/photos/733872/pexels-photo-733872.jpeg",
-      "amount": 89.00,
-      "description": "Weekend getaway",
-      "date": DateTime.now().subtract(const Duration(days: 5)),
-      "method": "PayPal",
-      "status": "completed",
-      "type": "paid"
-    },
-    {
-      "id": 3,
-      "person": "David Kim",
-      "personAvatar":
-          "https://images.pixabay.com/photo/2016/11-18-18-52-7-1834105_1280.jpg",
-      "amount": 156.80,
-      "description": "Restaurant dinner",
-      "date": DateTime.now().subtract(const Duration(days: 7)),
-      "method": "Bank Transfer",
-      "status": "completed",
-      "type": "received"
-    }
-  ];
+  List<Settlement> _activeSettlements = [];
+  List<Settlement> _settlementHistory = [];
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
+    _loadSettlements();
   }
 
   @override
@@ -118,198 +46,209 @@ class _SettlementSummaryState extends State<SettlementSummary>
     super.dispose();
   }
 
+  Future<void> _loadSettlements() async {
+    if (widget.groupId == null) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      // Load active settlements
+      final activeSettlements = await _settlementService.getGroupSettlements(widget.groupId!);
+      
+      // Load settlement history
+      final historySettlements = await _settlementService.getSettlementHistory(
+        widget.groupId!,
+        status: 'settled',
+        limit: 20,
+      );
+
+      setState(() {
+        _activeSettlements = activeSettlements;
+        _settlementHistory = historySettlements;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to load settlements: ${e.toString()}';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _refreshSettlements() async {
+    await _loadSettlements();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final totalOwed = _pendingSettlements
-        .where((s) => s.containsKey('debtor'))
-        .fold(0.0, (sum, s) => sum + s['amount']);
-    final totalOwing = _pendingSettlements
-        .where((s) => s.containsKey('creditor'))
-        .fold(0.0, (sum, s) => sum + s['amount']);
-
     return Scaffold(
       backgroundColor: AppTheme.lightTheme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppTheme.lightTheme.cardColor,
-        elevation: 1.0,
         title: Text(
-          'Settlement Summary',
-          style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
+          'Settlements',
+          style: AppTheme.lightTheme.textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.w600,
           ),
         ),
+        backgroundColor: AppTheme.lightTheme.appBarTheme.backgroundColor,
+        elevation: 0,
         actions: [
           IconButton(
-            onPressed: _togglePrivacyMode,
+            onPressed: () {
+              setState(() {
+                _isPrivacyMode = !_isPrivacyMode;
+              });
+              HapticFeedback.selectionClick();
+            },
             icon: CustomIconWidget(
-              iconName: _isPrivacyMode ? 'visibility_off' : 'visibility',
-              color: AppTheme.textPrimaryLight,
-              size: 24,
-            ),
-          ),
-          IconButton(
-            onPressed: _showSettlementOptions,
-            icon: CustomIconWidget(
-              iconName: 'more_vert',
-              color: AppTheme.textPrimaryLight,
+              iconName: _isPrivacyMode ? 'visibility' : 'visibility_off',
+              color: AppTheme.lightTheme.primaryColor,
               size: 24,
             ),
           ),
         ],
       ),
-      body: RefreshIndicator(
-        key: _refreshIndicatorKey,
-        onRefresh: _handleRefresh,
-        color: AppTheme.lightTheme.primaryColor,
-        child: Column(
-          children: [
-            _buildBalanceOverview(totalOwed, totalOwing),
-            _buildTabBar(),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildPendingSettlements(),
-                  _buildSettlementHistory(),
-                  _buildGroupSettlements(),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showSmartSettlementSuggestions,
-        backgroundColor: AppTheme.lightTheme.primaryColor,
-        foregroundColor: AppTheme.onPrimaryLight,
-        icon: CustomIconWidget(
-          iconName: 'auto_fix_high',
-          color: AppTheme.onPrimaryLight,
-          size: 20,
-        ),
-        label: const Text('Smart Settle'),
-      ),
+      body: _buildBody(),
     );
   }
 
-  Widget _buildBalanceOverview(double totalOwed, double totalOwing) {
-    final netBalance = totalOwed - totalOwing;
-    final isPositive = netBalance >= 0;
-
-    return Container(
-      margin: EdgeInsets.all(4.w),
-      padding: EdgeInsets.all(4.w),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppTheme.lightTheme.primaryColor,
-            AppTheme.lightTheme.primaryColor.withValues(alpha: 0.8),
+  Widget _buildBody() {
+    if (_isLoading) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(
+                AppTheme.lightTheme.primaryColor,
+              ),
+            ),
+            SizedBox(height: 2.h),
+            Text(
+              'Loading settlements...',
+              style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                color: AppTheme.textSecondaryLight,
+              ),
+            ),
           ],
         ),
-        borderRadius: BorderRadius.circular(16.0),
-      ),
+      );
+    }
+
+    if (_errorMessage != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CustomIconWidget(
+              iconName: 'error_outline',
+              color: AppTheme.errorLight,
+              size: 48,
+            ),
+            SizedBox(height: 2.h),
+            Text(
+              'Error',
+              style: AppTheme.lightTheme.textTheme.headlineSmall?.copyWith(
+                color: AppTheme.errorLight,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            SizedBox(height: 1.h),
+            Text(
+              _errorMessage!,
+              style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                color: AppTheme.textSecondaryLight,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 3.h),
+            ElevatedButton(
+              onPressed: _loadSettlements,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.lightTheme.primaryColor,
+                foregroundColor: Colors.white,
+              ),
+              child: Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      key: _refreshIndicatorKey,
+      onRefresh: _refreshSettlements,
+      color: AppTheme.lightTheme.primaryColor,
       child: Column(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'You are owed',
-                      style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-                        color: AppTheme.onPrimaryLight.withValues(alpha: 0.8),
-                      ),
-                    ),
-                    SizedBox(height: 0.5.h),
-                    Text(
-                      _isPrivacyMode
-                          ? '••••••'
-                          : '\$${totalOwed.toStringAsFixed(2)}',
-                      style: AppTheme.getMonospaceStyle(
-                        isLight: false,
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.w600,
-                      ).copyWith(
-                        color: AppTheme.onPrimaryLight,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                width: 1,
-                height: 6.h,
-                color: AppTheme.onPrimaryLight.withValues(alpha: 0.3),
-              ),
-              SizedBox(width: 4.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'You owe',
-                      style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-                        color: AppTheme.onPrimaryLight.withValues(alpha: 0.8),
-                      ),
-                    ),
-                    SizedBox(height: 0.5.h),
-                    Text(
-                      _isPrivacyMode
-                          ? '••••••'
-                          : '\$${totalOwing.toStringAsFixed(2)}',
-                      style: AppTheme.getMonospaceStyle(
-                        isLight: false,
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.w600,
-                      ).copyWith(
-                        color: AppTheme.onPrimaryLight,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 2.h),
+          // Summary cards
+          _buildSummaryCards(),
+          
+          // Tab bar
           Container(
-            padding: EdgeInsets.all(3.w),
+            margin: EdgeInsets.symmetric(horizontal: 4.w),
             decoration: BoxDecoration(
-              color: AppTheme.onPrimaryLight.withValues(alpha: 0.1),
+              color: AppTheme.lightTheme.cardColor,
               borderRadius: BorderRadius.circular(12.0),
+              border: Border.all(
+                color: AppTheme.borderLight,
+                width: 1.0,
+              ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+            child: TabBar(
+              controller: _tabController,
+              indicator: BoxDecoration(
+                borderRadius: BorderRadius.circular(12.0),
+                color: AppTheme.lightTheme.primaryColor,
+              ),
+              labelColor: Colors.white,
+              unselectedLabelColor: AppTheme.textSecondaryLight,
+              labelStyle: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+              tabs: [
+                Tab(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CustomIconWidget(
+                        iconName: 'schedule',
+                        color: _tabController.index == 0 ? Colors.white : AppTheme.textSecondaryLight,
+                        size: 16,
+                      ),
+                      SizedBox(width: 1.w),
+                      Text('Pending'),
+                    ],
+                  ),
+                ),
+                Tab(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CustomIconWidget(
+                        iconName: 'history',
+                        color: _tabController.index == 1 ? Colors.white : AppTheme.textSecondaryLight,
+                        size: 16,
+                      ),
+                      SizedBox(width: 1.w),
+                      Text('History'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // Tab content
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
               children: [
-                CustomIconWidget(
-                  iconName: isPositive ? 'trending_up' : 'trending_down',
-                  color: isPositive
-                      ? AppTheme.successLight
-                      : AppTheme.warningLight,
-                  size: 20,
-                ),
-                SizedBox(width: 2.w),
-                Text(
-                  'Net Balance: ',
-                  style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.onPrimaryLight.withValues(alpha: 0.8),
-                  ),
-                ),
-                Text(
-                  _isPrivacyMode
-                      ? '••••••'
-                      : '${isPositive ? '+' : ''}\$${netBalance.abs().toStringAsFixed(2)}',
-                  style: AppTheme.getMonospaceStyle(
-                    isLight: false,
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w600,
-                  ).copyWith(
-                    color: AppTheme.onPrimaryLight,
-                  ),
-                ),
+                _buildPendingSettlements(),
+                _buildSettlementHistory(),
               ],
             ),
           ),
@@ -318,58 +257,116 @@ class _SettlementSummaryState extends State<SettlementSummary>
     );
   }
 
-  Widget _buildTabBar() {
+  Widget _buildSummaryCards() {
+    final totalOwed = _activeSettlements
+        .where((s) => _isUserOwed(s))
+        .fold(0.0, (sum, s) => sum + s.amount);
+    
+    final totalOwe = _activeSettlements
+        .where((s) => !_isUserOwed(s))
+        .fold(0.0, (sum, s) => sum + s.amount);
+
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 4.w),
-      decoration: BoxDecoration(
-        color: AppTheme.lightTheme.cardColor,
-        borderRadius: BorderRadius.circular(12.0),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.shadowLight,
-            blurRadius: 4.0,
-            offset: const Offset(0, 2),
+      padding: EdgeInsets.all(4.w),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildSummaryCard(
+              title: 'You\'re Owed',
+              amount: totalOwed,
+              color: AppTheme.successLight,
+              icon: 'arrow_downward',
+            ),
+          ),
+          SizedBox(width: 3.w),
+          Expanded(
+            child: _buildSummaryCard(
+              title: 'You Owe',
+              amount: totalOwe,
+              color: AppTheme.warningLight,
+              icon: 'arrow_upward',
+            ),
           ),
         ],
       ),
-      child: TabBar(
-        controller: _tabController,
-        labelColor: AppTheme.lightTheme.primaryColor,
-        unselectedLabelColor: AppTheme.textSecondaryLight,
-        indicatorColor: AppTheme.lightTheme.primaryColor,
-        indicatorWeight: 2.0,
-        indicatorSize: TabBarIndicatorSize.tab,
-        dividerColor: Colors.transparent,
-        tabs: const [
-          Tab(text: 'Pending'),
-          Tab(text: 'History'),
-          Tab(text: 'Groups'),
+    );
+  }
+
+  Widget _buildSummaryCard({
+    required String title,
+    required double amount,
+    required Color color,
+    required String icon,
+  }) {
+    return Container(
+      padding: EdgeInsets.all(4.w),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12.0),
+        border: Border.all(
+          color: color.withValues(alpha: 0.3),
+          width: 1.0,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CustomIconWidget(
+                iconName: icon,
+                color: color,
+                size: 20,
+              ),
+              SizedBox(width: 2.w),
+              Expanded(
+                child: Text(
+                  title,
+                  style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 1.h),
+          Text(
+            _isPrivacyMode ? '••••••' : '\$${amount.toStringAsFixed(2)}',
+            style: AppTheme.getMonospaceStyle(
+              isLight: true,
+              fontSize: 18.sp,
+              fontWeight: FontWeight.w700,
+            ).copyWith(
+              color: color,
+            ),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildPendingSettlements() {
-    if (_pendingSettlements.isEmpty) {
+    if (_activeSettlements.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             CustomIconWidget(
-              iconName: 'check_circle_outline',
+              iconName: 'check_circle',
               color: AppTheme.successLight,
-              size: 64,
+              size: 48,
             ),
             SizedBox(height: 2.h),
             Text(
-              'All settled up!',
-              style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
+              'No Pending Settlements',
+              style: AppTheme.lightTheme.textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
             ),
             SizedBox(height: 1.h),
             Text(
-              'You have no pending settlements',
+              'All debts are settled!',
               style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
                 color: AppTheme.textSecondaryLight,
               ),
@@ -381,14 +378,13 @@ class _SettlementSummaryState extends State<SettlementSummary>
 
     return ListView.builder(
       padding: EdgeInsets.all(4.w),
-      itemCount: _pendingSettlements.length,
+      itemCount: _activeSettlements.length,
       itemBuilder: (context, index) {
-        final settlement = _pendingSettlements[index];
+        final settlement = _activeSettlements[index];
         return SettlementCardWidget(
           settlement: settlement,
           isPrivacyMode: _isPrivacyMode,
-          onSettle: () => _initiateSettlement(settlement),
-          onRemind: () => _sendReminder(settlement),
+          onRefresh: _refreshSettlements,
         );
       },
     );
@@ -403,18 +399,18 @@ class _SettlementSummaryState extends State<SettlementSummary>
             CustomIconWidget(
               iconName: 'history',
               color: AppTheme.textSecondaryLight,
-              size: 64,
+              size: 48,
             ),
             SizedBox(height: 2.h),
             Text(
-              'No settlement history',
-              style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
+              'No Settlement History',
+              style: AppTheme.lightTheme.textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
             ),
             SizedBox(height: 1.h),
             Text(
-              'Your completed settlements will appear here',
+              'Completed settlements will appear here',
               style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
                 color: AppTheme.textSecondaryLight,
               ),
@@ -429,7 +425,7 @@ class _SettlementSummaryState extends State<SettlementSummary>
       itemCount: _settlementHistory.length,
       itemBuilder: (context, index) {
         final settlement = _settlementHistory[index];
-        return SettlementHistoryWidget(
+        return SettlementCardWidget(
           settlement: settlement,
           isPrivacyMode: _isPrivacyMode,
         );
@@ -437,249 +433,9 @@ class _SettlementSummaryState extends State<SettlementSummary>
     );
   }
 
-  Widget _buildGroupSettlements() {
-    return GroupSettlementWidget(
-      isPrivacyMode: _isPrivacyMode,
-      onOptimizeSettlements: _optimizeGroupSettlements,
-    );
-  }
-
-  Future<void> _handleRefresh() async {
-    HapticFeedback.lightImpact();
-    setState(() {
-      _isLoading = true;
-    });
-
-    await Future.delayed(const Duration(seconds: 2));
-
-    setState(() {
-      _isLoading = false;
-    });
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Settlements updated successfully'),
-          backgroundColor: AppTheme.successLight,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8.0),
-          ),
-        ),
-      );
-    }
-  }
-
-  void _togglePrivacyMode() {
-    HapticFeedback.selectionClick();
-    setState(() {
-      _isPrivacyMode = !_isPrivacyMode;
-    });
-  }
-
-  void _showSettlementOptions() {
-    HapticFeedback.selectionClick();
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16.0)),
-      ),
-      builder: (context) => Container(
-        padding: EdgeInsets.all(4.w),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 10.w,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppTheme.borderLight,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            SizedBox(height: 2.h),
-            Text(
-              'Settlement Options',
-              style: AppTheme.lightTheme.textTheme.titleLarge,
-            ),
-            SizedBox(height: 2.h),
-            ListTile(
-              leading: CustomIconWidget(
-                iconName: 'file_download',
-                color: AppTheme.lightTheme.primaryColor,
-                size: 24,
-              ),
-              title: const Text('Export Report'),
-              onTap: _exportSettlementReport,
-            ),
-            ListTile(
-              leading: CustomIconWidget(
-                iconName: 'settings',
-                color: AppTheme.lightTheme.primaryColor,
-                size: 24,
-              ),
-              title: const Text('Settlement Settings'),
-              onTap: _openSettlementSettings,
-            ),
-            SizedBox(height: 2.h),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _initiateSettlement(Map<String, dynamic> settlement) {
-    HapticFeedback.mediumImpact();
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16.0)),
-      ),
-      builder: (context) => PaymentMethodWidget(
-        settlement: settlement,
-        isPrivacyMode: _isPrivacyMode,
-        onPaymentComplete: (method) => _completeSettlement(settlement, method),
-      ),
-    );
-  }
-
-  void _sendReminder(Map<String, dynamic> settlement) {
-    HapticFeedback.selectionClick();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Reminder sent to ${settlement['creditor'] ?? settlement['debtor']}',
-        ),
-        backgroundColor: AppTheme.lightTheme.primaryColor,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0),
-        ),
-      ),
-    );
-  }
-
-  void _completeSettlement(Map<String, dynamic> settlement, String method) {
-    HapticFeedback.lightImpact();
-    setState(() {
-      _pendingSettlements.removeWhere((s) => s['id'] == settlement['id']);
-      _settlementHistory.insert(0, {
-        ...settlement,
-        'method': method,
-        'status': 'completed',
-        'date': DateTime.now(),
-      });
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Settlement completed via $method'),
-        backgroundColor: AppTheme.successLight,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0),
-        ),
-      ),
-    );
-  }
-
-  void _showSmartSettlementSuggestions() {
-    HapticFeedback.mediumImpact();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Smart Settlement Suggestions'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('We found ways to optimize your settlements:'),
-            SizedBox(height: 2.h),
-            Container(
-              padding: EdgeInsets.all(3.w),
-              decoration: BoxDecoration(
-                color: AppTheme.successLight.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8.0),
-              ),
-              child: Row(
-                children: [
-                  CustomIconWidget(
-                    iconName: 'savings',
-                    color: AppTheme.successLight,
-                    size: 20,
-                  ),
-                  SizedBox(width: 2.w),
-                  const Expanded(
-                    child: Text('Reduce 5 transactions to 2 transfers'),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _applySmartSuggestions();
-            },
-            child: const Text('Apply'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _optimizeGroupSettlements() {
-    HapticFeedback.mediumImpact();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Group settlements optimized'),
-        backgroundColor: AppTheme.successLight,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0),
-        ),
-      ),
-    );
-  }
-
-  void _exportSettlementReport() {
-    Navigator.pop(context);
-    HapticFeedback.lightImpact();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Settlement report exported'),
-        backgroundColor: AppTheme.successLight,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0),
-        ),
-      ),
-    );
-  }
-
-  void _openSettlementSettings() {
-    Navigator.pop(context);
-    HapticFeedback.selectionClick();
-    // Navigate to settlement settings
-  }
-
-  void _applySmartSuggestions() {
-    HapticFeedback.lightImpact();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Smart suggestions applied'),
-        backgroundColor: AppTheme.successLight,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0),
-        ),
-      ),
-    );
+  bool _isUserOwed(Settlement settlement) {
+    // This would need to be determined based on current user ID
+    // For now, using a simple heuristic based on the settlement data
+    return settlement.toGroupMemberId > settlement.fromGroupMemberId;
   }
 }

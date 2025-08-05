@@ -51,10 +51,12 @@ class MemberAvatarWidget extends StatelessWidget {
                       AppTheme.lightTheme.colorScheme.primaryContainer,
                   child: ClipOval(
                       child: CustomImageWidget(
-                          imageUrl: member['avatarUrl'] ?? '',
+                          imageUrl: member['avatarUrl'],
                           fit: BoxFit.cover,
                           width: (size * 2).w,
-                          height: (size * 2).w))),
+                          height: (size * 2).w,
+                          userName: member['name'],
+                      ))),
               if (isSelected)
                 Positioned(
                     bottom: 0,

@@ -1,5 +1,7 @@
 import '../models/expense_detail_model.dart';
 import '../models/participant_amount.dart';
+import '../models/expense.dart';
+import '../models/group_member.dart';
 import 'api_service.dart';
 
 /// Custom exception for network-related errors in service layer
@@ -21,7 +23,6 @@ class NetworkException implements Exception {
 /// All methods include proper error handling and data validation
 class ExpenseDetailService {
   static final ApiService _apiService = ApiService.instance;
-  static const Duration _requestTimeout = Duration(seconds: 30);
   
   // Cache for expense details to avoid repeated API calls
   static final Map<int, ExpenseDetailModel> _detailCache = {};
@@ -50,40 +51,31 @@ class ExpenseDetailService {
     }
 
     try {
-      // TODO: Replace with actual API call when backend is ready
-      // Expected API call: GET /api/expenses/{expenseId}
-      // Expected response format: { "expense": ExpenseDetailModel, "status": "success" }
+      final response = await _apiService.getExpenseWithDetails(expenseId.toString());
       
-      // Simulate network delay and potential failures
-      await Future.delayed(const Duration(milliseconds: 500));
-      
-      // Simulate network errors for testing (remove in production)
-      if (expenseId == 9999) {
-        throw NetworkException('Connection timeout');
+      if (response['success']) {
+        final data = response['data'];
+        final expenseData = data['expense'] ?? data; // Handle both nested and direct response
+        final expense = Expense.fromJson(expenseData);
+        
+        // Convert Expense to ExpenseDetailModel
+        final expenseDetail = _convertExpenseToDetailModel(expense);
+        
+        // Enhance with group information
+        final enhancedExpenseDetail = await _enhanceWithGroupInfo(expenseDetail);
+        
+        // Validate data integrity
+        if (!enhancedExpenseDetail.isValid()) {
+          throw ExpenseDetailServiceException('Invalid expense detail data received from server');
+        }
+        
+        // Update cache
+        _updateDetailCache(expenseId, enhancedExpenseDetail);
+        
+        return enhancedExpenseDetail;
+      } else {
+        throw ExpenseDetailServiceException(response['message'] ?? 'Failed to load expense details');
       }
-      
-      // Handle invalid expense ID for testing
-      if (expenseId < 0) {
-        throw ExpenseDetailServiceException('Invalid expense ID: $expenseId');
-      }
-      
-      // Simulate not found error
-      if (expenseId > 1000) {
-        throw ExpenseDetailServiceException('Expense not found');
-      }
-      
-      // Generate mock expense detail data
-      final mockExpenseDetail = _generateMockExpenseDetail(expenseId);
-      
-      // Validate data integrity
-      if (!mockExpenseDetail.isValid()) {
-        throw ExpenseDetailServiceException('Invalid expense detail data received from server');
-      }
-      
-      // Update cache
-      _updateDetailCache(expenseId, mockExpenseDetail);
-      
-      return mockExpenseDetail;
     } on ExpenseDetailServiceException {
       rethrow;
     } on NetworkException {
@@ -120,64 +112,37 @@ class ExpenseDetailService {
     }
 
     try {
-      // TODO: Replace with actual API call when backend is ready
-      // Expected API call: PUT /api/expenses/{expenseId}
-      // Request body: ExpenseUpdateRequest.toJson()
-      // Expected response format: { "expense": ExpenseDetailModel, "status": "success" }
+      // Use the request's toJson method which includes proper formatting
+      final updateData = request.toJson();
       
-      // Simulate network delay and potential failures
-      await Future.delayed(const Duration(milliseconds: 800));
+      final response = await _apiService.updateExpense(request.expenseId.toString(), updateData);
       
-      // Simulate various error conditions for testing
-      if (request.expenseId == 998) {
-        throw NetworkException('Connection timeout during save');
+      if (response['success']) {
+        final data = response['data'];
+        final expenseData = data['expense'] ?? data; // Handle both nested and direct response
+        final expense = Expense.fromJson(expenseData);
+        
+        // Convert Expense to ExpenseDetailModel
+        final expenseDetail = _convertExpenseToDetailModel(expense);
+        
+        // Note: Backend doesn't return splits in update response, so we need to
+        // create a proper ExpenseDetailModel with the participant amounts from the request
+        final updatedExpenseDetail = expenseDetail.copyWith(
+          participantAmounts: request.participantAmounts,
+        );
+        
+        // Only validate basic fields that should be returned
+        if (updatedExpenseDetail.title.isEmpty || updatedExpenseDetail.amount <= 0) {
+          throw ExpenseDetailServiceException('Backend returned invalid expense data');
+        }
+        
+        // Update cache
+        _updateDetailCache(request.expenseId, updatedExpenseDetail);
+        
+        return updatedExpenseDetail;
+      } else {
+        throw ExpenseDetailServiceException(response['message'] ?? 'Failed to update expense');
       }
-      
-      if (request.expenseId == 997) {
-        throw ExpenseDetailServiceException('Expense was modified by another user');
-      }
-      
-      if (request.expenseId > 1000) {
-        throw ExpenseDetailServiceException('Expense not found');
-      }
-      
-      // Get current expense data (this may throw if expense doesn't exist)
-      final currentExpense = await getExpenseById(request.expenseId);
-      
-      // Check if expense can still be edited
-      if (!currentExpense.canBeEdited) {
-        throw ExpenseDetailServiceException('Expense is too old to be edited');
-      }
-      
-      // Create updated expense (preserving read-only fields)
-      final updatedExpense = currentExpense.copyWith(
-        title: request.title,
-        amount: request.amount,
-        currency: request.currency,
-        date: request.date,
-        category: request.category,
-        notes: request.notes,
-        splitType: request.splitType,
-        participantAmounts: request.participantAmounts,
-        updatedAt: DateTime.now(),
-      );
-      
-      // Validate updated expense
-      if (!updatedExpense.isValid()) {
-        throw ExpenseDetailServiceException('Updated expense data failed validation');
-      }
-      
-      // Additional business rule validation
-      final validationResult = validateExpenseUpdate(updatedExpense);
-      if (!validationResult['isValid']) {
-        final errors = validationResult['errors'] as List<String>;
-        throw ExpenseDetailServiceException('Validation failed: ${errors.join(', ')}');
-      }
-      
-      // Update cache
-      _updateDetailCache(request.expenseId, updatedExpense);
-      
-      return updatedExpense;
     } on ExpenseDetailServiceException {
       rethrow;
     } on NetworkException {
@@ -267,15 +232,20 @@ class ExpenseDetailService {
       for (int i = 0; i < data.participantAmounts.length; i++) {
         final participant = data.participantAmounts[i];
         
-        if (participant.name.trim().isEmpty) {
-          errors.add('Participant ${i + 1} name is required');
-        } else if (participant.name.trim().length > 50) {
-          errors.add('Participant ${i + 1} name cannot exceed 50 characters');
-        } else if (participantNames.contains(participant.name)) {
-          errors.add('Duplicate participant name: ${participant.name}');
-        } else {
-          participantNames.add(participant.name);
+        if (participant.name?.trim().isEmpty ?? true) {
+          errors.add('Participant name cannot be empty');
+          continue;
+        } else if ((participant.name?.trim().length ?? 0) > 50) {
+          errors.add('Participant name cannot exceed 50 characters');
+          continue;
         }
+        
+        // Check for duplicate names
+        if (participantNames.contains(participant.name)) {
+          errors.add('Duplicate participant name: ${participant.name}');
+          continue;
+        }
+        participantNames.add(participant.name ?? 'Unknown');
         
         if (participant.amount < 0) {
           errors.add('Participant ${i + 1} amount cannot be negative');
@@ -354,76 +324,84 @@ class ExpenseDetailService {
     };
   }
 
-  /// Generate mock expense detail data for testing
-  /// This will be replaced with actual API calls
-  static ExpenseDetailModel _generateMockExpenseDetail(int expenseId) {
-    // Mock data based on expense ID for consistency
-    final mockData = {
-      1: {
-        'title': 'Dinner at Italian Restaurant',
-        'amount': 85.50,
-        'category': 'Food & Dining',
-        'notes': 'Great pasta and wine',
-        'payer_name': 'John Doe',
-        'payer_id': 123,
-        'split_type': 'custom',
-        'participant_amounts': [
-          {'name': 'John Doe', 'amount': 35.50},
-          {'name': 'Jane Smith', 'amount': 25.00},
-          {'name': 'Bob Wilson', 'amount': 25.00},
-        ],
-      },
-      2: {
-        'title': 'Uber to Airport',
-        'amount': 45.00,
-        'category': 'Transportation',
-        'notes': 'Shared ride to catch flight',
-        'payer_name': 'Jane Smith',
-        'payer_id': 456,
-        'split_type': 'equal',
-        'participant_amounts': [
-          {'name': 'John Doe', 'amount': 15.00},
-          {'name': 'Jane Smith', 'amount': 15.00},
-          {'name': 'Bob Wilson', 'amount': 15.00},
-        ],
-      },
-      3: {
-        'title': 'Concert Tickets',
-        'amount': 120.00,
-        'category': 'Entertainment',
-        'notes': 'Amazing show!',
-        'payer_name': 'Bob Wilson',
-        'payer_id': 789,
-        'split_type': 'equal',
-        'participant_amounts': [
-          {'name': 'John Doe', 'amount': 40.00},
-          {'name': 'Jane Smith', 'amount': 40.00},
-          {'name': 'Bob Wilson', 'amount': 40.00},
-        ],
-      },
-    };
+  /// Enhance expense detail with group information
+  /// This method fetches the group details to get the actual group name
+  static Future<ExpenseDetailModel> _enhanceWithGroupInfo(ExpenseDetailModel expenseDetail, {String? groupName}) async {
+    // If group name is already provided, use it
+    if (groupName != null && groupName.isNotEmpty && groupName != 'Unknown Group') {
+      return expenseDetail.copyWith(groupName: groupName);
+    }
     
-    final data = mockData[expenseId] ?? mockData[1]!;
+    try {
+      final groupId = int.tryParse(expenseDetail.groupId);
+      if (groupId != null && groupId > 0) {
+        final groupResponse = await _apiService.getGroup(groupId.toString());
+        if (groupResponse['success'] && groupResponse['data'] != null) {
+          final groupData = groupResponse['data'];
+          final fetchedGroupName = groupData['name'] ?? 'Unknown Group';
+          
+          return expenseDetail.copyWith(groupName: fetchedGroupName);
+        }
+      }
+    } catch (e) {
+      // If group fetch fails, continue with the original expense detail
+      print('Failed to fetch group info: $e');
+    }
+    
+    return expenseDetail;
+  }
+
+  /// Convert Expense model to ExpenseDetailModel
+  /// 
+  /// This is a helper method that converts the backend Expense model
+  /// but the frontend expects ExpenseDetailModel objects
+  static ExpenseDetailModel _convertExpenseToDetailModel(Expense expense, {String? groupName}) {
+    // Convert expense splits to participant amounts
+    final participantAmounts = expense.splits.map((split) {
+      return ParticipantAmount(
+        name: split.displayName, // Use the actual member name from the split
+        amount: split.amountOwed,
+        percentage: split.percentage, // Include percentage data from the split
+        groupMemberId: split.groupMemberId, // Include group member ID for better mapping
+      );
+    }).toList();
+    
+    // Get payer information from expense payers
+    String payerName = 'Unknown Payer';
+    int payerId = 0;
+    if (expense.payers.isNotEmpty) {
+      final primaryPayer = expense.payers.first;
+      payerId = primaryPayer.groupMemberId;
+      payerName = primaryPayer.displayName; // Use the actual payer name from the model
+      print('Converted expense payer - groupMemberId: ${primaryPayer.groupMemberId}, displayName: ${primaryPayer.displayName}');
+    }
+    
+    // Get receipt image URL if available
+    String? receiptImageUrl;
+    if (expense.receiptImages.isNotEmpty) {
+      receiptImageUrl = expense.receiptImages.first.imageUrl;
+    }
+    
+    // Use the actual split type from the expense
+    String splitType = expense.splitType;
     
     return ExpenseDetailModel(
-      id: expenseId,
-      title: data['title'] as String,
-      amount: (data['amount'] as num).toDouble(),
-      currency: 'EUR',
-      date: DateTime.now().subtract(Duration(days: expenseId)),
-      category: data['category'] as String,
-      notes: data['notes'] as String,
-      groupId: '1',
-      groupName: 'Weekend Getaway 🏖️',
-      payerName: data['payer_name'] as String,
-      payerId: data['payer_id'] as int,
-      splitType: data['split_type'] as String,
-      participantAmounts: (data['participant_amounts'] as List)
-          .map((p) => ParticipantAmount.fromJson(p as Map<String, dynamic>))
-          .toList(),
-      receiptImageUrl: expenseId == 1 ? 'https://images.pexels.com/photos/4386321/pexels-photo-4386321.jpeg' : null,
-      createdAt: DateTime.now().subtract(Duration(days: expenseId, hours: 2)),
-      updatedAt: DateTime.now().subtract(Duration(days: expenseId, hours: 1)),
+      id: expense.id,
+      title: expense.title.isNotEmpty ? expense.title : 'Expense',
+      amount: expense.totalAmount,
+      currency: expense.currency.isNotEmpty ? expense.currency : 'EUR',
+      date: expense.date ?? DateTime.now(),
+      category: expense.category?.isNotEmpty == true ? expense.category! : 'Other',
+      notes: expense.description ?? '',
+      groupId: expense.groupId.toString(),
+      groupName: groupName ?? 'Group ${expense.groupId}', // Use provided group name or fallback
+      payerName: payerName,
+      payerId: payerId,
+      splitType: splitType,
+      participantAmounts: participantAmounts,
+      receiptImageUrl: receiptImageUrl,
+      createdAt: expense.createdAt,
+      updatedAt: expense.updatedAt,
     );
   }
 
@@ -439,10 +417,7 @@ class ExpenseDetailService {
     _cacheTimestamps[expenseId] = DateTime.now();
   }
   
-  static void _invalidateDetailCache(int expenseId) {
-    _detailCache.remove(expenseId);
-    _cacheTimestamps.remove(expenseId);
-  }
+  // Removed unused method
   
   /// Clear all cached expense details (useful for testing or force refresh)
   static void clearCache() {
@@ -456,6 +431,60 @@ class ExpenseDetailService {
   /// and returns the updated expense details
   static Future<ExpenseDetailModel> refreshExpenseDetails(int expenseId) async {
     return getExpenseById(expenseId, forceRefresh: true);
+  }
+
+  /// Get expense details with enhanced member information
+  /// 
+  /// This method fetches expense details and enhances them with
+  /// actual member names from the group
+  /// 
+  /// [expenseId] - The ID of the expense to fetch
+  /// [groupId] - The ID of the group to get member information from
+  /// 
+  /// Returns [ExpenseDetailModel] with enhanced member information
+  static Future<ExpenseDetailModel> getExpenseWithMemberDetails(int expenseId, int groupId) async {
+    try {
+      // Get the basic expense details
+      final expenseDetail = await getExpenseById(expenseId);
+      
+      // Get group details to enhance member names
+      final groupResponse = await _apiService.getGroupWithMembers(groupId.toString());
+      if (groupResponse['success']) {
+        final groupData = groupResponse['data'];
+        final groupName = groupData['name'] ?? 'Unknown Group'; // Get the actual group name
+        final members = (groupData['members'] as List<dynamic>?)
+            ?.map((memberJson) => GroupMember.fromJson(memberJson, groupId: groupId))
+            .toList() ?? [];
+        
+        // Create a map of member ID to member name for quick lookup
+        final memberMap = <int, String>{};
+        for (final member in members) {
+          memberMap[member.id] = member.nickname;
+        }
+        
+        // The participant amounts should already have the correct names from the backend
+        // No need to enhance them since they come from the expense splits
+        final enhancedParticipantAmounts = expenseDetail.participantAmounts;
+        
+        // Enhance payer name if needed
+        String enhancedPayerName = expenseDetail.payerName;
+        if (expenseDetail.payerId > 0 && memberMap.containsKey(expenseDetail.payerId)) {
+          enhancedPayerName = memberMap[expenseDetail.payerId]!;
+        }
+        
+        // Return enhanced expense detail with actual group name
+        return expenseDetail.copyWith(
+          participantAmounts: enhancedParticipantAmounts,
+          payerName: enhancedPayerName,
+          groupName: groupName, // Use the actual group name
+        );
+      }
+      
+      return expenseDetail;
+    } catch (e) {
+      // If group details fail, return the basic expense detail
+      return await getExpenseById(expenseId);
+    }
   }
 }
 

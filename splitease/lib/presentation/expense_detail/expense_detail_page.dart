@@ -4,6 +4,7 @@ import 'package:currency_picker/currency_picker.dart';
 import '../../core/app_export.dart';
 import '../../models/expense_detail_model.dart';
 import '../../models/participant_amount.dart';
+import '../../models/group_member.dart';
 import '../../services/expense_detail_service.dart';
 import '../expense_creation/widgets/expense_details_widget.dart';
 import '../expense_creation/widgets/receipt_image_widget.dart';
@@ -55,6 +56,7 @@ class _ExpenseDetailPageState extends State<ExpenseDetailPage> {
   // Form controllers
   final TextEditingController _notesController = TextEditingController();
   final TextEditingController _totalController = TextEditingController();
+  final TextEditingController _titleController = TextEditingController();
 
   // Form state
   String _selectedGroup = '';
@@ -68,9 +70,15 @@ class _ExpenseDetailPageState extends State<ExpenseDetailPage> {
   List<String> _selectedMembers = [];
   Map<String, double> _memberPercentages = {};
   Map<String, double> _customAmounts = {};
+  
+  // Group members for selection
+  List<Map<String, dynamic>> _groupMembers = [];
+  String _groupName = 'Unknown Group'; // State variable to hold the group name
+  
+  // Selected payer ID for change tracking
+  int _selectedPayerId = 0;
 
-  // Mock data - in real implementation, this would come from a service
-  final List<String> _groups = ['Weekend Getaway 🏖️', 'Office Lunch', 'Roommates'];
+  // Categories list - this could come from a service in the future
   final List<String> _categories = [
     'Food & Dining',
     'Transportation',
@@ -102,6 +110,7 @@ class _ExpenseDetailPageState extends State<ExpenseDetailPage> {
     _scrollController.dispose();
     _notesController.dispose();
     _totalController.dispose();
+    _titleController.dispose();
     super.dispose();
   }
 
@@ -121,14 +130,32 @@ class _ExpenseDetailPageState extends State<ExpenseDetailPage> {
 
     while (retryCount <= maxRetries) {
       try {
-        final expense = await ExpenseDetailService.getExpenseById(widget.expenseId);
+        // First get basic expense to get group ID
+        final basicExpense = await ExpenseDetailService.getExpenseById(widget.expenseId);
+        final groupId = int.tryParse(basicExpense.groupId);
+        
+        if (groupId == null || groupId <= 0) {
+          throw ExpenseDetailServiceException('Invalid group ID for expense');
+        }
+        
+        // Then get expense with enhanced member details
+        final expense = await ExpenseDetailService.getExpenseWithMemberDetails(widget.expenseId, groupId);
+        
+        // Also load the full group member list for selection
+        await _loadGroupMembers(groupId);
         
         setState(() {
           _expense = expense;
           _originalExpense = expense; // Store original for cancel functionality
-          _populateFormFields();
           _isLoading = false;
           _errorMessage = null;
+        });
+        
+        // Populate form fields after state is updated and group members are loaded
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _populateFormFields();
+          }
         });
         return; // Success, exit retry loop
         
@@ -241,29 +268,274 @@ class _ExpenseDetailPageState extends State<ExpenseDetailPage> {
     );
   }
 
+  /// Load group members for selection
+  Future<void> _loadGroupMembers(int groupId) async {
+    try {
+      print('Loading group members for group ID: $groupId');
+      final response = await ApiService.instance.getGroupWithMembers(groupId.toString());
+      print('Group members response: $response');
+      
+      if (response['success'] && response['data'] != null) {
+        final groupData = response['data'];
+        print('Group data: $groupData');
+        
+        // Store the group name
+        final groupName = groupData['name'] ?? 'Unknown Group';
+        print('Group name: $groupName');
+        
+        final members = (groupData['members'] as List<dynamic>?)
+            ?.map((memberJson) => GroupMember.fromJson(memberJson, groupId: groupId))
+            .toList() ?? [];
+        
+        print('Parsed members: ${members.map((m) => '${m.id}:${m.nickname}').join(', ')}');
+        
+        final groupMembersList = members.map((member) {
+          return <String, dynamic>{
+            'id': member.id,
+            'name': member.nickname,
+            'avatar': '', // GroupMember doesn't have avatar, using empty string
+            'initials': _getInitials(member.nickname), // Add initials for avatar fallback
+            'email': member.email ?? '',
+            'isCurrentUser': false, // We'll determine this later if needed
+          };
+        }).toList();
+        
+        print('Group members list: ${groupMembersList.map((m) => '${m['id']}:${m['name']}').join(', ')}');
+        
+        // Group members loaded successfully
+        setState(() {
+          _groupMembers = groupMembersList;
+          _groupName = groupName; // Store the group name
+        });
+      } else {
+        print('Group members response not successful: ${response['message']}');
+        setState(() {
+          _groupMembers = [];
+          _groupName = 'Unknown Group';
+        });
+      }
+    } catch (e) {
+      // If group members fail to load, continue with empty list
+      print('Failed to load group members: $e');
+      setState(() {
+        _groupMembers = [];
+        _groupName = 'Unknown Group';
+      });
+    }
+  }
+
+  /// Get initials from member name
+  String _getInitials(String name) {
+    final nameParts = name.trim().split(' ');
+    if (nameParts.isEmpty) return '?';
+    if (nameParts.length == 1) {
+      return nameParts[0].substring(0, 1).toUpperCase();
+    }
+    return '${nameParts[0].substring(0, 1)}${nameParts[1].substring(0, 1)}'.toUpperCase();
+  }
+
+  /// Get a valid payer ID that exists in the group members list
+  String _getValidPayerId() {
+    print('Getting valid payer ID. Selected: $_selectedPayerId, Available: ${_groupMembers.map((m) => m['id']).join(', ')}');
+    
+    // If the current selected payer ID exists in group members, use it
+    if (_groupMembers.any((member) => member['id'] == _selectedPayerId)) {
+      print('Using current selected payer ID: $_selectedPayerId');
+      return _selectedPayerId.toString();
+    }
+    
+    // If expense has a valid payer ID and it exists in group members, use it
+    if (_expense != null && _expense!.payerId > 0 && _groupMembers.any((member) => member['id'] == _expense!.payerId)) {
+      print('Using expense payer ID: ${_expense!.payerId}');
+      return _expense!.payerId.toString();
+    }
+    
+    // Otherwise, use the first available member
+    if (_groupMembers.isNotEmpty) {
+      print('Using first available member: ${_groupMembers.first['id']}');
+      return _groupMembers.first['id'].toString();
+    }
+    
+    // Fallback to empty string if no members available
+    print('No valid payer ID found, using empty string');
+    return '';
+  }
+
+  /// Refresh UI state to match the current expense data
+  Future<void> _refreshUIState() async {
+    if (_expense == null) return;
+    
+    try {
+      print('Refreshing UI state for expense: ${_expense!.id}');
+      print('Current payer ID: ${_expense!.payerId}');
+      print('Current selected payer ID: $_selectedPayerId');
+      print('Group members count: ${_groupMembers.length}');
+      
+      // Reload group members to ensure we have the latest data
+      final groupId = int.tryParse(_expense!.groupId);
+      if (groupId != null && groupId > 0) {
+        await _loadGroupMembers(groupId);
+        print('Reloaded group members. New count: ${_groupMembers.length}');
+      }
+      
+      // Only update payer ID if it's different from the expense's payer ID
+      final expensePayerId = _expense!.payerId;
+      if (_selectedPayerId != expensePayerId) {
+        final payerExists = _groupMembers.any((member) => member['id'] == expensePayerId);
+        
+        if (!payerExists && _groupMembers.isNotEmpty) {
+          print('Warning: Payer ID $expensePayerId not found in group members. Using first member.');
+          setState(() {
+            _selectedPayerId = _groupMembers.first['id'];
+          });
+        } else {
+          setState(() {
+            _selectedPayerId = expensePayerId;
+          });
+        }
+        print('Updated selected payer ID to: $_selectedPayerId');
+      } else {
+        print('Payer ID unchanged: $_selectedPayerId');
+      }
+      
+      // Repopulate form fields to ensure consistency
+      _populateFormFields();
+      print('Form fields repopulated');
+    } catch (e) {
+      print('Failed to refresh UI state: $e');
+    }
+  }
+
   void _populateFormFields() {
     if (_expense == null) return;
+
+    print('Populating form fields for expense: ${_expense!.id}');
+    print('Expense payer ID: ${_expense!.payerId}, payer name: ${_expense!.payerName}');
+    print('Expense group name: ${_expense!.groupName}');
+    print('Actual group name: $_groupName');
 
     _totalController.text = _expense!.amount.toStringAsFixed(2);
     _totalAmount = _expense!.amount;
     _selectedDate = _expense!.date;
-    _selectedGroup = _expense!.groupName;
+    _selectedGroup = _groupName; // Use the actual group name instead of the generic one
     _selectedCategory = _expense!.category;
     _splitType = _expense!.splitType;
     _notesController.text = _expense!.notes;
+    _titleController.text = _expense!.title;
     
-    // Populate split options state
-    _selectedMembers = _expense!.participantAmounts.map((p) => p.name).toList();
+    // Initialize split-related state
+    // For equal split, all participants with amounts > 0 should be selected
+    if (_splitType == 'equal') {
+      print('Initializing equal split selected members');
+      print('Participant amounts: ${_expense!.participantAmounts.map((p) => '${p.name}: ${p.amount}').join(', ')}');
+      _selectedMembers = _expense!.participantAmounts
+          .where((p) => p.amount > 0) // Only include participants with amounts > 0
+          .map((p) => p.name ?? 'Unknown') // Use the participant name directly
+          .toList();
+      print('Selected members for equal split: $_selectedMembers');
+    } else {
+      // For other split types, map participant names to group member names
+      _selectedMembers = _expense!.participantAmounts
+          .where((p) => p.amount > 0) // Only include participants with amounts > 0
+          .map((p) {
+            // Try to find matching group member by name
+            String memberName = p.name ?? 'Unknown'; // Default to 'Unknown' if name is null
+            for (final member in _groupMembers) {
+              if (member['name'] == p.name) {
+                memberName = member['name']; // Use the member name, not nickname
+                break;
+              }
+            }
+            return memberName;
+          })
+          .toList();
+    }
     
     // Initialize percentages and custom amounts based on split type
     if (_splitType == 'percentage') {
-      _memberPercentages = Map.fromEntries(
-        _expense!.participantAmounts.map((p) => MapEntry(p.name, (p.amount / _expense!.amount) * 100))
-      );
+      print('Initializing percentage data for split type: $_splitType');
+      print('Participant amounts: ${_expense!.participantAmounts.map((p) => '${p.name}: ${p.percentage}%').join(', ')}');
+      print('Group members: ${_groupMembers.map((m) => '${m['id']}:${m['name']}').join(', ')}');
+      
+      _memberPercentages = {};
+      for (final participant in _expense!.participantAmounts) {
+        if (participant.percentage != null && participant.percentage! > 0) {
+          // Try to find matching group member by name first
+          String memberName = participant.name ?? 'Unknown';
+          
+          // Look for exact name match
+          final matchingMember = _groupMembers.firstWhere(
+            (member) => member['name'] == participant.name,
+            orElse: () => <String, dynamic>{},
+          );
+          
+          if (matchingMember.isNotEmpty) {
+            memberName = matchingMember['name'];
+            print('Found matching member by name: $memberName');
+          } else {
+            // If no exact match, try to find by group member ID
+            if (participant.groupMemberId != null) {
+              final memberById = _groupMembers.firstWhere(
+                (member) => member['id'] == participant.groupMemberId,
+                orElse: () => <String, dynamic>{},
+              );
+              if (memberById.isNotEmpty) {
+                memberName = memberById['name'];
+                print('Found matching member by ID: $memberName');
+              }
+            }
+          }
+          
+          _memberPercentages[memberName] = participant.percentage!;
+          print('Added percentage for $memberName: ${participant.percentage}%');
+        }
+      }
+      print('Final member percentages: $_memberPercentages');
+      
+      // Force UI update when percentage data is loaded
+      if (mounted) {
+        setState(() {});
+      }
     } else if (_splitType == 'custom') {
-      _customAmounts = Map.fromEntries(
-        _expense!.participantAmounts.map((p) => MapEntry(p.name, p.amount))
-      );
+      print('Initializing custom amounts for split type: $_splitType');
+      print('Participant amounts: ${_expense!.participantAmounts.map((p) => '${p.name}: ${p.amount}').join(', ')}');
+      
+      _customAmounts = {};
+      for (final participant in _expense!.participantAmounts) {
+        if (participant.amount > 0) {
+          // Try to find matching group member by name first
+          String memberName = participant.name ?? 'Unknown';
+          
+          // Look for exact name match
+          final matchingMember = _groupMembers.firstWhere(
+            (member) => member['name'] == participant.name,
+            orElse: () => <String, dynamic>{},
+          );
+          
+          if (matchingMember.isNotEmpty) {
+            memberName = matchingMember['name'];
+          } else {
+            // If no exact match, try to find by group member ID
+            if (participant.groupMemberId != null) {
+              final memberById = _groupMembers.firstWhere(
+                (member) => member['id'] == participant.groupMemberId,
+                orElse: () => <String, dynamic>{},
+              );
+              if (memberById.isNotEmpty) {
+                memberName = memberById['name'];
+              }
+            }
+          }
+          
+          _customAmounts[memberName] = participant.amount;
+        }
+      }
+      print('Final custom amounts: $_customAmounts');
+      
+      // Force UI update when custom amounts are loaded
+      if (mounted) {
+        setState(() {});
+      }
     }
     
     // Set currency
@@ -280,6 +552,39 @@ class _ExpenseDetailPageState extends State<ExpenseDetailPage> {
       thousandsSeparator: '.',
       spaceBetweenAmountAndSymbol: true,
     );
+    
+    // Set selected payer ID - only if it's not already set or if it's different
+    if (_selectedPayerId == 0 || _selectedPayerId != _expense!.payerId) {
+      _selectedPayerId = _expense!.payerId;
+      print('Updated selected payer ID to: $_selectedPayerId');
+    }
+    
+    // Force UI update to reflect the changes
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  void _onSplitTypeChanged(String newSplitType) {
+    setState(() {
+      _splitType = newSplitType;
+      
+      // When switching to equal split, select all participants with amounts > 0
+      if (newSplitType == 'equal' && _expense != null) {
+        _selectedMembers = _expense!.participantAmounts
+            .where((p) => p.amount > 0)
+            .map((p) => p.name ?? 'Unknown')
+            .toList();
+      }
+      
+      // Clear other split-related data when switching types
+      if (newSplitType != 'percentage') {
+        _memberPercentages.clear();
+      }
+      if (newSplitType != 'custom') {
+        _customAmounts.clear();
+      }
+    });
   }
 
   void _toggleEditMode() {
@@ -357,6 +662,7 @@ class _ExpenseDetailPageState extends State<ExpenseDetailPage> {
            _notesController.text != _originalExpense!.notes ||
            _splitType != _originalExpense!.splitType ||
            _selectedCurrency?.code != _originalExpense!.currency ||
+           _selectedPayerId != _originalExpense!.payerId || // Check for payer changes
            !_areParticipantAmountsEqual(_calculateParticipantAmounts(currentTotal), _originalExpense!.participantAmounts);
   }
 
@@ -385,8 +691,31 @@ class _ExpenseDetailPageState extends State<ExpenseDetailPage> {
     });
 
     try {
-      // Update the total amount from the controller
-      final newTotal = double.tryParse(_totalController.text) ?? _totalAmount;
+      // Update the total amount from the controller with robust parsing
+      final text = _totalController.text.trim();
+      double? newTotal;
+      
+      // Try to parse the amount, handling potential formatting issues
+      if (text.isNotEmpty) {
+        // Remove any currency symbols and extra spaces
+        final cleanText = text.replaceAll(RegExp(r'[^\d.,]'), '').replaceAll(',', '.');
+        newTotal = double.tryParse(cleanText);
+      }
+      
+      // Fallback to original amount if parsing fails
+      newTotal ??= _totalAmount;
+      
+      // Validate amount before proceeding
+      if (newTotal <= 0) {
+        _showValidationErrors(['Total amount must be greater than zero']);
+        setState(() {
+          _isSaving = false;
+        });
+        return;
+      }
+      
+      // Calculate participant amounts
+      final calculatedParticipantAmounts = _calculateParticipantAmounts(newTotal);
       
       // Create updated expense data
       final updatedExpense = _expense!.copyWith(
@@ -398,7 +727,7 @@ class _ExpenseDetailPageState extends State<ExpenseDetailPage> {
         splitType: _splitType,
         currency: _selectedCurrency?.code ?? _expense!.currency,
         // Update participant amounts based on split type
-        participantAmounts: _calculateParticipantAmounts(newTotal),
+        participantAmounts: calculatedParticipantAmounts,
         updatedAt: DateTime.now(),
       );
 
@@ -413,8 +742,23 @@ class _ExpenseDetailPageState extends State<ExpenseDetailPage> {
         return;
       }
 
-      // Create update request for API call
-      final updateRequest = ExpenseUpdateRequest.fromExpenseDetail(updatedExpense);
+      // Create payer data from selected payer and group members
+      final payerData = _createPayerData(newTotal);
+      
+      // Create update request for API call with proper payer data
+      final updateRequest = ExpenseUpdateRequest(
+        expenseId: updatedExpense.id,
+        groupId: int.tryParse(updatedExpense.groupId) ?? 0,
+        title: updatedExpense.title,
+        amount: updatedExpense.amount,
+        currency: updatedExpense.currency,
+        date: updatedExpense.date,
+        category: updatedExpense.category,
+        notes: updatedExpense.notes,
+        splitType: updatedExpense.splitType,
+        participantAmounts: updatedExpense.participantAmounts,
+        payers: payerData,
+      );
       
       // Call the expense detail service to update the expense with retry logic
       final savedExpense = await _saveWithRetry(updateRequest);
@@ -425,6 +769,9 @@ class _ExpenseDetailPageState extends State<ExpenseDetailPage> {
         _isSaving = false;
         _isEditMode = false;
       });
+      
+      // Refresh UI state to match the updated expense data
+      await _refreshUIState();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -744,30 +1091,114 @@ class _ExpenseDetailPageState extends State<ExpenseDetailPage> {
   List<ParticipantAmount> _calculateParticipantAmounts(double totalAmount) {
     switch (_splitType) {
       case 'equal':
+        if (_selectedMembers.isEmpty) {
+          // Fallback to original participant amounts if no members are selected
+          return _expense?.participantAmounts ?? [];
+        }
         final amountPerPerson = totalAmount / _selectedMembers.length;
-        return _selectedMembers.map((name) => ParticipantAmount(
-          name: name,
-          amount: amountPerPerson,
-        )).toList();
+        return _selectedMembers.map((memberName) {
+          // Find the group member ID for this name
+          final groupMember = _groupMembers.firstWhere(
+            (member) => member['name'] == memberName,
+            orElse: () => <String, dynamic>{'id': 0, 'name': memberName},
+          );
+          return ParticipantAmount(
+            name: memberName,
+            amount: amountPerPerson,
+            groupMemberId: groupMember['id'] as int?,
+          );
+        }).toList();
       case 'percentage':
-        return _memberPercentages.entries.map((entry) => ParticipantAmount(
-          name: entry.key,
-          amount: totalAmount * (entry.value / 100.0),
-        )).toList();
+        if (_memberPercentages.isEmpty) {
+          // Fallback to original participant amounts if no percentages are set
+          return _expense?.participantAmounts ?? [];
+        }
+        return _memberPercentages.entries.map((entry) {
+          final memberName = entry.key;
+          final percentage = entry.value;
+          final amount = totalAmount * (percentage / 100.0);
+          
+          // Find the group member ID for this name
+          final groupMember = _groupMembers.firstWhere(
+            (member) => member['name'] == memberName,
+            orElse: () => <String, dynamic>{'id': 0, 'name': memberName},
+          );
+          
+          return ParticipantAmount(
+            name: memberName,
+            amount: amount,
+            percentage: percentage.toDouble(),
+            groupMemberId: groupMember['id'] as int?,
+          );
+        }).toList();
       case 'custom':
-        return _customAmounts.entries.map((entry) => ParticipantAmount(
-          name: entry.key,
-          amount: entry.value,
-        )).toList();
+        if (_customAmounts.isEmpty) {
+          // Fallback to original participant amounts if no custom amounts are set
+          return _expense?.participantAmounts ?? [];
+        }
+        return _customAmounts.entries.map((entry) {
+          final memberName = entry.key;
+          final amount = entry.value;
+          final percentage = totalAmount > 0 ? (amount / totalAmount) * 100 : 0;
+          
+          // Find the group member ID for this name
+          final groupMember = _groupMembers.firstWhere(
+            (member) => member['name'] == memberName,
+            orElse: () => <String, dynamic>{'id': 0, 'name': memberName},
+          );
+          
+          return ParticipantAmount(
+            name: memberName,
+            amount: amount,
+            percentage: percentage.toDouble(),
+            groupMemberId: groupMember['id'] as int?,
+          );
+        }).toList();
       default:
-        return [];
+        return _expense?.participantAmounts ?? [];
     }
+  }
+
+  /// Create payer data for backend update
+  List<Map<String, dynamic>> _createPayerData(double totalAmount) {
+    print('Creating payer data. Selected payer ID: $_selectedPayerId');
+    print('Available group members: ${_groupMembers.map((m) => '${m['id']}:${m['name']}').join(', ')}');
+    
+    // Find the selected payer in group members
+    Map<String, dynamic> selectedPayer;
+    try {
+      selectedPayer = _groupMembers.firstWhere(
+        (member) => member['id'] == _selectedPayerId,
+      );
+      print('Found selected payer: ${selectedPayer['name']} (ID: ${selectedPayer['id']})');
+    } catch (_) {
+      // If not found, use first member or create a default
+      selectedPayer = _groupMembers.isNotEmpty 
+          ? _groupMembers.first 
+          : <String, dynamic>{'id': 0, 'name': 'Unknown'};
+      print('Payer not found, using fallback: ${selectedPayer['name']} (ID: ${selectedPayer['id']})');
+    }
+    
+    final payerData = [
+      {
+        'group_member_id': selectedPayer['id'],
+        'amount_paid': totalAmount,
+        'payment_method': 'unknown',
+        'payment_date': DateTime.now().toIso8601String(),
+      }
+    ];
+    
+    print('Created payer data: $payerData');
+    return payerData;
   }
 
   /// Save expense with automatic retry mechanism for transient failures
   Future<ExpenseDetailModel> _saveWithRetry(ExpenseUpdateRequest request, {int maxRetries = 3}) async {
     int retryCount = 0;
     Duration retryDelay = Duration(seconds: 1);
+
+    // Log the request data for debugging
+    print('Sending update request: ${request.toJson()}');
 
     while (retryCount < maxRetries) {
       try {
@@ -1104,11 +1535,12 @@ class _ExpenseDetailPageState extends State<ExpenseDetailPage> {
 
                       // Expense Details
                       ExpenseDetailsWidget(
+                        key: ValueKey('expense_details_${_selectedPayerId}_${_groupMembers.length}'),
                         selectedGroup: _selectedGroup,
                         selectedCategory: _selectedCategory,
                         selectedDate: _selectedDate,
                         notesController: _notesController,
-                        groups: _groups,
+                        groups: [_groupName], // Use the actual group name instead of the generic one
                         categories: _categories,
                         onGroupChanged: null, // Group is locked in edit mode per requirements
                         onCategoryChanged: _isEditMode 
@@ -1124,21 +1556,49 @@ class _ExpenseDetailPageState extends State<ExpenseDetailPage> {
                         isReceiptMode: false,
                         receiptModeConfig: null,
                         isReadOnly: !_isEditMode,
+                        // Add payer selection parameters
+                        selectedPayerId: _getValidPayerId(),
+                        onPayerChanged: _isEditMode ? (value) {
+                          if (value != null) {
+                            setState(() {
+                              _selectedPayerId = int.tryParse(value) ?? 0;
+                            });
+                          }
+                        } : null,
+                        groupMembers: _groupMembers,
+                        isLoadingPayers: false,
+                        titleController: _titleController,
                       ),
 
                       SizedBox(height: 3.h),
 
+                      // Debug logging for split options
+                      Builder(
+                        builder: (context) {
+                          print('Building SplitOptionsWidget:');
+                          print('  Split type: $_splitType');
+                          print('  Member percentages: $_memberPercentages');
+                          print('  Group members count: ${_groupMembers.length}');
+                          print('  Is edit mode: $_isEditMode');
+                          print('  Participant amounts: ${_expense!.participantAmounts.map((p) => '${p.name}: ${p.percentage}%').join(', ')}');
+                          return SizedBox.shrink();
+                        },
+                      ),
+
                       // Split Options
                       SplitOptionsWidget(
+                        key: ValueKey('split_options_${_splitType}_${_memberPercentages.length}_${_isEditMode}'),
                         splitType: _splitType,
                         onSplitTypeChanged: _isEditMode 
-                            ? (value) => setState(() => _splitType = value)
+                            ? (value) => _onSplitTypeChanged(value)
                             : null,
-                        groupMembers: _expense!.participantAmounts.map((p) => {
-                          'id': p.name.hashCode,
-                          'name': p.name,
-                          'avatar': '', // No avatar data in expense detail model
-                        }).toList(),
+                        groupMembers: _groupMembers.isNotEmpty 
+                            ? _groupMembers 
+                            : _expense!.participantAmounts.map((p) => {
+                                'id': p.name.hashCode,
+                                'name': p.name,
+                                'avatar': '', // No avatar data in expense detail model
+                              }).toList(),
                         totalAmount: double.tryParse(_totalController.text) ?? _totalAmount,
                         currencySymbol: _selectedCurrency?.symbol ?? _expense!.currency,
                         isReceiptMode: false,

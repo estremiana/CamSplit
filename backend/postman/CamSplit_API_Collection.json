@@ -1,0 +1,1334 @@
+{
+	"info": {
+		"_postman_id": "camsplit-api-collection",
+		"name": "CamSplit API Collection",
+		"description": "Complete API collection for CamSplit backend testing. Includes all endpoints for Users, Groups, Expenses, Payments, Items, Assignments, and OCR functionality.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "🔐 Authentication",
+			"item": [
+				{
+					"name": "Register User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"Password123\",\n  \"name\": \"John Doe\",\n  \"birthdate\": \"1990-01-01\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"Password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Verify Token",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"token\": \"{{auth_token}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users/verify-token",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"verify-token"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "👤 Users",
+			"item": [
+				{
+					"name": "Get Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/users/profile",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"profile"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"John Smith\",\n  \"birthdate\": \"1990-05-15\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users/profile",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"profile"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Dashboard",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/users/dashboard",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"dashboard"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Groups",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/users/groups",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"groups"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Search Users",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/users/search?q=john",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"search"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "john"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "👥 Groups",
+			"item": [
+				{
+					"name": "Create Group",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Roommates\",\n  \"description\": \"Monthly apartment expenses\",\n  \"currency\": \"EUR\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/groups",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"groups"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Groups",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/groups",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"groups"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Group Details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/groups/{{group_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"groups",
+								"{{group_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Group with Members",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/groups/{{group_id}}/with-members",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"groups",
+								"{{group_id}}",
+								"with-members"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add Member (Registered User)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"jane.smith@example.com\",\n  \"nickname\": \"Jane\",\n  \"role\": \"member\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/groups/{{group_id}}/members",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"groups",
+								"{{group_id}}",
+								"members"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add Member (Non-Registered User)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nickname\": \"Bob Roommate\",\n  \"email\": \"bob.roommate@example.com\",\n  \"role\": \"member\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/groups/{{group_id}}/members",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"groups",
+								"{{group_id}}",
+								"members"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Group Members",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/groups/{{group_id}}/members",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"groups",
+								"{{group_id}}",
+								"members"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Claim Member",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/groups/{{group_id}}/members/{{member_id}}/claim",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"groups",
+								"{{group_id}}",
+								"members",
+								"{{member_id}}",
+								"claim"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "💰 Expenses",
+			"item": [
+				{
+					"name": "Create Simple Expense",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Rent Payment\",\n  \"total_amount\": 1200.00,\n  \"group_id\": {{group_id}},\n  \"date\": \"2024-01-15\",\n  \"category\": \"Housing\",\n  \"split_type\": \"equal\",\n  \"notes\": \"Monthly rent payment\",\n  \"payers\": [\n    {\n      \"group_member_id\": {{creator_member_id}},\n      \"amount_paid\": 1200.00,\n      \"payment_method\": \"bank_transfer\"\n    }\n  ],\n  \"splits\": [\n    {\n      \"group_member_id\": {{creator_member_id}},\n      \"amount_owed\": 600.00\n    },\n    {\n      \"group_member_id\": {{member_id}},\n      \"amount_owed\": 600.00\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/expenses",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"expenses"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Complex Expense with Items",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Grocery Shopping\",\n  \"total_amount\": 150.00,\n  \"group_id\": {{group_id}},\n  \"date\": \"2024-01-15\",\n  \"category\": \"Food\",\n  \"split_type\": \"custom\",\n  \"notes\": \"Weekly groceries\",\n  \"payers\": [\n    {\n      \"group_member_id\": {{creator_member_id}},\n      \"amount_paid\": 150.00,\n      \"payment_method\": \"card\"\n    }\n  ],\n  \"splits\": [\n    {\n      \"group_member_id\": {{creator_member_id}},\n      \"amount_owed\": 50.00\n    },\n    {\n      \"group_member_id\": {{member_id}},\n      \"amount_owed\": 100.00\n    }\n  ],\n  \"items\": [\n    {\n      \"name\": \"Milk\",\n      \"unit_price\": 3.50,\n      \"max_quantity\": 2,\n      \"category\": \"Dairy\",\n      \"description\": \"Organic whole milk\",\n      \"assignments\": [\n        {\n          \"quantity\": 1,\n          \"people_count\": 2,\n          \"price_per_person\": 1.75,\n          \"user_ids\": [{{creator_member_id}}, {{member_id}}],\n          \"notes\": \"Shared between John and Bob\"\n        }\n      ]\n    },\n    {\n      \"name\": \"Bread\",\n      \"unit_price\": 2.50,\n      \"max_quantity\": 1,\n      \"category\": \"Bakery\",\n      \"description\": \"Whole wheat bread\",\n      \"assignments\": [\n        {\n          \"quantity\": 1,\n          \"people_count\": 1,\n          \"price_per_person\": 2.50,\n          \"user_ids\": [{{member_id}}],\n          \"notes\": \"Bob's bread\"\n        }\n      ]\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/expenses",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"expenses"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Expense (Smart)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/expenses/{{expense_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"expenses",
+								"{{expense_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Expense with Details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/expenses/{{expense_id}}/details",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"expenses",
+								"{{expense_id}}",
+								"details"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Group Expenses",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/expenses/group/{{group_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"expenses",
+								"group",
+								"{{group_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Expenses",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/expenses",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"expenses"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Expense Settlement",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/expenses/{{expense_id}}/settlement",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"expenses",
+								"{{expense_id}}",
+								"settlement"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🛒 Items",
+			"item": [
+				{
+					"name": "Get Items for Expense",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/items/expense/{{expense_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"items",
+								"expense",
+								"{{expense_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Item",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Cheese\",\n  \"description\": \"Cheddar cheese\",\n  \"unit_price\": 5.00,\n  \"max_quantity\": 1,\n  \"category\": \"Dairy\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/items/expense/{{expense_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"items",
+								"expense",
+								"{{expense_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Specific Item",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/items/{{item_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"items",
+								"{{item_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Item",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Organic Cheese\",\n  \"unit_price\": 6.00,\n  \"max_quantity\": 2\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/items/{{item_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"items",
+								"{{item_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Items from OCR",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"items\": [\n    {\n      \"name\": \"Apples\",\n      \"unit_price\": 2.00,\n      \"quantity\": 3,\n      \"category\": \"Produce\"\n    },\n    {\n      \"name\": \"Bananas\",\n      \"unit_price\": 1.50,\n      \"quantity\": 2,\n      \"category\": \"Produce\"\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/items/expense/{{expense_id}}/ocr",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"items",
+								"expense",
+								"{{expense_id}}",
+								"ocr"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Item Statistics",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/items/expense/{{expense_id}}/stats",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"items",
+								"expense",
+								"{{expense_id}}",
+								"stats"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Search Items",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/items/expense/{{expense_id}}/search?q=milk",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"items",
+								"expense",
+								"{{expense_id}}",
+								"search"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "milk"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "👥 Assignments",
+			"item": [
+				{
+					"name": "Get Assignments for Expense",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/assignments/expense/{{expense_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"assignments",
+								"expense",
+								"{{expense_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Assignment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"item_id\": {{item_id}},\n  \"quantity\": 1,\n  \"unit_price\": 3.50,\n  \"people_count\": 2,\n  \"price_per_person\": 1.75,\n  \"notes\": \"Shared between John and Bob\",\n  \"user_ids\": [{{creator_member_id}}, {{member_id}}]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/assignments/expense/{{expense_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"assignments",
+								"expense",
+								"{{expense_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Specific Assignment",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/assignments/{{assignment_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"assignments",
+								"{{assignment_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Assignment",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"quantity\": 2,\n  \"people_count\": 3,\n  \"price_per_person\": 2.33,\n  \"notes\": \"Updated assignment\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/assignments/{{assignment_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"assignments",
+								"{{assignment_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add Users to Assignment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user_ids\": [{{member_id}}]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/assignments/{{assignment_id}}/users",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"assignments",
+								"{{assignment_id}}",
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Assignment Summary",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/assignments/expense/{{expense_id}}/summary",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"assignments",
+								"expense",
+								"{{expense_id}}",
+								"summary"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "💳 Payments",
+			"item": [
+				{
+					"name": "Create Payment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"group_id\": {{group_id}},\n  \"from_group_member_id\": {{member_id}},\n  \"to_group_member_id\": {{creator_member_id}},\n  \"amount\": 25.00,\n  \"currency\": \"EUR\",\n  \"payment_method\": \"bank_transfer\",\n  \"notes\": \"Settlement payment\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/payments",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"payments"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Group Payments",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/payments/group/{{group_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"payments",
+								"group",
+								"{{group_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Payment Summary",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/payments/group/{{group_id}}/summary",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"payments",
+								"group",
+								"{{group_id}}",
+								"summary"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Debt Relationships",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/payments/group/{{group_id}}/debts",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"payments",
+								"group",
+								"{{group_id}}",
+								"debts"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Mark Payment Completed",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/payments/{{payment_id}}/complete",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"payments",
+								"{{payment_id}}",
+								"complete"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "📷 OCR",
+			"item": [
+				{
+					"name": "Process Receipt from URL",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"imageUrl\": \"https://example.com/sample-receipt.jpg\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/ocr/process/{{group_id}}/url",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"ocr",
+								"process",
+								"{{group_id}}",
+								"url"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get OCR Statistics",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/ocr/stats",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"ocr",
+								"stats"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Validate OCR Configuration",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/ocr/config",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"ocr",
+								"config"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:5000",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "group_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "expense_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "item_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "assignment_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "payment_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "creator_member_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "member_id",
+			"value": "",
+			"type": "string"
+		}
+	]
+} 

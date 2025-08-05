@@ -1,0 +1,51 @@
+Group details:
+    - Settled up function not working (how much do you owe/are owed)
+    - Make the recent expenses "clickable"
+    - Add a remove member function
+    - Manage the group options (remove, exit, share)
+    - Add a join group function, in which a user join through an invite
+    - Make the settlements clickable in order to settle them and turn them into an expense
+    - Manage the add member function
+    - Refresh UI on member add/remove
+    - Refresh UI on expense created
+    - Include the scan receipt functionality
+
+Groups page:
+    - When creating a group, add options to add members' names
+    - When creating a group, navigate to the group page
+    - When creating a group, change the currency thingy
+    - Remove the email functionality
+    - When creating a group, update the UI (is it necessary if it goes to the group page?)
+    - Remove the card option and keep it as a clickable button
+
+Dashboard:
+    - Modify the image loading and handle it like the profile page
+    - if net balance is negative, have it show a minus sign
+    - Make the expenses clickable
+    - Remove the dynamic participant demo
+
+Profile:
+    - Remove the preferences (change to somewhere else)
+    - Have the groups and expenses display correct data
+
+Expense Details:
+    - if equal, the selected members are not showing
+    - inconsistent styles
+    - in details, the group should not show
+    - remove the draft option
+    - add functionality to go back to the expenses assignments page
+
+OCR:
+    - make the camera actually make sense
+    - rethink the items' design
+    - remove the annoying assign info (maybe make it way more minimalistic)
+    - remove the "bulk" and "drag" mode
+    - implement the create group functionality
+    - handle the add more participants functionality
+    - add a "select all" button for each assignment
+    - handle the profile images
+    - handle the receipt images
+
+UI:
+    - Make the UI consistent (when creating an expense for the group, go to the group page, etc)
+    

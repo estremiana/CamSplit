@@ -4,6 +4,7 @@ import 'package:sizer/sizer.dart';
 import '../../../core/app_export.dart';
 import '../../../models/group_detail_model.dart';
 import '../../../models/group_member.dart';
+import '../../../services/group_detail_service.dart';
 import '../../../widgets/custom_icon_widget.dart';
 import '../../../widgets/custom_image_widget.dart';
 
@@ -124,7 +125,7 @@ class _ParticipantListWidgetState extends State<ParticipantListWidget> {
   Widget _buildParticipantItem(GroupMember member) {
     final bool canRemove = widget.groupDetail.canEdit && 
                           !member.isCurrentUser && 
-                          widget.groupDetail.canRemoveMember(member.id);
+                          widget.groupDetail.canRemoveMember(member.id.toString());
 
     return Container(
       margin: EdgeInsets.only(bottom: 1.h),
@@ -145,9 +146,9 @@ class _ParticipantListWidgetState extends State<ParticipantListWidget> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                if (member.email.isNotEmpty)
+                if (member.email?.isNotEmpty == true)
                   Text(
-                    member.email,
+                    member.email ?? '',
                     style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
                       color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
                     ),
@@ -159,13 +160,22 @@ class _ParticipantListWidgetState extends State<ParticipantListWidget> {
           // Remove button (if applicable)
           if (canRemove)
             IconButton(
-              onPressed: () => _showRemoveConfirmation(member),
-              icon: CustomIconWidget(
-                iconName: 'remove_circle_outline',
-                color: AppTheme.errorLight,
-                size: 20,
-              ),
-              tooltip: 'Remove ${member.name}',
+              onPressed: _isLoading ? null : () => _showRemoveConfirmation(member),
+              icon: _isLoading 
+                ? SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppTheme.errorLight,
+                    ),
+                  )
+                : CustomIconWidget(
+                    iconName: 'remove_circle_outline',
+                    color: AppTheme.errorLight,
+                    size: 20,
+                  ),
+              tooltip: _isLoading ? 'Removing...' : 'Remove ${member.nickname}',
             ),
         ],
       ),
@@ -180,10 +190,10 @@ class _ParticipantListWidgetState extends State<ParticipantListWidget> {
         shape: BoxShape.circle,
         color: AppTheme.lightTheme.colorScheme.primaryContainer,
       ),
-      child: member.avatar.isNotEmpty
+      child: false // GroupMember doesn't have avatar field, so always show initials
           ? ClipOval(
               child: CustomImageWidget(
-                imageUrl: member.avatar,
+                imageUrl: '', // GroupMember doesn't have avatar field
                 width: 10.w,
                 height: 10.w,
                 fit: BoxFit.cover,
@@ -210,12 +220,21 @@ class _ParticipantListWidgetState extends State<ParticipantListWidget> {
       width: double.infinity,
       child: OutlinedButton.icon(
         onPressed: _isLoading ? null : _showAddParticipantDialog,
-        icon: CustomIconWidget(
-          iconName: 'person_add',
-          color: AppTheme.lightTheme.colorScheme.primary,
-          size: 20,
-        ),
-        label: Text('Add Member'),
+        icon: _isLoading 
+          ? SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppTheme.lightTheme.colorScheme.primary,
+              ),
+            )
+          : CustomIconWidget(
+              iconName: 'person_add',
+              color: AppTheme.lightTheme.colorScheme.primary,
+              size: 20,
+            ),
+        label: Text(_isLoading ? 'Adding...' : 'Add Member'),
         style: OutlinedButton.styleFrom(
           padding: EdgeInsets.symmetric(vertical: 1.5.h),
         ),
@@ -284,11 +303,11 @@ class _ParticipantListWidgetState extends State<ParticipantListWidget> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
               child: Text('Cancel'),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: _isLoading ? null : () {
                 if (formKey.currentState!.validate()) {
                   Navigator.of(context).pop();
                   _addParticipant(
@@ -297,7 +316,16 @@ class _ParticipantListWidgetState extends State<ParticipantListWidget> {
                   );
                 }
               },
-              child: Text('Add'),
+              child: _isLoading 
+                ? SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppTheme.lightTheme.colorScheme.onPrimary,
+                    ),
+                  )
+                : Text('Add'),
             ),
           ],
         );
@@ -307,7 +335,7 @@ class _ParticipantListWidgetState extends State<ParticipantListWidget> {
 
   void _showRemoveConfirmation(GroupMember member) {
     // Check if member has outstanding debts
-    final bool hasDebts = !widget.groupDetail.canRemoveMember(member.id);
+    final bool hasDebts = !widget.groupDetail.canRemoveMember(member.id.toString());
     
     if (hasDebts) {
       _showDebtWarningDialog(member);
@@ -320,15 +348,15 @@ class _ParticipantListWidgetState extends State<ParticipantListWidget> {
         return AlertDialog(
           title: Text('Remove Member'),
           content: Text(
-            'Are you sure you want to remove ${member.name} from this group?',
+            'Are you sure you want to remove ${member.nickname} from this group?',
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
               child: Text('Cancel'),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: _isLoading ? null : () {
                 Navigator.of(context).pop();
                 _removeParticipant(member);
               },
@@ -336,7 +364,16 @@ class _ParticipantListWidgetState extends State<ParticipantListWidget> {
                 backgroundColor: AppTheme.errorLight,
                 foregroundColor: AppTheme.lightTheme.colorScheme.onError,
               ),
-              child: Text('Remove'),
+              child: _isLoading 
+                ? SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppTheme.lightTheme.colorScheme.onError,
+                    ),
+                  )
+                : Text('Remove'),
             ),
           ],
         );
@@ -361,7 +398,7 @@ class _ParticipantListWidgetState extends State<ParticipantListWidget> {
             ],
           ),
           content: Text(
-            '${member.name} cannot be removed because they have outstanding debts in this group. Please settle all debts before removing this member.',
+            '${member.nickname} cannot be removed because they have outstanding debts in this group. Please settle all debts before removing this member.',
           ),
           actions: [
             ElevatedButton(
@@ -380,13 +417,16 @@ class _ParticipantListWidgetState extends State<ParticipantListWidget> {
     });
 
     try {
-      // TODO: Replace with actual API call
-      // await GroupService.addMemberToGroup(widget.groupDetail.id.toString(), email, name);
+      // Call the actual API to add member to group
+      await GroupDetailService.addParticipant(
+        widget.groupDetail.id, 
+        email, 
+        name
+      );
       
-      // For now, show success message since API is not implemented
-      _showSuccessSnackBar('Member will be added when API is implemented');
+      _showSuccessSnackBar('Member added successfully!');
       
-      // Notify parent widget
+      // Notify parent widget to refresh the UI
       widget.onParticipantAdded?.call();
     } catch (e) {
       _showErrorSnackBar('Failed to add member: $e');
@@ -403,14 +443,23 @@ class _ParticipantListWidgetState extends State<ParticipantListWidget> {
     });
 
     try {
-      // TODO: Replace with actual API call
-      // await GroupService.removeMemberFromGroup(widget.groupDetail.id.toString(), member.id);
+      // Call the actual API to remove member from group
+      final result = await GroupDetailService.removeParticipant(
+        widget.groupDetail.id, 
+        member.id.toString()
+      );
       
-      // For now, show success message since API is not implemented
-      _showSuccessSnackBar('Member will be removed when API is implemented');
-      
-      // Notify parent widget
-      widget.onParticipantRemoved?.call();
+      if (result['success']) {
+        _showSuccessSnackBar('Member removed successfully!');
+        // Notify parent widget to refresh the UI
+        widget.onParticipantRemoved?.call();
+      } else {
+        if (result['hasDebts']) {
+          _showErrorSnackBar('Cannot remove member with outstanding debts');
+        } else {
+          _showErrorSnackBar(result['message'] ?? 'Failed to remove member');
+        }
+      }
     } catch (e) {
       _showErrorSnackBar('Failed to remove member: $e');
     } finally {

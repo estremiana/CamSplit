@@ -22,6 +22,7 @@ class AssignmentSummaryWidget extends StatefulWidget {
   final String? selectedGroupId;
   final Function(String groupId)? onGroupChanged;
   final bool hasExistingAssignments;
+  final bool isLoadingGroups;
 
   const AssignmentSummaryWidget({
     super.key,
@@ -37,6 +38,7 @@ class AssignmentSummaryWidget extends StatefulWidget {
     this.selectedGroupId,
     this.onGroupChanged,
     this.hasExistingAssignments = false,
+    this.isLoadingGroups = false,
   });
 
   @override
@@ -236,6 +238,7 @@ class _AssignmentSummaryWidgetState extends State<AssignmentSummaryWidget> {
               selectedGroupId: widget.selectedGroupId,
               onGroupChanged: widget.onGroupChanged!,
               hasExistingAssignments: widget.hasExistingAssignments,
+              isLoading: widget.isLoadingGroups,
             ),
 
           // Add Participant Button
@@ -310,10 +313,12 @@ class _AssignmentSummaryWidgetState extends State<AssignmentSummaryWidget> {
                           AppTheme.lightTheme.colorScheme.primaryContainer,
                       child: ClipOval(
                           child: CustomImageWidget(
-                              imageUrl: member['avatar'] ?? '',
+                              imageUrl: member['avatar'],
                               fit: BoxFit.cover,
                               width: 8.w,
-                              height: 8.w))),
+                              height: 8.w,
+                              userName: member['name'],
+                          ))),
                   SizedBox(width: 3.w),
                   // Member name
                   Expanded(

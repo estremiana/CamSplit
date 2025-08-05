@@ -34,7 +34,7 @@ class _AssignmentResetDemoState extends State<AssignmentResetDemo> {
       setState(() {
         _availableGroups = groups;
         if (_availableGroups.isNotEmpty) {
-          _selectedGroupId = _availableGroups.first.id;
+          _selectedGroupId = _availableGroups.first.id.toString();
         }
       });
     } catch (e) {
@@ -52,7 +52,7 @@ class _AssignmentResetDemoState extends State<AssignmentResetDemo> {
 
   void _addAssignment() {
     setState(() {
-      _assignments.add({
+      _assignments.add(<String, dynamic>{
         'id': DateTime.now().millisecondsSinceEpoch.toString(),
         'itemName': 'Test Item ${_assignments.length + 1}',
         'amount': 10.0,
@@ -71,7 +71,7 @@ class _AssignmentResetDemoState extends State<AssignmentResetDemo> {
 
   void _onGroupChanged(String groupId) {
     final selectedGroup = _availableGroups.firstWhere(
-      (group) => group.id == groupId,
+      (group) => group.id.toString() == groupId,
       orElse: () => _availableGroups.first,
     );
 

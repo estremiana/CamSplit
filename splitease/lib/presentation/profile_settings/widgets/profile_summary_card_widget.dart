@@ -4,12 +4,14 @@ import 'package:sizer/sizer.dart';
 import '../../../core/app_export.dart';
 
 class ProfileSummaryCardWidget extends StatelessWidget {
-  final Map<String, dynamic> userData;
+  final UserModel user;
+  final Map<String, dynamic> userStats;
   final VoidCallback onEditProfile;
 
   const ProfileSummaryCardWidget({
     super.key,
-    required this.userData,
+    required this.user,
+    required this.userStats,
     required this.onEditProfile,
   });
 
@@ -50,10 +52,11 @@ class ProfileSummaryCardWidget extends StatelessWidget {
                 ),
                 child: ClipOval(
                   child: CustomImageWidget(
-                    imageUrl: userData['avatar'] as String,
+                    imageUrl: user.avatar,
                     width: 16.w,
                     height: 16.w,
                     fit: BoxFit.cover,
+                    userName: user.name,
                   ),
                 ),
               ),
@@ -66,7 +69,7 @@ class ProfileSummaryCardWidget extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      userData['name'] as String,
+                      user.name,
                       style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
@@ -74,7 +77,7 @@ class ProfileSummaryCardWidget extends StatelessWidget {
                     ),
                     SizedBox(height: 0.5.h),
                     Text(
-                      userData['email'] as String,
+                      user.email,
                       style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
                         color: AppTheme.textSecondaryLight,
                       ),
@@ -82,7 +85,7 @@ class ProfileSummaryCardWidget extends StatelessWidget {
                     ),
                     SizedBox(height: 0.5.h),
                     Text(
-                      'Member since ${_formatDate(userData['memberSince'] as DateTime)}',
+                      'Member since ${_formatDate(user.memberSince)}',
                       style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
                         color: AppTheme.textSecondaryLight,
                       ),
@@ -118,7 +121,7 @@ class ProfileSummaryCardWidget extends StatelessWidget {
             children: [
               _buildStatItem(
                 'Groups',
-                userData['totalGroups'].toString(),
+                userStats['totalGroups'].toString(),
                 CustomIconWidget(
                   iconName: 'group_outlined',
                   color: AppTheme.lightTheme.primaryColor,
@@ -128,7 +131,7 @@ class ProfileSummaryCardWidget extends StatelessWidget {
               SizedBox(width: 6.w),
               _buildStatItem(
                 'Expenses',
-                userData['totalExpenses'].toString(),
+                userStats['totalExpenses'].toString(),
                 CustomIconWidget(
                   iconName: 'receipt_outlined',
                   color: AppTheme.successLight,

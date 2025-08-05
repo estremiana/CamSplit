@@ -237,7 +237,16 @@ class _AddItemBottomSheetState extends State<AddItemBottomSheet> {
                       children: [
                         CircleAvatar(
                           radius: 12,
-                          backgroundImage: NetworkImage(member['avatar']),
+                          backgroundColor: AppTheme.lightTheme.colorScheme.primaryContainer,
+                          child: ClipOval(
+                            child: CustomImageWidget(
+                              imageUrl: member['avatar'],
+                              width: 24,
+                              height: 24,
+                              fit: BoxFit.cover,
+                              userName: member['name'],
+                            ),
+                          ),
                         ),
                         SizedBox(width: 2.w),
                         Text(member['name']),

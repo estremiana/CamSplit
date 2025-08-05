@@ -1,42 +1,180 @@
-const Item = require('../models/Item');
+const ItemService = require('../services/itemService');
 
-exports.addItemsToBill = async (req, res) => {
-  try {
-    const billId = req.params.billId;
-    const { items } = req.body;
-    if (!Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ message: 'Items array is required.' });
-    }
-    const insertedItems = [];
-    for (const item of items) {
-      const { description, quantity, unit_price, total_price } = item;
-      if (!description || !quantity || !unit_price || !total_price) {
-        return res.status(400).json({ message: 'Each item must have description, quantity, unit_price, and total_price.' });
-      }
-      const newItem = await Item.create({
-        bill_id: billId,
-        name: description,
-        unit_price,
-        total_price,
-        quantity,
-        quantity_left: quantity
+class ItemController {
+  // Create item for an expense
+  static async createItem(req, res) {
+    try {
+      const { expenseId } = req.params;
+      const itemData = {
+        ...req.body,
+        expense_id: parseInt(expenseId)
+      };
+
+      const result = await ItemService.createItem(itemData, req.user.id);
+
+      res.status(201).json({
+        success: true,
+        message: result.message,
+        data: result.item
       });
-      insertedItems.push(newItem);
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
     }
-    res.status(201).json({ message: 'Items added successfully.', items: insertedItems });
-  } catch (err) {
-    console.error('Add items to bill error:', err);
-    res.status(500).json({ message: 'Server error while adding items.' });
   }
-};
 
-exports.getItemsForBill = async (req, res) => {
-  try {
-    const billId = req.params.billId;
-    const items = await Item.findByBillId(billId);
-    res.status(200).json({ items });
-  } catch (err) {
-    console.error('Get items for bill error:', err);
-    res.status(500).json({ message: 'Server error while fetching items.' });
+  // Get items for an expense
+  static async getExpenseItems(req, res) {
+    try {
+      const { expenseId } = req.params;
+      const result = await ItemService.getExpenseItems(parseInt(expenseId), req.user.id);
+      
+      res.json({
+        success: true,
+        data: result
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
   }
-}; 
+
+  // Get specific item
+  static async getItem(req, res) {
+    try {
+      const { itemId } = req.params;
+      const result = await ItemService.getItem(parseInt(itemId), req.user.id);
+
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result.item
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  // Update item
+  static async updateItem(req, res) {
+    try {
+      const { itemId } = req.params;
+      const updateData = req.body;
+
+      const result = await ItemService.updateItem(parseInt(itemId), updateData, req.user.id);
+
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result.item
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  // Delete item
+  static async deleteItem(req, res) {
+    try {
+      const { itemId } = req.params;
+      const result = await ItemService.deleteItem(parseInt(itemId), req.user.id);
+
+      res.status(200).json({
+        success: true,
+        message: result.message
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  // Create items from OCR data
+  static async createItemsFromOCR(req, res) {
+    try {
+      const { expenseId } = req.params;
+      const { items: ocrItems } = req.body;
+
+      if (!ocrItems || !Array.isArray(ocrItems)) {
+        return res.status(400).json({
+          success: false,
+          message: 'OCR items array is required'
+        });
+      }
+
+      const result = await ItemService.createItemsFromOCR(parseInt(expenseId), ocrItems, req.user.id);
+
+      res.status(201).json({
+        success: true,
+        message: result.message,
+        data: result.items
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  // Get item statistics for an expense
+  static async getItemStats(req, res) {
+    try {
+      const { expenseId } = req.params;
+      const result = await ItemService.getItemStats(parseInt(expenseId), req.user.id);
+
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result.stats
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  // Search items by name
+  static async searchItems(req, res) {
+    try {
+      const { expenseId } = req.params;
+      const { q: searchTerm } = req.query;
+
+      if (!searchTerm || searchTerm.trim().length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Search term is required'
+        });
+      }
+
+      const result = await ItemService.searchItems(parseInt(expenseId), searchTerm.trim(), req.user.id);
+
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result.items
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+}
+
+module.exports = ItemController; 

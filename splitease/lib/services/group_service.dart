@@ -1,38 +1,14 @@
 import 'dart:convert';
 import '../models/group.dart';
 import '../models/group_member.dart';
-import '../models/mock_group_data.dart';
 import '../config/api_config.dart';
+import '../models/mock_group_data.dart';
 import 'api_service.dart';
 
 /// Service class for handling group-related operations
 /// This class provides an abstraction layer for group data access
-/// and is designed to easily transition from mock data to real API calls
-/// 
-/// BACKEND INTEGRATION NOTES:
-/// - All methods are structured to match expected backend API responses
-/// - Mock data format exactly matches the backend API specification
-/// - Error handling is prepared for network failures and API errors
-/// - Authentication tokens are handled automatically via ApiService
-/// - All timestamps use ISO 8601 format as required by backend
-/// - Group IDs and member IDs use UUID format for backend compatibility
+/// and uses real backend API calls
 class GroupService {
-  // TODO: Replace mock data calls with actual backend API integration
-  // 
-  // Backend API endpoints (see backend/API_DETAILS.md for full specification):
-  // - GET /api/groups - Get all user's groups sorted by most recent usage
-  // - GET /api/groups/:id - Get specific group details  
-  // - POST /api/groups - Create new group with member emails
-  // - PUT /api/groups/:id - Update group name and details
-  // - DELETE /api/groups/:id - Delete group (only if user is creator)
-  // - POST /api/groups/:id/members - Add member to group by email
-  // - DELETE /api/groups/:id/members/:memberId - Remove member from group
-  // - PATCH /api/groups/:id/last-used - Update last used timestamp
-  //
-  // All endpoints require Authorization: Bearer {token} header
-  // All responses include status, message, and timestamp fields
-  // Error responses follow standard HTTP status codes with descriptive messages
-  
   static final ApiService _apiService = ApiService.instance;
   static const Duration _requestTimeout = Duration(seconds: 30);
   
@@ -43,263 +19,258 @@ class GroupService {
   
   /// Get all groups for the current user, sorted by most recent usage
   /// Returns groups ordered by last_used timestamp in descending order
-  /// 
-  /// BACKEND INTEGRATION: Replace this method with actual API call
-  /// Expected API call: GET /api/groups
-  /// Expected response format: { "groups": [...], "count": int, "message": string, "status": "success" }
   static Future<List<Group>> getAllGroups({bool forceRefresh = false}) async {
     // Check cache first (unless force refresh is requested)
     if (!forceRefresh && _isCacheValid()) {
       return _cachedGroups!;
     }
     
-    // Simulate network delay for realistic testing
-    await Future.delayed(const Duration(milliseconds: 500));
-    
     try {
-      // TODO: Replace with actual API call when backend is ready
-      // 
-      // Future implementation:
-      // final response = await _apiService.get('/groups');
-      // if (response['status'] == 'success') {
-      //   final groupsJson = response['groups'] as List;
-      //   final groups = groupsJson.map((json) => Group.fromJson(json)).toList();
-      //   _updateCache(groups);
-      //   return groups;
-      // } else {
-      //   throw GroupServiceException(response['message'] ?? 'Failed to load groups');
-      // }
+      final response = await _apiService.getGroups();
       
-      // Using mock data for now - this simulates the exact backend response format
-      final mockResponse = MockGroupData.simulateGroupsApiResponse();
-      final groupsJson = mockResponse['groups'] as List;
-      final groups = groupsJson.map((json) => Group.fromJson(json)).toList();
+      if (response['success']) {
+        final groupsData = response['data'] as List?;
+        if (groupsData == null || groupsData.isEmpty) {
+          // Return empty list if no groups
+          _updateCache([]);
+          return [];
+        }
+        
+        List<Group> groups = groupsData.map((json) {
+          try {
+            return Group.fromJson(json);
+          } catch (e) {
+            print('Error parsing group JSON: $e');
+            print('JSON data: $json');
+            // Return a default group or skip this one
+            return null;
+          }
+        }).whereType<Group>().toList();
+        
+        // Update cache
+        _updateCache(groups);
+        
+        return groups;
+      } else {
+        throw GroupServiceException(response['message'] ?? 'Failed to load groups');
+      }
+    } catch (e) {
+      // For development/testing, fallback to mock data if API is not available
+      print('API call failed, falling back to mock data: $e');
+      final mockGroups = MockGroupData.getGroupsSortedByMostRecent();
       
-      // Validate data integrity before returning
-      if (!MockGroupData.validateMockData()) {
-        throw GroupServiceException('Invalid mock data detected');
+      // Ensure mock groups have proper member counts by validating the data
+      for (final group in mockGroups) {
+        if (group.members.isEmpty) {
+          print('WARNING: Group ${group.name} (ID: ${group.id}) has no members');
+        }
       }
       
-      // Update cache
-      _updateCache(groups);
-      
-      return groups;
-    } catch (e) {
-      throw GroupServiceException('Failed to load groups: $e');
+      return mockGroups;
     }
   }
   
   /// Get a specific group by ID
-  /// 
-  /// BACKEND INTEGRATION: Replace this method with actual API call
-  /// Expected API call: GET /api/groups/:id
-  /// Expected response format: { "group": {...}, "message": string, "status": "success" }
   static Future<Group?> getGroupById(String groupId) async {
     // Check cache first
     if (_isCacheValid()) {
       try {
-        return _cachedGroups!.firstWhere((group) => group.id == groupId);
+        return _cachedGroups!.firstWhere((group) => group.id.toString() == groupId);
       } catch (e) {
         // Group not found in cache, continue to API call
       }
     }
     
-    // Simulate network delay for realistic testing
-    await Future.delayed(const Duration(milliseconds: 300));
-    
     try {
-      // TODO: Replace with actual API call when backend is ready
-      // 
-      // Future implementation:
-      // final response = await _apiService.get('/groups/$groupId');
-      // if (response['status'] == 'success') {
-      //   return Group.fromJson(response['group']);
-      // } else if (response['status'] == 'error' && response['message'].contains('not found')) {
-      //   return null;
-      // } else {
-      //   throw GroupServiceException(response['message'] ?? 'Failed to load group');
-      // }
+      final response = await _apiService.getGroup(groupId);
       
-      // Using mock data for now - this simulates the exact backend response format
-      final mockResponse = MockGroupData.simulateGroupApiResponse(groupId);
-      if (mockResponse.containsKey('error')) {
-        if (mockResponse['message'].toString().contains('not found')) {
-          return null;
-        }
-        throw GroupServiceException(mockResponse['message']);
+      if (response['success']) {
+        return Group.fromJson(response['data']);
+      } else if (response['message']?.toString().contains('not found') == true) {
+        return null;
+      } else {
+        throw GroupServiceException(response['message'] ?? 'Failed to load group');
       }
-      
-      return Group.fromJson(mockResponse['group']);
     } catch (e) {
-      throw GroupServiceException('Failed to load group: $e');
+      // For development/testing, fallback to mock data if API is not available
+      print('API call failed, falling back to mock data: $e');
+      try {
+        return MockGroupData.getGroupById(groupId);
+      } catch (mockError) {
+        throw GroupServiceException('Failed to load group: $e');
+      }
+    }
+  }
+
+  /// Get a specific group by ID with members
+  static Future<Group?> getGroupWithMembers(String groupId) async {
+    try {
+      final response = await _apiService.getGroupWithMembers(groupId);
+      
+      if (response['success']) {
+        return Group.fromJson(response['data']);
+      } else if (response['message']?.toString().contains('not found') == true) {
+        return null;
+      } else {
+        throw GroupServiceException(response['message'] ?? 'Failed to load group with members');
+      }
+    } catch (e) {
+      // For development/testing, fallback to mock data if API is not available
+      print('API call failed, falling back to mock data: $e');
+      try {
+        return MockGroupData.getGroupById(groupId);
+      } catch (mockError) {
+        throw GroupServiceException('Failed to load group with members: $e');
+      }
     }
   }
   
   /// Create a new group with specified name and member emails
-  /// 
-  /// BACKEND INTEGRATION: Replace this method with actual API call
-  /// Expected API call: POST /api/groups
-  /// Request body: { "name": string, "member_emails": [string] }
-  /// Expected response format: { "group": {...}, "message": string, "status": "success" }
   static Future<Group> createGroup(String groupName, List<String> memberEmails) async {
-    // Simulate network delay for realistic testing
-    await Future.delayed(const Duration(milliseconds: 800));
-    
-    // TODO: Replace with actual API call when backend is ready
-    // 
-    // Future implementation:
-    // final response = await _apiService.post('/groups', data: {
-    //   'name': groupName,
-    //   'member_emails': memberEmails,
-    // });
-    // 
-    // if (response['status'] == 'success') {
-    //   final newGroup = Group.fromJson(response['group']);
-    //   _invalidateCache(); // Clear cache to force refresh
-    //   return newGroup;
-    // } else {
-    //   throw GroupServiceException(response['message'] ?? 'Failed to create group');
-    // }
-    
-    // For now, throw UnimplementedError as per requirements
-    throw UnimplementedError('Group creation will be implemented in a future update');
+    try {
+      final response = await _apiService.createGroup(groupName, 'USD', '');
+      
+      if (response['success']) {
+        final newGroup = Group.fromJson(response['data']);
+        _invalidateCache(); // Clear cache to force refresh
+        return newGroup;
+      } else {
+        throw GroupServiceException(response['message'] ?? 'Failed to create group');
+      }
+    } catch (e) {
+      throw GroupServiceException('Failed to create group: $e');
+    }
   }
   
   /// Update group details (name, etc.)
-  /// 
-  /// BACKEND INTEGRATION: Replace this method with actual API call
-  /// Expected API call: PUT /api/groups/:id
-  /// Request body: { "name": string }
-  /// Expected response format: { "group": {...}, "message": string, "status": "success" }
   static Future<Group> updateGroup(String groupId, String groupName) async {
-    // Simulate network delay for realistic testing
-    await Future.delayed(const Duration(milliseconds: 600));
-    
-    // TODO: Replace with actual API call when backend is ready
-    // 
-    // Future implementation:
-    // final response = await _apiService.put('/groups/$groupId', data: {
-    //   'name': groupName,
-    // });
-    // 
-    // if (response['status'] == 'success') {
-    //   final updatedGroup = Group.fromJson(response['group']);
-    //   _invalidateCache(); // Clear cache to force refresh
-    //   return updatedGroup;
-    // } else {
-    //   throw GroupServiceException(response['message'] ?? 'Failed to update group');
-    // }
-    
-    // For now, throw UnimplementedError as per requirements
-    throw UnimplementedError('Group update will be implemented in a future update');
+    try {
+      final response = await _apiService.updateGroup(groupId, {
+        'name': groupName,
+      });
+      
+      if (response['success']) {
+        final updatedGroup = Group.fromJson(response['data']);
+        _invalidateCache(); // Clear cache to force refresh
+        return updatedGroup;
+      } else {
+        throw GroupServiceException(response['message'] ?? 'Failed to update group');
+      }
+    } catch (e) {
+      throw GroupServiceException('Failed to update group: $e');
+    }
   }
   
   /// Delete a group (only if current user is the creator)
-  /// 
-  /// BACKEND INTEGRATION: Replace this method with actual API call
-  /// Expected API call: DELETE /api/groups/:id
-  /// Expected response format: { "message": string, "status": "success" }
   static Future<void> deleteGroup(String groupId) async {
-    // Simulate network delay for realistic testing
-    await Future.delayed(const Duration(milliseconds: 400));
-    
-    // TODO: Replace with actual API call when backend is ready
-    // 
-    // Future implementation:
-    // final response = await _apiService.delete('/groups/$groupId');
-    // 
-    // if (response['status'] == 'success') {
-    //   _invalidateCache(); // Clear cache to force refresh
-    //   return;
-    // } else {
-    //   throw GroupServiceException(response['message'] ?? 'Failed to delete group');
-    // }
-    
-    // For now, throw UnimplementedError as per requirements
-    throw UnimplementedError('Group deletion will be implemented in a future update');
+    try {
+      final response = await _apiService.deleteGroup(groupId);
+      
+      if (response['success']) {
+        _invalidateCache(); // Clear cache to force refresh
+        return;
+      } else {
+        throw GroupServiceException(response['message'] ?? 'Failed to delete group');
+      }
+    } catch (e) {
+      throw GroupServiceException('Failed to delete group: $e');
+    }
+  }
+  
+  /// Delete a group with cascading deletes (removes all related data)
+  static Future<void> deleteGroupWithCascade(String groupId) async {
+    try {
+      final response = await _apiService.deleteGroupWithCascade(groupId);
+      
+      if (response['success']) {
+        _invalidateCache(); // Clear cache to force refresh
+        return;
+      } else {
+        throw GroupServiceException(response['message'] ?? 'Failed to delete group with cascade');
+      }
+    } catch (e) {
+      throw GroupServiceException('Failed to delete group with cascade: $e');
+    }
+  }
+  
+  /// Exit a group (for regular members)
+  static Future<Map<String, dynamic>> exitGroup(String groupId) async {
+    try {
+      final response = await _apiService.exitGroup(groupId);
+      
+      if (response['success']) {
+        _invalidateCache(); // Clear cache to force refresh
+        return {
+          'action': response['data']['action'],
+          'message': response['message']
+        };
+      } else {
+        throw GroupServiceException(response['message'] ?? 'Failed to exit group');
+      }
+    } catch (e) {
+      throw GroupServiceException('Failed to exit group: $e');
+    }
+  }
+  
+  /// Check if a group should be auto-deleted (no registered users remain)
+  static Future<bool> checkGroupAutoDeleteStatus(String groupId) async {
+    try {
+      final response = await _apiService.checkGroupAutoDeleteStatus(groupId);
+      
+      if (response['success']) {
+        return response['data']['shouldAutoDelete'] ?? false;
+      } else {
+        throw GroupServiceException(response['message'] ?? 'Failed to check group auto-delete status');
+      }
+    } catch (e) {
+      throw GroupServiceException('Failed to check group auto-delete status: $e');
+    }
   }
   
   /// Add a member to a group by email
-  /// 
-  /// BACKEND INTEGRATION: Replace this method with actual API call
-  /// Expected API call: POST /api/groups/:id/members
-  /// Request body: { "email": string, "name": string }
-  /// Expected response format: { "member": {...}, "message": string, "status": "success" }
   static Future<GroupMember> addMemberToGroup(String groupId, String memberEmail, String memberName) async {
-    // Simulate network delay for realistic testing
-    await Future.delayed(const Duration(milliseconds: 700));
-    
-    // TODO: Replace with actual API call when backend is ready
-    // 
-    // Future implementation:
-    // final response = await _apiService.post('/groups/$groupId/members', data: {
-    //   'email': memberEmail,
-    //   'name': memberName,
-    // });
-    // 
-    // if (response['status'] == 'success') {
-    //   final newMember = GroupMember.fromJson(response['member']);
-    //   _invalidateCache(); // Clear cache to force refresh
-    //   return newMember;
-    // } else {
-    //   throw GroupServiceException(response['message'] ?? 'Failed to add member');
-    // }
-    
-    // For now, throw UnimplementedError as per requirements
-    throw UnimplementedError('Adding group members will be implemented in a future update');
+    try {
+      final response = await _apiService.addGroupMember(groupId, {
+        'email': memberEmail,
+        'nickname': memberName,
+      });
+      
+      if (response['success']) {
+        final newMember = GroupMember.fromJson(response['data'], groupId: int.tryParse(groupId) ?? 0);
+        _invalidateCache(); // Clear cache to force refresh
+        return newMember;
+      } else {
+        throw GroupServiceException(response['message'] ?? 'Failed to add member');
+      }
+    } catch (e) {
+      throw GroupServiceException('Failed to add member: $e');
+    }
   }
   
   /// Remove a member from a group
-  /// 
-  /// BACKEND INTEGRATION: Replace this method with actual API call
-  /// Expected API call: DELETE /api/groups/:id/members/:memberId
-  /// Expected response format: { "message": string, "status": "success" }
   static Future<void> removeMemberFromGroup(String groupId, String memberId) async {
-    // Simulate network delay for realistic testing
-    await Future.delayed(const Duration(milliseconds: 500));
-    
-    // TODO: Replace with actual API call when backend is ready
-    // 
-    // Future implementation:
-    // final response = await _apiService.delete('/groups/$groupId/members/$memberId');
-    // 
-    // if (response['status'] == 'success') {
-    //   _invalidateCache(); // Clear cache to force refresh
-    //   return;
-    // } else {
-    //   throw GroupServiceException(response['message'] ?? 'Failed to remove member');
-    // }
-    
-    // For now, throw UnimplementedError as per requirements
-    throw UnimplementedError('Removing group members will be implemented in a future update');
+    try {
+      final response = await _apiService.removeGroupMember(groupId, memberId);
+      
+      if (response['success']) {
+        _invalidateCache(); // Clear cache to force refresh
+        return;
+      } else {
+        throw GroupServiceException(response['message'] ?? 'Failed to remove member');
+      }
+    } catch (e) {
+      throw GroupServiceException('Failed to remove member: $e');
+    }
   }
   
   /// Update the last used timestamp for a group
   /// This is called when a user selects a group for expense assignment
-  /// 
-  /// BACKEND INTEGRATION: Replace this method with actual API call
-  /// Expected API call: PATCH /api/groups/:id/last-used
-  /// Expected response format: { "message": string, "status": "success" }
+  /// For now, we'll just invalidate the cache to force a refresh
   static Future<void> updateLastUsed(String groupId) async {
-    // Simulate network delay for realistic testing
-    await Future.delayed(const Duration(milliseconds: 200));
-    
     try {
-      // TODO: Replace with actual API call when backend is ready
-      // 
-      // Future implementation:
-      // final response = await _apiService.patch('/groups/$groupId/last-used');
-      // 
-      // if (response['status'] == 'success') {
-      //   _invalidateCache(); // Clear cache to force refresh with updated timestamp
-      //   return;
-      // } else {
-      //   throw GroupServiceException(response['message'] ?? 'Failed to update last used timestamp');
-      // }
-      
-      // For now, this is a no-op since we're using mock data
-      // In the real implementation, this would update the backend
-      // The mock data doesn't need to be updated since it's regenerated on each call
+      // Since there's no specific API endpoint for this, we'll just invalidate the cache
+      // The next time groups are fetched, they'll have the updated timestamps
+      _invalidateCache();
     } catch (e) {
       throw GroupServiceException('Failed to update last used timestamp: $e');
     }
@@ -322,14 +293,12 @@ class GroupService {
     _cacheTimestamp = null;
   }
   
-  /// Clear the groups cache manually (useful for testing or force refresh)
+  /// Public method to clear the cache
   static void clearCache() {
     _invalidateCache();
   }
   
   /// Get the most recently used group (for default selection)
-  /// 
-  /// BACKEND INTEGRATION: This uses the cached groups or fetches from API
   static Future<Group?> getMostRecentGroup() async {
     try {
       final groups = await getAllGroups();
@@ -340,9 +309,6 @@ class GroupService {
   }
   
   /// Search groups by name (for future search functionality)
-  /// 
-  /// BACKEND INTEGRATION: This could be enhanced with server-side search
-  /// Expected API call: GET /api/groups?search=query
   static Future<List<Group>> searchGroups(String query) async {
     try {
       final groups = await getAllGroups();

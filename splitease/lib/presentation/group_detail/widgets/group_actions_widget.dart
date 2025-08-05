@@ -5,6 +5,9 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/app_export.dart';
 import '../../../models/group_detail_model.dart';
 import '../../../services/group_service.dart';
+import '../../../services/api_service.dart';
+import '../../../utils/loading_overlay.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../../../widgets/custom_icon_widget.dart';
 
 /// Widget that provides group management actions through a bottom sheet interface
@@ -24,6 +27,19 @@ class GroupActionsWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.lightTheme.colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(20),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
       padding: EdgeInsets.all(4.w),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -47,6 +63,15 @@ class GroupActionsWidget extends StatelessWidget {
             ),
           ),
           SizedBox(height: 2.h),
+          
+          // Generate Invite Link Action
+          _buildActionTile(
+            context: context,
+            icon: 'link',
+            title: 'Generate Invite Link',
+            color: AppTheme.lightTheme.colorScheme.secondary,
+            onTap: () => _handleGenerateInviteLink(context),
+          ),
           
           // Share Group Action
           _buildActionTile(
@@ -77,6 +102,9 @@ class GroupActionsWidget extends StatelessWidget {
             ),
           
           SizedBox(height: 2.h),
+          
+          // Bottom padding for safe area
+          SizedBox(height: MediaQuery.of(context).padding.bottom),
         ],
       ),
     );
@@ -89,21 +117,143 @@ class GroupActionsWidget extends StatelessWidget {
     required Color color,
     required VoidCallback onTap,
   }) {
-    return ListTile(
-      leading: CustomIconWidget(
-        iconName: icon,
-        color: color,
-        size: 24,
-      ),
-      title: Text(
-        title,
-        style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
-          fontWeight: FontWeight.w500,
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 0.5.h),
+      decoration: BoxDecoration(
+        color: AppTheme.lightTheme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppTheme.lightTheme.colorScheme.outline.withOpacity(0.2),
         ),
       ),
-      onTap: onTap,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
+      child: ListTile(
+        leading: CustomIconWidget(
+          iconName: icon,
+          color: color,
+          size: 24,
+        ),
+        title: Text(
+          title,
+          style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        onTap: onTap,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        contentPadding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
+      ),
+    );
+  }
+
+  /// Handle invite link generation
+  Future<void> _handleGenerateInviteLink(BuildContext context) async {
+    Navigator.pop(context);
+    
+    try {
+      final loadingOverlay = LoadingOverlay();
+      loadingOverlay.show(context, 'Generating invite link...');
+      
+      final apiService = ApiService.instance;
+      final response = await apiService.generateInviteLink(groupDetail.id.toString());
+      
+      loadingOverlay.hide();
+      
+      if (response['success']) {
+        final inviteUrl = response['data']['inviteUrl'];
+        final expiresAt = response['data']['expiresAt'];
+        
+        // Show invite link dialog
+        _showInviteLinkDialog(context, inviteUrl, expiresAt);
+      } else {
+        SnackBarUtils.showError(context, response['message'] ?? 'Failed to generate invite link');
+      }
+    } catch (e) {
+      SnackBarUtils.showError(context, 'Failed to generate invite link: ${e.toString()}');
+    }
+  }
+
+  /// Show invite link dialog with copy and share options
+  void _showInviteLinkDialog(BuildContext context, String inviteUrl, String? expiresAt) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Invite Link Generated',
+          style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Share this link with others to invite them to join your group:',
+              style: AppTheme.lightTheme.textTheme.bodyMedium,
+            ),
+            SizedBox(height: 2.h),
+            Container(
+              padding: EdgeInsets.all(3.w),
+              decoration: BoxDecoration(
+                color: AppTheme.lightTheme.colorScheme.surfaceVariant,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: AppTheme.lightTheme.colorScheme.outline.withOpacity(0.3),
+                ),
+              ),
+              child: SelectableText(
+                inviteUrl,
+                style: AppTheme.lightTheme.textTheme.bodySmall,
+              ),
+            ),
+            if (expiresAt != null) ...[
+              SizedBox(height: 2.h),
+              Row(
+                children: [
+                  CustomIconWidget(
+                    iconName: 'schedule',
+                    color: AppTheme.lightTheme.colorScheme.secondary,
+                    size: 16,
+                  ),
+                  SizedBox(width: 1.w),
+                  Text(
+                    'Expires: $expiresAt',
+                    style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+                      color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Close'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              Share.share(
+                'Join my SplitEase group "${groupDetail.name}"!\n\n$inviteUrl',
+                subject: 'Invitation to join SplitEase group',
+              );
+            },
+            icon: CustomIconWidget(
+              iconName: 'share',
+              color: Colors.white,
+              size: 18,
+            ),
+            label: Text('Share'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.lightTheme.colorScheme.primary,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -223,21 +373,47 @@ Download SplitEase to manage shared expenses easily:
     try {
       _showLoadingSnackBar(context, 'Exiting group...');
       
-      // TODO: Replace with actual API call when backend is ready
-      await Future.delayed(Duration(seconds: 1)); // Simulate network delay
+      final result = await GroupService.exitGroup(groupDetail.id.toString());
       
+      // Clear any cached data first
+      GroupService.clearCache();
+      
+      // Hide loading message
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      _showSuccessSnackBar(context, 'Successfully exited group');
       
-      // Navigate back to groups page
+      // Prepare success message
+      String successMessage;
+      if (result['action'] == 'group_deleted') {
+        successMessage = 'Group deleted as no members remain';
+      } else {
+        successMessage = 'Successfully exited group';
+      }
+      
+      // Close the modal bottom sheet first
+      Navigator.pop(context);
+      
+      // Then close the group detail page
       Navigator.pop(context);
       
       // Notify parent widget if callback provided
       onGroupUpdated?.call();
       
+      // Navigate to groups page with a fresh instance and pass success message
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        AppRoutes.groupManagement,
+        (route) => false, // Remove all previous routes
+        arguments: {
+          'refresh': true, // Trigger refresh
+          'successMessage': successMessage, // Pass success message
+        },
+      );
+      
     } catch (e) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      _showErrorSnackBar(context, 'Failed to exit group. Please try again.');
+      // Log the full error for debugging
+      print('Exit group error: $e');
+      _showErrorSnackBar(context, 'Failed to exit group: ${e.toString()}');
     }
   }
 
@@ -289,7 +465,7 @@ Download SplitEase to manage shared expenses easily:
                 SizedBox(width: 2.w),
                 Expanded(
                   child: Text(
-                    'This action cannot be undone. All group data, expenses, and member information will be permanently deleted.',
+                    'This action cannot be undone. All group data, expenses, settlements, and member information will be permanently deleted.',
                     style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
                       color: AppTheme.errorLight,
                     ),
@@ -298,7 +474,7 @@ Download SplitEase to manage shared expenses easily:
               ],
             ),
           ),
-          if (groupDetail.hasDebts) ...[
+          if (groupDetail.hasSettlements) ...[
             SizedBox(height: 2.h),
             Container(
               padding: EdgeInsets.all(3.w),
@@ -319,7 +495,7 @@ Download SplitEase to manage shared expenses easily:
                   SizedBox(width: 2.w),
                   Expanded(
                     child: Text(
-                      'This group has outstanding debts. Members will lose access to debt information.',
+                      'This group has active settlements. Members will lose access to settlement information.',
                       style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
                         color: AppTheme.warningLight,
                       ),
@@ -355,88 +531,121 @@ Download SplitEase to manage shared expenses easily:
     try {
       _showLoadingSnackBar(context, 'Deleting group...');
       
-      // TODO: Replace with actual API call when backend is ready
-      await Future.delayed(Duration(seconds: 1)); // Simulate network delay
+      await GroupService.deleteGroupWithCascade(groupDetail.id.toString());
       
+      // Clear any cached data first
+      GroupService.clearCache();
+      
+      // Hide loading message
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      _showSuccessSnackBar(context, 'Group deleted successfully');
       
-      // Navigate back to groups page
+      // Close the modal bottom sheet first
+      Navigator.pop(context);
+      
+      // Then close the group detail page
       Navigator.pop(context);
       
       // Notify parent widget if callback provided
       onGroupDeleted?.call();
       
+      // Navigate to groups page with a fresh instance and pass success message
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        AppRoutes.groupManagement,
+        (route) => false, // Remove all previous routes
+        arguments: {
+          'refresh': true, // Trigger refresh
+          'successMessage': 'Group deleted successfully', // Pass success message
+        },
+      );
+      
     } catch (e) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      _showErrorSnackBar(context, 'Failed to delete group. Please try again.');
+      // Log the full error for debugging
+      print('Delete group error: $e');
+      _showErrorSnackBar(context, 'Failed to delete group: ${e.toString()}');
     }
   }
 
   /// Show loading snack bar
   void _showLoadingSnackBar(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  AppTheme.lightTheme.colorScheme.onInverseSurface,
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    AppTheme.lightTheme.colorScheme.onInverseSurface,
+                  ),
                 ),
               ),
-            ),
-            SizedBox(width: 3.w),
-            Text(message),
-          ],
+              SizedBox(width: 3.w),
+              Text(message),
+            ],
+          ),
+          duration: Duration(seconds: 30), // Long duration for loading
         ),
-        duration: Duration(seconds: 30), // Long duration for loading
-      ),
-    );
+      );
+    } catch (e) {
+      // Context is no longer valid, ignore the error
+      debugPrint('GroupActionsWidget: Context is no longer valid - $message');
+    }
   }
 
   /// Show success snack bar
   void _showSuccessSnackBar(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            CustomIconWidget(
-              iconName: 'check_circle',
-              color: AppTheme.successLight,
-              size: 20,
-            ),
-            SizedBox(width: 3.w),
-            Text(message),
-          ],
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              CustomIconWidget(
+                iconName: 'check_circle',
+                color: AppTheme.successLight,
+                size: 20,
+              ),
+              SizedBox(width: 3.w),
+              Text(message),
+            ],
+          ),
+          backgroundColor: AppTheme.successLight,
+          duration: Duration(seconds: 3),
         ),
-        backgroundColor: AppTheme.successLight,
-        duration: Duration(seconds: 3),
-      ),
-    );
+      );
+    } catch (e) {
+      // Context is no longer valid, ignore the error
+      debugPrint('GroupActionsWidget: Context is no longer valid - $message');
+    }
   }
 
   /// Show error snack bar
   void _showErrorSnackBar(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            CustomIconWidget(
-              iconName: 'error',
-              color: AppTheme.lightTheme.colorScheme.onError,
-              size: 20,
-            ),
-            SizedBox(width: 3.w),
-            Text(message),
-          ],
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              CustomIconWidget(
+                iconName: 'error',
+                color: AppTheme.lightTheme.colorScheme.onError,
+                size: 20,
+              ),
+              SizedBox(width: 3.w),
+              Text(message),
+            ],
+          ),
+          backgroundColor: AppTheme.errorLight,
+          duration: Duration(seconds: 4),
         ),
-        backgroundColor: AppTheme.errorLight,
-        duration: Duration(seconds: 4),
-      ),
-    );
+      );
+    } catch (e) {
+      // Context is no longer valid, ignore the error
+      debugPrint('GroupActionsWidget: Context is no longer valid - $message');
+    }
   }
 }

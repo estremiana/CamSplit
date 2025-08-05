@@ -53,6 +53,10 @@ class ReceiptImageWidget extends StatelessWidget {
       child: Container(
         width: double.infinity,
         height: 25.h,
+        constraints: BoxConstraints(
+          maxHeight: 25.h,
+          minHeight: 20.h,
+        ),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
@@ -69,6 +73,30 @@ class ReceiptImageWidget extends StatelessWidget {
                 width: double.infinity,
                 height: 25.h,
                 fit: BoxFit.cover,
+                errorWidget: Container(
+                  width: double.infinity,
+                  height: 25.h,
+                  color: Colors.grey[200],
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.receipt_long,
+                          size: 48,
+                          color: Colors.grey[400],
+                        ),
+                        SizedBox(height: 1.h),
+                        Text(
+                          'Receipt Image',
+                          style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
               Positioned(
                 top: 2.w,
