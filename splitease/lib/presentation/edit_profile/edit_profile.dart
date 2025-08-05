@@ -28,8 +28,6 @@ class _EditProfileState extends State<EditProfile> {
   String _selectedCurrency = 'USD';
   String _selectedTimezone = 'UTC-5 (EST)';
 
-  Map<String, dynamic>? _originalUserData;
-
   @override
   void initState() {
     super.initState();
@@ -48,20 +46,21 @@ class _EditProfileState extends State<EditProfile> {
     super.dispose();
   }
 
+  UserModel? _currentUser;
+
   void _loadUserData() {
-    final args =
-        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    if (args != null) {
+    final user = ModalRoute.of(context)?.settings.arguments as UserModel?;
+    if (user != null) {
       setState(() {
-        _originalUserData = Map<String, dynamic>.from(args);
-        final fullName = (args['name'] as String).split(' ');
-        _firstNameController.text = fullName.isNotEmpty ? fullName.first : '';
-        _lastNameController.text =
-            fullName.length > 1 ? fullName.sublist(1).join(' ') : '';
-        _emailController.text = args['email'] as String? ?? '';
-        _phoneController.text = args['phone'] as String? ?? '';
-        _bioController.text = args['bio'] as String? ?? '';
-        _currentAvatarUrl = args['avatar'] as String?;
+        _currentUser = user;
+        _firstNameController.text = user.firstName;
+        _lastNameController.text = user.lastName;
+        _emailController.text = user.email;
+        _phoneController.text = user.phone ?? '';
+        _bioController.text = user.bio ?? '';
+        _currentAvatarUrl = user.avatar;
+        _selectedCurrency = user.preferences.currency;
+        _selectedTimezone = user.timezone ?? 'UTC-5 (EST)';
       });
     }
   }
@@ -117,6 +116,7 @@ class _EditProfileState extends State<EditProfile> {
                     currentImageUrl: _currentAvatarUrl,
                     selectedImagePath: _selectedImagePath,
                     onImageSelected: _onImageSelected,
+                    onImageUploaded: _onImageUploaded,
                   ),
 
                   SizedBox(height: 4.h),
@@ -185,6 +185,14 @@ class _EditProfileState extends State<EditProfile> {
     });
   }
 
+  void _onImageUploaded(String avatarUrl) {
+    setState(() {
+      _currentAvatarUrl = avatarUrl;
+      _selectedImagePath = null;
+      _hasChanges = true;
+    });
+  }
+
   void _onCurrencyChanged(String currency) {
     setState(() {
       _selectedCurrency = currency;
@@ -203,7 +211,7 @@ class _EditProfileState extends State<EditProfile> {
     if (_hasChanges) {
       _showUnsavedChangesDialog();
     } else {
-      Navigator.pop(context);
+      Navigator.pop(context, false);
     }
   }
 
@@ -222,7 +230,7 @@ class _EditProfileState extends State<EditProfile> {
           TextButton(
             onPressed: () {
               Navigator.pop(context); // Close dialog
-              Navigator.pop(context); // Go back to profile
+              Navigator.pop(context, false); // Go back to profile without changes
             },
             child: Text(
               'Discard Changes',
@@ -243,8 +251,25 @@ class _EditProfileState extends State<EditProfile> {
     });
 
     try {
-      // Simulate API call
-      await Future.delayed(const Duration(seconds: 2));
+      // Prepare preferences update
+      final preferences = <String, dynamic>{};
+      if (_selectedCurrency != (_currentUser?.preferences.currency ?? 'USD')) {
+        preferences['currency'] = _selectedCurrency;
+      }
+      
+      // Update user profile
+      await UserService.updateUserProfile(
+        firstName: _firstNameController.text.trim(),
+        lastName: _lastNameController.text.trim(),
+        phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
+        bio: _bioController.text.trim().isEmpty ? null : _bioController.text.trim(),
+        avatar: _selectedImagePath, // Handle image upload separately
+        timezone: _selectedTimezone,
+        preferences: preferences.isNotEmpty ? preferences : null,
+      );
+      
+      // Clear cache to ensure fresh data is loaded
+      await UserService.clearCache();
 
       if (mounted) {
         // Show success message
@@ -265,8 +290,8 @@ class _EditProfileState extends State<EditProfile> {
         // Haptic feedback for success
         HapticFeedback.lightImpact();
 
-        // Go back to profile screen
-        Navigator.pop(context);
+        // Go back to profile screen with success result
+        Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {

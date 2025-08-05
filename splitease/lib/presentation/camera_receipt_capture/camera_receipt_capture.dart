@@ -187,18 +187,15 @@ class _CameraReceiptCaptureState extends State<CameraReceiptCapture>
     try {
       if (_capturedImagePath != null) {
         final File imageFile = File(_capturedImagePath!);
-        // 1. Upload the image and get the URL
-        final billResponse = await _apiService.uploadBill(imageFile);
-        final imageUrl = billResponse['bill']['image_url'];
-        // 2. Extract items using the image URL
-        final ocrResponse = await _apiService.extractItems(imageUrl);
-        // 3. Pass the OCR result and imageUrl to the next screen
+        // Process the receipt image using OCR without group context
+        final ocrResponse = await _apiService.processReceipt(imageFile);
+        
+        // Pass the OCR result to the next screen
         if (mounted) {
           Navigator.pushReplacementNamed(
             context,
             AppRoutes.receiptOcrReview,
             arguments: {
-              'imageUrl': imageUrl,
               'ocrResult': ocrResponse,
             },
           );

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:splitease/models/group_detail_model.dart';
-import 'package:splitease/models/debt_relationship_model.dart';
+
 import 'package:splitease/models/group_member.dart';
 
 void main() {
@@ -28,17 +28,7 @@ void main() {
         createdAt: DateTime.now().subtract(const Duration(hours: 1)),
       );
 
-      // Create a debt relationship
-      final debt = DebtRelationship(
-        debtorId: 2,
-        debtorName: 'Debtor',
-        creditorId: 1,
-        creditorName: 'Creditor',
-        amount: 15.00,
-        currency: 'EUR',
-        createdAt: DateTime.now().subtract(const Duration(hours: 1)),
-        updatedAt: DateTime.now().subtract(const Duration(minutes: 30)),
-      );
+
 
       // Create the complete group detail model
       final groupDetail = GroupDetailModel(
@@ -48,7 +38,8 @@ void main() {
         imageUrl: 'group.jpg',
         members: [member],
         expenses: [expense],
-        debts: [debt],
+
+        settlements: [],
         userBalance: 15.00,
         currency: 'EUR',
         lastActivity: DateTime.now().subtract(const Duration(minutes: 30)),
@@ -62,10 +53,10 @@ void main() {
       expect(groupDetail.isValid(), true);
       expect(groupDetail.memberCount, 1);
       expect(groupDetail.expenseCount, 1);
-      expect(groupDetail.hasDebts, true);
+
       expect(groupDetail.currentUser, equals(member));
       expect(groupDetail.balanceStatus, 'You are owed 15.00EUR');
-      expect(groupDetail.canRemoveMember('2'), false); // Has debt
+      expect(groupDetail.canRemoveMember('2'), true); // No active settlements
       expect(groupDetail.sortedExpenses.first, equals(expense));
 
       // Test JSON serialization round-trip
@@ -76,7 +67,7 @@ void main() {
       expect(reconstructed.name, groupDetail.name);
       expect(reconstructed.memberCount, groupDetail.memberCount);
       expect(reconstructed.expenseCount, groupDetail.expenseCount);
-      expect(reconstructed.debts.length, groupDetail.debts.length);
+
       expect(reconstructed.userBalance, groupDetail.userBalance);
     });
 
@@ -96,7 +87,8 @@ void main() {
         description: 'A group with no expenses or debts',
         members: [member],
         expenses: [],
-        debts: [],
+
+        settlements: [],
         userBalance: 0.00,
         currency: 'EUR',
         lastActivity: DateTime.now().subtract(const Duration(minutes: 30)),
@@ -108,10 +100,10 @@ void main() {
 
       expect(emptyGroupDetail.isValid(), true);
       expect(emptyGroupDetail.hasExpenses, false);
-      expect(emptyGroupDetail.hasDebts, false);
+
       expect(emptyGroupDetail.isSettledUp, true);
       expect(emptyGroupDetail.balanceStatus, 'You are settled up');
-      expect(emptyGroupDetail.canRemoveMember('2'), true); // No debts
+      expect(emptyGroupDetail.canRemoveMember('2'), true); // No active settlements
       expect(emptyGroupDetail.sortedExpenses, isEmpty);
     });
   });

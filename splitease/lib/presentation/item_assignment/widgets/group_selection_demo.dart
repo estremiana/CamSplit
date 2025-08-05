@@ -43,7 +43,7 @@ class _GroupSelectionDemoState extends State<GroupSelectionDemo> {
         _availableGroups = groups;
         // Pre-select the most recent group if available
         if (_availableGroups.isNotEmpty) {
-          _selectedGroupId = _availableGroups.first.id;
+          _selectedGroupId = _availableGroups.first.id.toString();
           _statusMessage = 'Selected: ${_availableGroups.first.name}';
         } else {
           _statusMessage = 'No groups available';
@@ -59,7 +59,7 @@ class _GroupSelectionDemoState extends State<GroupSelectionDemo> {
   }
 
   void _handleGroupChanged(String groupId) {
-    final selectedGroup = _availableGroups.firstWhere((group) => group.id == groupId);
+    final selectedGroup = _availableGroups.firstWhere((group) => group.id.toString() == groupId);
     setState(() {
       _selectedGroupId = groupId;
       _statusMessage = 'Selected: ${selectedGroup.name} (${selectedGroup.memberCount} members)';

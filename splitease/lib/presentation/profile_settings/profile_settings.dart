@@ -3,31 +3,31 @@ import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
 
 import '../../core/app_export.dart';
+
 import './widgets/logout_button_widget.dart';
 import './widgets/profile_summary_card_widget.dart';
 import './widgets/settings_section_widget.dart';
 
 class ProfileSettings extends StatefulWidget {
-  const ProfileSettings({super.key});
+  final bool showBottomNavigation;
+  
+  const ProfileSettings({
+    super.key,
+    this.showBottomNavigation = true,
+  });
 
   @override
   State<ProfileSettings> createState() => _ProfileSettingsState();
 }
 
-class _ProfileSettingsState extends State<ProfileSettings> {
+class _ProfileSettingsState extends State<ProfileSettings> with AutomaticKeepAliveClientMixin {
   final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
       GlobalKey<RefreshIndicatorState>();
-  bool _isLoading = false;
   int _currentBottomNavIndex = 2;
 
-  // Mock user data
-  final Map<String, dynamic> _userData = {
-    "name": "Alex Johnson",
-    "email": "alex.johnson@email.com",
-    "phone": "+1 (555) 123-4567",
-    "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e",
-    "bio": "Expense sharing made simple",
-    "memberSince": DateTime(2023, 1, 15),
+  // User data - will be loaded from UserService
+  UserModel? _currentUser;
+  final Map<String, dynamic> _userStats = {
     "totalGroups": 4,
     "totalExpenses": 127,
   };
@@ -43,7 +43,37 @@ class _ProfileSettingsState extends State<ProfileSettings> {
   };
 
   @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final user = await UserService.getCurrentUser();
+      if (mounted) {
+        setState(() {
+          _currentUser = user;
+          // Update app settings from user preferences
+          _appSettings['currency'] = user.preferences.currency;
+          _appSettings['notifications'] = user.preferences.notifications;
+          _appSettings['emailNotifications'] = user.preferences.emailNotifications;
+          _appSettings['darkMode'] = user.preferences.darkMode;
+          _appSettings['biometricAuth'] = user.preferences.biometricAuth;
+          _appSettings['autoSync'] = user.preferences.autoSync;
+        });
+      }
+    } catch (e) {
+      print('Failed to load user data: $e');
+    }
+  }
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       backgroundColor: AppTheme.lightTheme.scaffoldBackgroundColor,
       appBar: AppBar(
@@ -94,10 +124,21 @@ class _ProfileSettingsState extends State<ProfileSettings> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Profile Summary Card
-              ProfileSummaryCardWidget(
-                userData: _userData,
-                onEditProfile: _navigateToEditProfile,
-              ),
+              if (_currentUser != null)
+                ProfileSummaryCardWidget(
+                  user: _currentUser!,
+                  userStats: _userStats,
+                  onEditProfile: _navigateToEditProfile,
+                )
+              else
+                Container(
+                  height: 20.h,
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: AppTheme.lightTheme.primaryColor,
+                    ),
+                  ),
+                ),
 
               SizedBox(height: 3.h),
 
@@ -253,7 +294,7 @@ class _ProfileSettingsState extends State<ProfileSettings> {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(),
+      bottomNavigationBar: widget.showBottomNavigation ? _buildBottomNavigationBar() : null,
     );
   }
 
@@ -337,16 +378,25 @@ class _ProfileSettingsState extends State<ProfileSettings> {
 
   Future<void> _handleRefresh() async {
     HapticFeedback.lightImpact();
-    setState(() {
-      _isLoading = true;
-    });
 
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 1));
-
-    setState(() {
-      _isLoading = false;
-    });
+    try {
+      // Force refresh user data from API
+      final user = await UserService.refreshUser();
+      if (mounted) {
+        setState(() {
+          _currentUser = user;
+          // Update app settings from user preferences
+          _appSettings['currency'] = user.preferences.currency;
+          _appSettings['notifications'] = user.preferences.notifications;
+          _appSettings['emailNotifications'] = user.preferences.emailNotifications;
+          _appSettings['darkMode'] = user.preferences.darkMode;
+          _appSettings['biometricAuth'] = user.preferences.biometricAuth;
+          _appSettings['autoSync'] = user.preferences.autoSync;
+        });
+      }
+    } catch (e) {
+      print('Failed to refresh user data: $e');
+    }
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -365,13 +415,22 @@ class _ProfileSettingsState extends State<ProfileSettings> {
     }
   }
 
-  void _navigateToEditProfile() {
+  void _navigateToEditProfile() async {
+    if (_currentUser == null) return;
+    
     HapticFeedback.selectionClick();
-    Navigator.pushNamed(
+    
+    // Navigate to edit profile and wait for result
+    final result = await Navigator.pushNamed(
       context,
       AppRoutes.editProfile,
-      arguments: _userData,
+      arguments: _currentUser,
     );
+    
+    // If profile was updated, refresh the user data
+    if (result == true) {
+      await _loadUserData();
+    }
   }
 
   void _updateSetting(String key, dynamic value) {
@@ -379,6 +438,46 @@ class _ProfileSettingsState extends State<ProfileSettings> {
     setState(() {
       _appSettings[key] = value;
     });
+    
+    // Update user preferences in the backend
+    _updateUserPreference(key, value);
+  }
+
+  Future<void> _updateUserPreference(String key, dynamic value) async {
+    if (_currentUser == null) return;
+    
+    try {
+      final preferences = <String, dynamic>{};
+      
+      // Map UI setting keys to backend preference keys
+      switch (key) {
+        case 'currency':
+          preferences['currency'] = value;
+          break;
+        case 'notifications':
+          preferences['notifications'] = value;
+          break;
+        case 'emailNotifications':
+          preferences['email_notifications'] = value;
+          break;
+        case 'darkMode':
+          preferences['dark_mode'] = value;
+          break;
+        case 'biometricAuth':
+          preferences['biometric_auth'] = value;
+          break;
+        case 'autoSync':
+          preferences['auto_sync'] = value;
+          break;
+      }
+      
+      if (preferences.isNotEmpty) {
+        await UserService.updateUserProfile(preferences: preferences);
+      }
+    } catch (e) {
+      print('Failed to update user preference: $e');
+      // Optionally show error message to user
+    }
   }
 
   void _showNotifications() {
@@ -443,8 +542,13 @@ class _ProfileSettingsState extends State<ProfileSettings> {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
+              
+              // Clear stored tokens
+              final apiService = ApiService.instance;
+              await apiService.logout();
+              
               Navigator.pushNamedAndRemoveUntil(
                 context,
                 AppRoutes.loginScreen,

@@ -55,7 +55,8 @@ class BalanceSummaryWidget extends StatelessWidget {
   /// Returns the formatted balance text with currency symbol
   String _getBalanceText() {
     final absBalance = balance.abs();
-    return '${absBalance.toStringAsFixed(2)}$currency';
+    final sign = balance < 0 ? '-' : '';
+    return '$sign${absBalance.toStringAsFixed(2)}$currency';
   }
 
   /// Returns the appropriate status text based on balance

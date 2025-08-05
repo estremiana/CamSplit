@@ -13,126 +13,128 @@ class EmptyStateWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.all(8.w),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Illustration
-            Container(
-              width: 60.w,
-              height: 30.h,
-              decoration: BoxDecoration(
-                color: AppTheme.lightTheme.colorScheme.primaryContainer
-                    .withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(20.0),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CustomIconWidget(
-                    iconName: 'group_add',
-                    color: AppTheme.lightTheme.colorScheme.primary,
-                    size: 80,
-                  ),
-                  SizedBox(height: 2.h),
-                  Container(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
-                    decoration: BoxDecoration(
-                      color: AppTheme.lightTheme.colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(20.0),
+    return SingleChildScrollView(
+      child: Center(
+        child: Padding(
+          padding: EdgeInsets.all(8.w),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Illustration
+              Container(
+                width: 60.w,
+                height: 20.h, // Reduced from 30.h to 20.h
+                decoration: BoxDecoration(
+                  color: AppTheme.lightTheme.colorScheme.primaryContainer
+                      .withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(20.0),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CustomIconWidget(
+                      iconName: 'group_add',
+                      color: AppTheme.lightTheme.colorScheme.primary,
+                      size: 60, // Reduced from 80 to 60
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        CustomIconWidget(
-                          iconName: 'receipt',
-                          color: AppTheme.lightTheme.colorScheme.primary,
-                          size: 16,
-                        ),
-                        SizedBox(width: 2.w),
-                        CustomIconWidget(
-                          iconName: 'people',
-                          color: AppTheme.lightTheme.colorScheme.primary,
-                          size: 16,
-                        ),
-                        SizedBox(width: 2.w),
-                        CustomIconWidget(
-                          iconName: 'calculate',
-                          color: AppTheme.lightTheme.colorScheme.primary,
-                          size: 16,
-                        ),
-                      ],
+                    SizedBox(height: 1.h), // Reduced from 2.h to 1.h
+                    Container(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
+                      decoration: BoxDecoration(
+                        color: AppTheme.lightTheme.colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(20.0),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CustomIconWidget(
+                            iconName: 'receipt',
+                            color: AppTheme.lightTheme.colorScheme.primary,
+                            size: 12, // Reduced from 16 to 12
+                          ),
+                          SizedBox(width: 2.w),
+                          CustomIconWidget(
+                            iconName: 'people',
+                            color: AppTheme.lightTheme.colorScheme.primary,
+                            size: 12, // Reduced from 16 to 12
+                          ),
+                          SizedBox(width: 2.w),
+                          CustomIconWidget(
+                            iconName: 'calculate',
+                            color: AppTheme.lightTheme.colorScheme.primary,
+                            size: 12, // Reduced from 16 to 12
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 4.h),
+              // Title
+              Text(
+                'No Groups Yet',
+                style: AppTheme.lightTheme.textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.lightTheme.colorScheme.onSurface,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 2.h),
+              // Description
+              Text(
+                'Create your first group to start splitting expenses with friends, roommates, or colleagues.',
+                style: AppTheme.lightTheme.textTheme.bodyLarge?.copyWith(
+                  color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 4.h),
+              // Benefits list
+              _buildBenefitsList(),
+              SizedBox(height: 4.h),
+              // CTA Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: onCreateGroup,
+                  icon: CustomIconWidget(
+                    iconName: 'add',
+                    color: AppTheme.lightTheme.colorScheme.onPrimary,
+                    size: 20,
+                  ),
+                  label: Text(
+                    'Create Your First Group',
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                ],
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(vertical: 2.h),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                  ),
+                ),
               ),
-            ),
-            SizedBox(height: 4.h),
-            // Title
-            Text(
-              'No Groups Yet',
-              style: AppTheme.lightTheme.textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: AppTheme.lightTheme.colorScheme.onSurface,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 2.h),
-            // Description
-            Text(
-              'Create your first group to start splitting expenses with friends, roommates, or colleagues.',
-              style: AppTheme.lightTheme.textTheme.bodyLarge?.copyWith(
-                color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
-                height: 1.5,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 4.h),
-            // Benefits list
-            _buildBenefitsList(),
-            SizedBox(height: 4.h),
-            // CTA Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: onCreateGroup,
+              SizedBox(height: 2.h),
+              // Secondary action
+              TextButton.icon(
+                onPressed: () {
+                  // Navigate to help or tutorial
+                },
                 icon: CustomIconWidget(
-                  iconName: 'add',
-                  color: AppTheme.lightTheme.colorScheme.onPrimary,
-                  size: 20,
+                  iconName: 'help_outline',
+                  color: AppTheme.lightTheme.colorScheme.primary,
+                  size: 16,
                 ),
-                label: Text(
-                  'Create Your First Group',
-                  style: TextStyle(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 2.h),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.0),
-                  ),
-                ),
+                label: Text('How does it work?'),
               ),
-            ),
-            SizedBox(height: 2.h),
-            // Secondary action
-            TextButton.icon(
-              onPressed: () {
-                // Navigate to help or tutorial
-              },
-              icon: CustomIconWidget(
-                iconName: 'help_outline',
-                color: AppTheme.lightTheme.colorScheme.primary,
-                size: 16,
-              ),
-              label: Text('How does it work?'),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

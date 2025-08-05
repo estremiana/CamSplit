@@ -1,69 +1,268 @@
-const { DocumentAnalysisClient, AzureKeyCredential } = require('@azure/ai-form-recognizer');
+const ocrService = require('../ai/ocrService');
+const parserService = require('../ai/parserService');
+const cloudinary = require('../config/cloudinary');
+const db = require('../../database/connection');
 
-const client = new DocumentAnalysisClient(
-  process.env.AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT,
-  new AzureKeyCredential(process.env.AZURE_DOCUMENT_INTELLIGENCE_KEY)
-);
+class OCRService {
+  // Process receipt image and extract structured data
+  async processReceiptImage(imageFile, groupId, userId) {
+    try {
+      // Upload image to Cloudinary
+      const uploadResult = await this.uploadImageToCloudinary(imageFile);
+      
+      // Extract structured data using OCR
+      const ocrData = await ocrService.extractStructuredDataFromImage(uploadResult.secure_url);
+      
+      // Parse and validate the OCR data
+      const parsedData = parserService.parseReceiptData(ocrData);
+      
+      // Get group members for suggestions
+      const Group = require('../models/Group');
+      const group = await Group.findById(groupId);
+      if (!group) {
+        throw new Error('Group not found');
+      }
+      
+      const members = await group.getMembers();
+      
+      // Enhance data with group context
+      const enhancedData = parserService.enhanceOCRData(parsedData, members);
+      
+      // Store receipt image record
+      const receiptImageId = await this.storeReceiptImage(uploadResult.secure_url, ocrData, null);
+      
+      return {
+        success: true,
+        data: {
+          ...enhancedData,
+          receipt_image_id: receiptImageId,
+          image_url: uploadResult.secure_url
+        },
+        validation: parsedData.validation
+      };
+    } catch (error) {
+      console.error('Receipt processing error:', error);
+      throw new Error(`Failed to process receipt: ${error.message}`);
+    }
+  }
 
-exports.extractBillData = async (imageUrl) => {
-  try {
-    // Analyze the document
-    const poller = await client.beginAnalyzeDocumentFromUrl("prebuilt-receipt", imageUrl);
-    const result = await poller.pollUntilDone();
+  // Upload image to Cloudinary
+  async uploadImageToCloudinary(imageFile) {
+    try {
+      const uploadResult = await cloudinary.uploader.upload(imageFile.path, {
+        folder: 'receipts',
+        resource_type: 'image',
+        transformation: [
+          { quality: 'auto:good' },
+          { fetch_format: 'auto' }
+        ]
+      });
 
-    // Extract items, quantities, and prices
-    const items = [];
-    let total = 0;
+      return uploadResult;
+    } catch (error) {
+      console.error('Cloudinary upload error:', error);
+      throw new Error('Failed to upload image');
+    }
+  }
 
-    // // Import existing OCR result from JSON file for testing/development
-    // const fs = require('fs');
-    // const path = require('path');
-    
-    // // Use a specific existing log file instead of making API calls
-    // const logDir = path.join(__dirname, '../../logs');
-    // const existingLogFile = path.join(logDir, 'ocr-result-2025-07-02T00-33-14-343Z.json');
-    
-    // // Check if the log file exists
-    // if (!fs.existsSync(existingLogFile)) {
-    //   throw new Error('Log file not found. Please ensure the OCR result file exists.');
-    // }
-    
-    // // Read and parse the existing result
-    // const result = JSON.parse(fs.readFileSync(existingLogFile, 'utf8'));
-    // console.log(`Using existing OCR result from: ${existingLogFile}`);
-    
-    
-    // Parse the result and extract structured data
-    if (result.documents && result.documents.length > 0) {
-      const document = result.documents[0];
-      // Extract items from the receipt
-      if (document.fields.Items && document.fields.Items.values) {
-        for (const item of document.fields.Items.values) {
-          const itemProperties = item.properties;
-          if (itemProperties) {
-            const description = itemProperties.Description?.value || 'Unknown Item';
-            const quantity = itemProperties.Quantity?.value || 1;
-            const totalPrice = itemProperties.TotalPrice?.value || 0;
-            const unitPrice = itemProperties.Price?.value || totalPrice;
-            items.push({
-              description: description,
-              quantity: quantity,
-              total_price: parseFloat(totalPrice),
-              unit_price: parseFloat(unitPrice)
-            });
-          }
+  // Store receipt image record in database
+  async storeReceiptImage(imageUrl, ocrData, expenseId = null) {
+    try {
+      const query = `
+        INSERT INTO receipt_images (expense_id, image_url, ocr_data, created_at)
+        VALUES ($1, $2, $3, NOW())
+        RETURNING id
+      `;
+      
+      const result = await db.query(query, [
+        expenseId,
+        imageUrl,
+        JSON.stringify(ocrData)
+      ]);
+
+      return result.rows[0].id;
+    } catch (error) {
+      console.error('Database error storing receipt image:', error);
+      throw new Error('Failed to store receipt image');
+    }
+  }
+
+  // Link receipt image to expense
+  async linkReceiptImageToExpense(receiptImageId, expenseId) {
+    try {
+      const query = `
+        UPDATE receipt_images 
+        SET expense_id = $1, updated_at = NOW()
+        WHERE id = $2
+      `;
+      
+      await db.query(query, [expenseId, receiptImageId]);
+    } catch (error) {
+      console.error('Database error linking receipt image:', error);
+      throw new Error('Failed to link receipt image to expense');
+    }
+  }
+
+  // Get receipt images for an expense
+  async getReceiptImagesForExpense(expenseId) {
+    try {
+      const query = `
+        SELECT id, image_url, ocr_data, created_at
+        FROM receipt_images
+        WHERE expense_id = $1
+        ORDER BY created_at DESC
+      `;
+      
+      const result = await db.query(query, [expenseId]);
+      return result.rows;
+    } catch (error) {
+      console.error('Database error getting receipt images:', error);
+      throw new Error('Failed to get receipt images');
+    }
+  }
+
+  // Delete receipt image
+  async deleteReceiptImage(receiptImageId) {
+    try {
+      // Get image URL before deletion
+      const query = `
+        SELECT image_url FROM receipt_images WHERE id = $1
+      `;
+      
+      const result = await db.query(query, [receiptImageId]);
+      if (result.rows.length === 0) {
+        throw new Error('Receipt image not found');
+      }
+
+      const imageUrl = result.rows[0].image_url;
+
+      // Delete from Cloudinary
+      if (imageUrl) {
+        const publicId = this.extractPublicIdFromUrl(imageUrl);
+        if (publicId) {
+          await cloudinary.uploader.destroy(publicId);
         }
       }
-      if (document.fields.Total) {
-        total = document.fields.Total.value;
-      } else {
-        total = items.reduce((acc, item) => acc + (item.totalPrice || 0), 0);
-      }
-    }
 
-    return { items, total };
-  } catch (error) {
-    console.error('OCR extraction error:', error);
-    throw error;
+      // Delete from database
+      await db.query('DELETE FROM receipt_images WHERE id = $1', [receiptImageId]);
+
+      return { success: true, message: 'Receipt image deleted successfully' };
+    } catch (error) {
+      console.error('Error deleting receipt image:', error);
+      throw new Error(`Failed to delete receipt image: ${error.message}`);
+    }
   }
-};
+
+  // Extract public ID from Cloudinary URL
+  extractPublicIdFromUrl(url) {
+    try {
+      const urlParts = url.split('/');
+      const filename = urlParts[urlParts.length - 1];
+      const publicId = filename.split('.')[0];
+      return `receipts/${publicId}`;
+    } catch (error) {
+      console.error('Error extracting public ID:', error);
+      return null;
+    }
+  }
+
+  // Re-process OCR for an existing receipt image
+  async reprocessReceiptImage(receiptImageId) {
+    try {
+      // Get receipt image data
+      const query = `
+        SELECT image_url, ocr_data FROM receipt_images WHERE id = $1
+      `;
+      
+      const result = await db.query(query, [receiptImageId]);
+      if (result.rows.length === 0) {
+        throw new Error('Receipt image not found');
+      }
+
+      const { image_url, ocr_data } = result.rows[0];
+
+      // Re-extract structured data
+      const newOcrData = await ocrService.extractStructuredDataFromImage(image_url);
+      
+      // Parse the new data
+      const parsedData = parserService.parseReceiptData(newOcrData);
+      
+      // Update the database with new OCR data
+      await db.query(`
+        UPDATE receipt_images 
+        SET ocr_data = $1, updated_at = NOW()
+        WHERE id = $2
+      `, [JSON.stringify(newOcrData), receiptImageId]);
+
+      return {
+        success: true,
+        data: parsedData,
+        validation: parsedData.validation
+      };
+    } catch (error) {
+      console.error('Error reprocessing receipt image:', error);
+      throw new Error(`Failed to reprocess receipt image: ${error.message}`);
+    }
+  }
+
+  // Get OCR statistics
+  async getOCRStats() {
+    try {
+      const query = `
+        SELECT 
+          COUNT(*) as total_receipts,
+          COUNT(CASE WHEN expense_id IS NOT NULL THEN 1 END) as linked_receipts,
+          COUNT(CASE WHEN expense_id IS NULL THEN 1 END) as unlinked_receipts,
+          AVG(EXTRACT(EPOCH FROM (updated_at - created_at))) as avg_processing_time
+        FROM receipt_images
+      `;
+      
+      const result = await db.query(query);
+      return result.rows[0];
+    } catch (error) {
+      console.error('Error getting OCR stats:', error);
+      throw new Error('Failed to get OCR statistics');
+    }
+  }
+
+  // Validate OCR configuration
+  async validateOCRConfiguration() {
+    const config = {
+      azure: false,
+      google: false,
+      cloudinary: false,
+      errors: []
+    };
+
+    try {
+      // Check Azure Form Recognizer
+      if (process.env.AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT && process.env.AZURE_DOCUMENT_INTELLIGENCE_KEY) {
+        config.azure = true;
+      } else {
+        config.errors.push('Azure Form Recognizer not configured');
+      }
+
+      // Check Google Cloud Vision
+      if (process.env.GOOGLE_CLOUD_VISION_API_KEY) {
+        config.google = true;
+      } else {
+        config.errors.push('Google Cloud Vision not configured');
+      }
+
+      // Check Cloudinary
+      if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
+        config.cloudinary = true;
+      } else {
+        config.errors.push('Cloudinary not configured');
+      }
+
+      return config;
+  } catch (error) {
+      config.errors.push(`Configuration validation error: ${error.message}`);
+      return config;
+    }
+  }
+}
+
+module.exports = new OCRService();

@@ -124,28 +124,7 @@ void main() {
       });
     });
 
-    group('getDebtRelationships', () {
-      test('should return debt relationships when API call succeeds', () async {
-        // Arrange
-        const groupId = 1;
-        
-        // Act & Assert
-        expect(
-          () async => await GroupDetailService.getDebtRelationships(groupId),
-          throwsA(isA<GroupDetailServiceException>()),
-        );
-      });
 
-      test('should return empty list when no debts exist', () async {
-        // Test empty debt list handling
-        expect(true, true); // Placeholder
-      });
-
-      test('should validate debt relationship data integrity', () async {
-        // Test data validation
-        expect(true, true); // Placeholder
-      });
-    });
 
     group('addParticipant', () {
       test('should add participant when valid data provided', () async {
@@ -395,10 +374,7 @@ void main() {
         expect(true, true); // Placeholder
       });
 
-      test('should validate DebtRelationship data integrity', () async {
-        // Test debt relationship validation
-        expect(true, true); // Placeholder
-      });
+
 
       test('should validate GroupMember data integrity', () async {
         // Test member validation

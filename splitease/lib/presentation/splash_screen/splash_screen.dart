@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
 
 import '../../core/app_export.dart';
+import '../../services/api_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({Key? key}) : super(key: key);
@@ -131,33 +132,21 @@ class _SplashScreenState extends State<SplashScreen>
     _initializeApp();
   }
 
-  void _navigateToNextScreen() {
-    // Simulate authentication check
-    final bool isAuthenticated = _checkAuthenticationStatus();
-    final bool isFirstTime = _checkFirstTimeUser();
+  void _navigateToNextScreen() async {
+    // Check actual authentication status using API service
+    final apiService = ApiService.instance;
+    final bool isAuthenticated = await apiService.isAuthenticated();
 
     Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) {
-        if (isFirstTime) {
-          // Navigate to onboarding (using login for now)
-          Navigator.pushReplacementNamed(context, '/login-screen');
-        } else if (isAuthenticated) {
-          Navigator.pushReplacementNamed(context, '/expense-dashboard');
+        if (isAuthenticated) {
+          // Use the new slideable navigation system
+          Navigator.pushReplacementNamed(context, '/main-navigation');
         } else {
           Navigator.pushReplacementNamed(context, '/login-screen');
         }
       }
     });
-  }
-
-  bool _checkAuthenticationStatus() {
-    // Mock authentication check
-    return false; // Simulate non-authenticated user
-  }
-
-  bool _checkFirstTimeUser() {
-    // Mock first-time user check
-    return true; // Simulate first-time user
   }
 
   @override

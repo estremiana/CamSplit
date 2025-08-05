@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 
 import '../../../core/app_export.dart';
+import '../../../services/api_service.dart';
 
 class LoginFormWidget extends StatelessWidget {
   final GlobalKey<FormState> formKey;
@@ -170,87 +171,29 @@ class LoginFormWidget extends StatelessWidget {
             ),
           ),
 
-          SizedBox(height: 4.h),
+          SizedBox(height: 2.h),
 
           // Login Button
           SizedBox(
-            height: 6.h,
+            height: 5.h,
             child: ElevatedButton(
               onPressed: isLoading ? null : onLogin,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.lightTheme.primaryColor,
                 foregroundColor: Colors.white,
-                disabledBackgroundColor: AppTheme
-                    .lightTheme.colorScheme.onSurfaceVariant
-                    .withValues(alpha: 0.3),
-                elevation: 2,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
               child: isLoading
-                  ? SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          Colors.white,
-                        ),
-                      ),
-                    )
+                  ? const CircularProgressIndicator(color: Colors.white)
                   : Text(
                       'Login',
-                      style:
-                          AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
-                        color: Colors.white,
+                      style: TextStyle(
+                        fontSize: 16.sp,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-            ),
-          ),
-
-          SizedBox(height: 2.h),
-
-          // Mock Credentials Info
-          Container(
-            padding: EdgeInsets.all(3.w),
-            decoration: BoxDecoration(
-              color: AppTheme.lightTheme.colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: AppTheme.lightTheme.primaryColor.withValues(alpha: 0.3),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    CustomIconWidget(
-                      iconName: 'info',
-                      color: AppTheme.lightTheme.primaryColor,
-                      size: 16,
-                    ),
-                    SizedBox(width: 2.w),
-                    Text(
-                      'Demo Credentials:',
-                      style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-                        color: AppTheme.lightTheme.primaryColor,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 1.h),
-                Text(
-                  'admin@splitease.com / admin123\nuser@splitease.com / user123\ndemo@splitease.com / demo123',
-                  style: AppTheme.getMonospaceStyle(
-                    isLight: true,
-                    fontSize: 11,
-                  ),
-                ),
-              ],
             ),
           ),
         ],

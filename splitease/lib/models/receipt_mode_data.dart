@@ -10,6 +10,7 @@ class ReceiptModeData {
   final List<Map<String, dynamic>>? quantityAssignments;
   final String? selectedGroupId;
   final String? selectedGroupName;
+  final List<Map<String, dynamic>>? newParticipants;
 
   ReceiptModeData({
     required this.total,
@@ -21,6 +22,7 @@ class ReceiptModeData {
     this.quantityAssignments,
     this.selectedGroupId,
     this.selectedGroupName,
+    this.newParticipants,
   });
 
   factory ReceiptModeData.fromJson(Map<String, dynamic> json) {
@@ -44,6 +46,9 @@ class ReceiptModeData {
           : null,
       selectedGroupId: json['selected_group_id'],
       selectedGroupName: json['selected_group_name'],
+      newParticipants: json['new_participants'] != null
+          ? List<Map<String, dynamic>>.from(json['new_participants'])
+          : null,
     );
   }
 
@@ -58,6 +63,7 @@ class ReceiptModeData {
       'quantity_assignments': quantityAssignments,
       'selected_group_id': selectedGroupId,
       'selected_group_name': selectedGroupName,
+      'new_participants': newParticipants,
     };
   }
 
@@ -71,6 +77,7 @@ class ReceiptModeData {
     List<Map<String, dynamic>>? quantityAssignments,
     String? selectedGroupId,
     String? selectedGroupName,
+    List<Map<String, dynamic>>? newParticipants,
   }) {
     return ReceiptModeData(
       total: total ?? this.total,
@@ -82,6 +89,7 @@ class ReceiptModeData {
       quantityAssignments: quantityAssignments ?? this.quantityAssignments,
       selectedGroupId: selectedGroupId ?? this.selectedGroupId,
       selectedGroupName: selectedGroupName ?? this.selectedGroupName,
+      newParticipants: newParticipants ?? this.newParticipants,
     );
   }
 
@@ -113,9 +121,10 @@ class ReceiptModeData {
       return 'Invalid mode: must be either "receipt" or "manual"';
     }
 
-    // Check if participant amounts match group members count
-    if (participantAmounts.length != groupMembers.length) {
-      return 'Participant amounts count must match group members count';
+    // Check if participant amounts match total participants count (group members + new participants)
+    final totalParticipantsCount = groupMembers.length + (newParticipants?.length ?? 0);
+    if (participantAmounts.length != totalParticipantsCount) {
+      return 'Participant amounts count must match total participants count (group members: ${groupMembers.length}, new participants: ${newParticipants?.length ?? 0})';
     }
 
     // Validate participant amounts sum matches total (with small tolerance for floating point)
@@ -129,7 +138,7 @@ class ReceiptModeData {
 
     // Validate participant names are not empty
     for (var participant in participantAmounts) {
-      if (participant.name.trim().isEmpty) {
+      if (participant.name?.trim().isEmpty ?? true) {
         return 'Participant names cannot be empty';
       }
       if (participant.amount < 0) {

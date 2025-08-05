@@ -1,56 +1,170 @@
-const Assignment = require('../models/Assignment');
-const Item = require('../models/Item');
+const AssignmentService = require('../services/assignmentService');
 
-exports.getAssignmentsForBill = async (req, res) => {
-  try {
-    const billId = req.params.billId;
-    const assignments = await Assignment.findByBillId(billId);
-    res.status(200).json({ assignments });
-  } catch (err) {
-    console.error('Get assignments for bill error:', err);
-    res.status(500).json({ message: 'Server error while fetching assignments.' });
-  }
-};
+class AssignmentController {
+  // Create assignment
+  static async createAssignment(req, res) {
+    try {
+      const { expenseId } = req.params;
+      const assignmentData = {
+        ...req.body,
+        expense_id: parseInt(expenseId)
+      };
 
-exports.assignItemsToParticipants = async (req, res) => {
-  try {
-    const { items, participantIds } = req.body;
-    if (!Array.isArray(items) || items.length === 0 || !Array.isArray(participantIds) || participantIds.length === 0) {
-      return res.status(400).json({ message: 'items and participantIds are required.' });
+      const result = await AssignmentService.createAssignment(assignmentData, req.user.id);
+
+      res.status(201).json({
+        success: true,
+        message: result.message,
+        data: result.assignment
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
     }
-    const assignments = [];
-    for (const itemObj of items) {
-      const { itemId, quantity } = itemObj;
-      if (!itemId || !quantity) {
-        return res.status(400).json({ message: 'Each item must have itemId and quantity.' });
-      }
-      // Get item info
-      const item = await Item.findById(itemId);
-      if (!item) {
-        return res.status(404).json({ message: `Item with id ${itemId} not found.` });
-      }
-      if (item.quantity_left < quantity) {
-        return res.status(400).json({ message: `Not enough quantity left for item ${itemId}.` });
-      }
-      // Calculate cost per participant
-      const costPerParticipant = (item.unit_price * quantity) / participantIds.length;
-      // Upsert assignments for each participant
-      for (const participantId of participantIds) {
-        const assignment = await Assignment.upsert({
-          bill_id: item.bill_id,
-          item_id: itemId,
-          participant_id: participantId,
-          quantity,
-          cost_per_person: costPerParticipant
+  }
+
+  // Get assignments for an expense
+  static async getExpenseAssignments(req, res) {
+    try {
+      const { expenseId } = req.params;
+      const result = await AssignmentService.getExpenseAssignments(parseInt(expenseId), req.user.id);
+
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result.assignments
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  // Get specific assignment
+  static async getAssignment(req, res) {
+    try {
+      const { assignmentId } = req.params;
+      const result = await AssignmentService.getAssignment(parseInt(assignmentId), req.user.id);
+
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result.assignment
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  // Update assignment
+  static async updateAssignment(req, res) {
+    try {
+      const { assignmentId } = req.params;
+      const updateData = req.body;
+
+      const result = await AssignmentService.updateAssignment(parseInt(assignmentId), updateData, req.user.id);
+
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result.assignment
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  // Delete assignment
+  static async deleteAssignment(req, res) {
+    try {
+      const { assignmentId } = req.params;
+      const result = await AssignmentService.deleteAssignment(parseInt(assignmentId), req.user.id);
+
+      res.status(200).json({
+        success: true,
+        message: result.message
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  // Add users to assignment
+  static async addUsersToAssignment(req, res) {
+    try {
+      const { assignmentId } = req.params;
+      const { user_ids } = req.body;
+
+      if (!user_ids || !Array.isArray(user_ids) || user_ids.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'User IDs array is required and cannot be empty'
         });
-        assignments.push(assignment);
       }
-      // Update quantity_left in items
-      await Item.update(itemId, { ...item, quantity_left: item.quantity_left - quantity });
+
+      const result = await AssignmentService.addUsersToAssignment(parseInt(assignmentId), user_ids, req.user.id);
+
+      res.status(200).json({
+        success: true,
+        message: result.message
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
     }
-    res.status(201).json({ message: 'Assignments created successfully.', assignments });
-  } catch (err) {
-    console.error('Assign items to participants error:', err);
-    res.status(500).json({ message: 'Server error while assigning items.' });
   }
-}; 
+
+  // Remove user from assignment
+  static async removeUserFromAssignment(req, res) {
+    try {
+      const { assignmentId, userId } = req.params;
+      const result = await AssignmentService.removeUserFromAssignment(parseInt(assignmentId), parseInt(userId), req.user.id);
+
+      res.status(200).json({
+        success: true,
+        message: result.message
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  // Get assignment summary for an expense
+  static async getAssignmentSummary(req, res) {
+    try {
+      const { expenseId } = req.params;
+      const result = await AssignmentService.getAssignmentSummary(parseInt(expenseId), req.user.id);
+
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result.summary
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+}
+
+module.exports = AssignmentController; 

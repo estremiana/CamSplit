@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
 
 import '../../../core/app_export.dart';
+import '../../../models/dashboard_model.dart';
 
 class BalanceCardWidget extends StatelessWidget {
   final double totalOwed;
@@ -17,6 +18,20 @@ class BalanceCardWidget extends StatelessWidget {
     required this.isPrivacyMode,
     required this.onPrivacyToggle,
   });
+
+  // Alternative constructor for new payment summary structure
+  factory BalanceCardWidget.fromPaymentSummary({
+    required PaymentSummaryModel paymentSummary,
+    required bool isPrivacyMode,
+    required VoidCallback onPrivacyToggle,
+  }) {
+    return BalanceCardWidget(
+      totalOwed: paymentSummary.totalOwed,
+      totalOwing: paymentSummary.totalOwing,
+      isPrivacyMode: isPrivacyMode,
+      onPrivacyToggle: onPrivacyToggle,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

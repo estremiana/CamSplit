@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
@@ -19,6 +20,7 @@ class SplitOptionsWidget extends StatefulWidget {
   final bool isReceiptMode;
   final Map<String, double>? prefilledCustomAmounts;
   final bool isReadOnly;
+  final bool isLoadingMembers;
 
   const SplitOptionsWidget({
     super.key,
@@ -35,6 +37,7 @@ class SplitOptionsWidget extends StatefulWidget {
     this.isReceiptMode = false,
     this.prefilledCustomAmounts,
     this.isReadOnly = false,
+    this.isLoadingMembers = false,
   });
 
   @override
@@ -50,9 +53,75 @@ class _SplitOptionsWidgetState extends State<SplitOptionsWidget> {
   late Map<String, FocusNode> _percentageFocusNodes;
   late Map<String, FocusNode> _customAmountFocusNodes;
   
+  // Debounce timers for updates
+  Timer? _debounceTimer;
+  Timer? _percentageDebounceTimer;
+  
+  // Track editing state to prevent focus loss
+  bool _isEditing = false;
+  
   // Performance optimization for large member lists
   static const int _maxVisibleMembers = 50;
   bool get _shouldOptimizeForLargeList => widget.groupMembers.length > _maxVisibleMembers;
+
+  /// Build avatar widget with initials fallback
+  Widget _buildAvatar(String memberName, String? avatarUrl, [String? initials]) {
+    final avatarSize = MediaQuery.of(context).size.width < 400 ? 28.0 : 32.0;
+    final radius = MediaQuery.of(context).size.width < 400 ? 14.0 : 16.0;
+    
+    // Use provided initials or generate from name
+    final displayInitials = initials ?? _getInitials(memberName);
+    
+    // If no avatar URL, show initials
+    if (avatarUrl == null || avatarUrl.isEmpty) {
+      return CircleAvatar(
+        radius: radius,
+        backgroundColor: AppTheme.lightTheme.colorScheme.primaryContainer,
+        child: Text(
+          displayInitials,
+          style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+            color: AppTheme.lightTheme.colorScheme.primary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
+    }
+    
+    // If avatar URL exists, try to load it
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: AppTheme.lightTheme.colorScheme.surface,
+      child: ClipOval(
+        child: CustomImageWidget(
+          imageUrl: avatarUrl,
+          height: avatarSize,
+          width: avatarSize,
+          fit: BoxFit.cover,
+          errorWidget: CircleAvatar(
+            radius: radius,
+            backgroundColor: AppTheme.lightTheme.colorScheme.primaryContainer,
+            child: Text(
+              displayInitials,
+              style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+                color: AppTheme.lightTheme.colorScheme.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Get initials from member name
+  String _getInitials(String name) {
+    final nameParts = name.trim().split(' ');
+    if (nameParts.isEmpty) return '?';
+    if (nameParts.length == 1) {
+      return nameParts[0].substring(0, 1).toUpperCase();
+    }
+    return '${nameParts[0].substring(0, 1)}${nameParts[1].substring(0, 1)}'.toUpperCase();
+  }
 
   @override
   void initState() {
@@ -63,19 +132,106 @@ class _SplitOptionsWidgetState extends State<SplitOptionsWidget> {
   @override
   void didUpdateWidget(covariant SplitOptionsWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
+    print('SplitOptionsWidget didUpdateWidget called');
+    print('  Old member percentages: ${oldWidget.memberPercentages}');
+    print('  New member percentages: ${widget.memberPercentages}');
+    
     // Re-initialize if groupMembers, prefilledCustomAmounts, or isReceiptMode changed
-    if (widget.groupMembers != oldWidget.groupMembers ||
-        widget.prefilledCustomAmounts != oldWidget.prefilledCustomAmounts ||
-        widget.isReceiptMode != oldWidget.isReceiptMode) {
+    if (_shouldReinitializeControllers(oldWidget)) {
+      print('  Reinitializing controllers');
       _initializeControllers();
       setState(() {}); // Ensure UI updates with new controllers
+    } else {
+      print('  No reinitialization needed');
+      // Only update controllers if percentage data changed AND user is not editing
+      final hasFocusedField = _percentageFocusNodes.values.any((node) => node.hasFocus);
+      if (!hasFocusedField && !_isEditing) {
+        _updateControllersFromWidget();
+      } else {
+        print('  Skipping controller update (field is focused or user is editing)');
+      }
     }
   }
 
+  bool _shouldReinitializeControllers(SplitOptionsWidget oldWidget) {
+    print('Checking if controllers should be reinitialized');
+    
+    // Check if group members changed
+    if (!_groupMembersEqual(widget.groupMembers, oldWidget.groupMembers)) {
+      print('  Group members changed');
+      return true;
+    }
+
+    // Check if selected members changed
+    if (!_listsEqual(widget.selectedMembers, oldWidget.selectedMembers)) {
+      print('  Selected members changed');
+      print('    Old: ${oldWidget.selectedMembers}');
+      print('    New: ${widget.selectedMembers}');
+      return true;
+    }
+
+    // Check if receipt mode changed
+    if (widget.isReceiptMode != oldWidget.isReceiptMode) {
+      print('  Receipt mode changed');
+      return true;
+    }
+
+    // Check if prefilled custom amounts changed (deep comparison)
+    if (!_mapsEqual(widget.prefilledCustomAmounts, oldWidget.prefilledCustomAmounts)) {
+      print('  Prefilled custom amounts changed');
+      return true;
+    }
+
+    // Check if member percentages changed (deep comparison)
+    if (!_mapsEqual(widget.memberPercentages, oldWidget.memberPercentages)) {
+      print('  Member percentages changed');
+      print('    Old: ${oldWidget.memberPercentages}');
+      print('    New: ${widget.memberPercentages}');
+      return true;
+    }
+
+    print('  No changes detected');
+    return false;
+  }
+
+  bool _mapsEqual(Map<String, double>? map1, Map<String, double>? map2) {
+    if (map1 == null && map2 == null) return true;
+    if (map1 == null || map2 == null) return false;
+    if (map1.length != map2.length) return false;
+    
+    for (var key in map1.keys) {
+      if (!map2.containsKey(key) || map1[key] != map2[key]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  bool _listsEqual(List<String>? list1, List<String>? list2) {
+    if (list1 == null && list2 == null) return true;
+    if (list1 == null || list2 == null) return false;
+    if (list1.length != list2.length) return false;
+    
+    for (int i = 0; i < list1.length; i++) {
+      if (list1[i] != list2[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   void _initializeControllers() {
+    print('Initializing controllers in SplitOptionsWidget');
+    print('  Member percentages from widget: ${widget.memberPercentages}');
+    print('  Selected members from widget: ${widget.selectedMembers}');
+    print('  Group members count: ${widget.groupMembers.length}');
+    
     _percentages = Map.from(widget.memberPercentages ?? {});
     _selectedMembers = List.from(widget.selectedMembers ??
         widget.groupMembers.map((m) => m['name'].toString()).toList());
+    
+    print('SplitOptionsWidget initialized with selected members: $_selectedMembers');
+    print('Group members: ${widget.groupMembers.map((m) => m['name']).toList()}');
 
     _controllers = {};
     _customAmounts = {};
@@ -89,24 +245,71 @@ class _SplitOptionsWidgetState extends State<SplitOptionsWidget> {
           ? widget.memberPercentages![memberName]!
           : 0.0;
       _controllers[memberName] =
-          TextEditingController(text: '');
+          TextEditingController(text: percentage > 0 ? percentage.toStringAsFixed(1) : '');
       _percentages[memberName] = percentage;
+      
+      if (percentage > 0) {
+        print('  Set percentage for $memberName: $percentage%');
+      }
       // Initialize custom amounts - use prefilled amounts for receipt mode
       final customAmount = widget.prefilledCustomAmounts?[memberName] ?? 0.0;
       _customAmounts[memberName] = customAmount;
       _customAmountControllers[memberName] = TextEditingController(
-        text: widget.isReceiptMode
+        text: (widget.isReceiptMode || (widget.prefilledCustomAmounts != null && customAmount > 0))
             ? customAmount.toStringAsFixed(2)
             : ''
       );
       // Initialize focus nodes for keyboard navigation
       _percentageFocusNodes[memberName] = FocusNode();
       _customAmountFocusNodes[memberName] = FocusNode();
+      
+      // Add focus listeners to track editing state
+      _percentageFocusNodes[memberName]!.addListener(() {
+        if (_percentageFocusNodes[memberName]!.hasFocus) {
+          _isEditing = true;
+        } else {
+          _isEditing = false;
+        }
+      });
+    }
+  }
+
+  void _updateControllersFromWidget() {
+    print('Updating controllers from widget data');
+    for (var member in widget.groupMembers) {
+      final memberName = member['name'].toString();
+      final percentage = widget.memberPercentages != null && widget.memberPercentages!.containsKey(memberName)
+          ? widget.memberPercentages![memberName]!
+          : 0.0;
+      
+      // Update the text controller if the percentage has changed
+      if (_controllers.containsKey(memberName)) {
+        final currentText = _controllers[memberName]!.text;
+        final newText = percentage > 0 ? percentage.toStringAsFixed(1) : '';
+        
+        // Only update if the controller is not currently focused (user is not typing)
+        final isCurrentlyFocused = _percentageFocusNodes[memberName]?.hasFocus ?? false;
+        final hasUserInput = currentText.isNotEmpty && currentText != newText;
+        
+        // Don't update if user is currently typing or has entered their own value
+        if (currentText != newText && !isCurrentlyFocused && !hasUserInput) {
+          print('  Updating percentage for $memberName: $currentText -> $newText');
+          _controllers[memberName]!.text = newText;
+        } else if (isCurrentlyFocused) {
+          print('  Skipping update for $memberName (currently focused)');
+        } else if (hasUserInput) {
+          print('  Skipping update for $memberName (has user input)');
+        }
+      }
+      
+      _percentages[memberName] = percentage;
     }
   }
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
+    _percentageDebounceTimer?.cancel();
     for (var controller in _controllers.values) {
       controller.dispose();
     }
@@ -136,23 +339,43 @@ class _SplitOptionsWidgetState extends State<SplitOptionsWidget> {
 
   void _updatePercentage(String memberName, String value) {
     final percentage = double.tryParse(value) ?? 0.0;
-    setState(() {
-      _percentages[memberName] = percentage;
-    });
+    
+    // Only update if the percentage has actually changed significantly
+    final currentPercentage = _percentages[memberName] ?? 0.0;
+    final hasChanged = (currentPercentage - percentage).abs() > 0.01;
+    
+    if (hasChanged) {
+      setState(() {
+        _percentages[memberName] = percentage;
+      });
 
-    if (widget.onPercentagesChanged != null) {
-      widget.onPercentagesChanged!(_percentages);
+      if (widget.onPercentagesChanged != null) {
+        // Use debounce to prevent rapid updates
+        _percentageDebounceTimer?.cancel();
+        _percentageDebounceTimer = Timer(const Duration(milliseconds: 300), () {
+          if (mounted) {
+            widget.onPercentagesChanged!(_percentages);
+          }
+        });
+      }
     }
   }
 
   void _updateCustomAmount(String memberName, String value) {
     final amount = double.tryParse(value) ?? 0.0;
-    setState(() {
-      _customAmounts[memberName] = amount;
-    });
+    _customAmounts[memberName] = amount;
 
     if (widget.onCustomAmountsChanged != null) {
-      widget.onCustomAmountsChanged!(_customAmounts);
+      // Use a timer to debounce the callback and avoid immediate rebuilds
+      _debounceTimer?.cancel();
+      _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+        if (mounted) {
+          widget.onCustomAmountsChanged!(_customAmounts);
+        }
+      });
+    } else {
+      // Only call setState if there's no parent callback
+      setState(() {});
     }
   }
 
@@ -162,9 +385,7 @@ class _SplitOptionsWidgetState extends State<SplitOptionsWidget> {
     
     setState(() {
       if (_selectedMembers.contains(memberName)) {
-        if (_selectedMembers.length > 1) {
-          _selectedMembers.remove(memberName);
-        }
+        _selectedMembers.remove(memberName);
       } else {
         _selectedMembers.add(memberName);
       }
@@ -289,18 +510,103 @@ class _SplitOptionsWidgetState extends State<SplitOptionsWidget> {
                   Spacer(),
                   Semantics(
                     label: 'Selected members count',
-                    value: '${_selectedMembers.length} out of ${widget.groupMembers.length} members selected',
-                    child: Text('${_selectedMembers.length}/${widget.groupMembers.length}',
-                        style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-                            color: AppTheme.lightTheme.colorScheme.primary,
-                            fontWeight: FontWeight.w500)),
+                    value: widget.isLoadingMembers 
+                        ? 'Loading members'
+                        : widget.groupMembers.isEmpty
+                            ? 'No members in group'
+                            : '${_selectedMembers.length} out of ${widget.groupMembers.length} members selected',
+                    child: widget.isLoadingMembers
+                        ? Row(
+                            children: [
+                              SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    AppTheme.lightTheme.colorScheme.primary,
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 1.w),
+                              Text(
+                                'Loading...',
+                                style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+                                  color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          )
+                        : widget.groupMembers.isEmpty
+                            ? Text(
+                                'No members',
+                                style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+                                  color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                                ),
+                              )
+                            : Text('${_selectedMembers.length}/${widget.groupMembers.length}',
+                                style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+                                    color: AppTheme.lightTheme.colorScheme.primary,
+                                    fontWeight: FontWeight.w500)),
                   ),
                 ])),
             Padding(
                 padding: EdgeInsets.all(3.w),
-                child: _shouldOptimizeForLargeList 
-                    ? _buildOptimizedMemberList()
-                    : _buildStandardMemberList()),
+                child: widget.isLoadingMembers
+                    ? Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 4.h),
+                          child: Column(
+                            children: [
+                              CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  AppTheme.lightTheme.colorScheme.primary,
+                                ),
+                              ),
+                              SizedBox(height: 2.h),
+                              Text(
+                                'Loading members...',
+                                style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                                  color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    : widget.groupMembers.isEmpty
+                        ? Center(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 4.h),
+                              child: Column(
+                                children: [
+                                  Icon(
+                                    Icons.people_outline,
+                                    size: 48,
+                                    color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                                  ),
+                                  SizedBox(height: 2.h),
+                                  Text(
+                                    'No members in this group',
+                                    style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                                      color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                  SizedBox(height: 1.h),
+                                  Text(
+                                    'Add members to the group to split expenses',
+                                    style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+                                      color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        : _shouldOptimizeForLargeList 
+                            ? _buildOptimizedMemberList()
+                            : _buildStandardMemberList()),
           ])),
     );
   }
@@ -308,78 +614,82 @@ class _SplitOptionsWidgetState extends State<SplitOptionsWidget> {
   Widget _buildStandardMemberList() {
     final totalAmount = widget.totalAmount ?? 0.0;
     final perPerson = _selectedMembers.isNotEmpty ? totalAmount / _selectedMembers.length : 0.0;
-    return Column(
-        children: widget.groupMembers.map((member) {
-      final memberName = member['name'].toString();
-      final isSelected = _selectedMembers.contains(memberName);
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.4, // Limit height to prevent infinite expansion
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          children: widget.groupMembers.map((member) {
+            final memberName = member['name'].toString();
+            final isSelected = _selectedMembers.contains(memberName);
 
-      return Padding(
-          padding: EdgeInsets.only(bottom: 2.h),
-          child: Semantics(
-            button: true,
-            selected: isSelected,
-            label: 'Member $memberName',
-            hint: isSelected ? 'Tap to deselect' : 'Tap to select',
-            child: InkWell(
-                onTap: !widget.isReadOnly ? () => _toggleMember(memberName) : null,
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
+            return Padding(
+              padding: EdgeInsets.only(bottom: 2.h),
+              child: Semantics(
+                button: true,
+                selected: isSelected,
+                label: 'Member $memberName',
+                hint: isSelected ? 'Tap to deselect' : 'Tap to select',
+                child: InkWell(
+                  onTap: !widget.isReadOnly ? () => _toggleMember(memberName) : null,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
                     padding: EdgeInsets.all(3.w),
                     decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppTheme.lightTheme.colorScheme.primaryContainer
+                          : AppTheme.lightTheme.colorScheme.surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
                         color: isSelected
-                            ? AppTheme
-                                .lightTheme.colorScheme.primaryContainer
-                            : AppTheme.lightTheme.colorScheme.surface,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                            color: isSelected
-                                ? AppTheme
-                                    .lightTheme.colorScheme.primary
-                                : AppTheme.lightTheme.dividerColor)),
-                    child: Row(children: [
-                      CircleAvatar(
-                          radius: MediaQuery.of(context).size.width < 400 ? 14 : 16,
-                          backgroundColor:
-                              AppTheme.lightTheme.colorScheme.surface,
-                          child: ClipOval(
-                              child: CustomImageWidget(
-                                  imageUrl: member['avatar'] ?? '',
-                                  height: MediaQuery.of(context).size.width < 400 ? 28 : 32,
-                                  width: MediaQuery.of(context).size.width < 400 ? 28 : 32,
-                                  fit: BoxFit.cover))),
-                      SizedBox(width: 3.w),
-                      Expanded(
-                          child: Text(memberName,
-                              style: AppTheme
-                                  .lightTheme.textTheme.bodyMedium
-                                  ?.copyWith(
-                                      color: isSelected
-                                          ? AppTheme.lightTheme
-                                              .colorScheme.primary
-                                          : AppTheme.lightTheme
-                                              .colorScheme.onSurface,
-                                      fontWeight: FontWeight.w500))),
-                      if (isSelected)
-                        Row(
-                          children: [
-                            Text(
-                              // TODO: Replace '€' with currency symbol prop if available
-                              '${widget.currencySymbol}${perPerson.toStringAsFixed(2)}',
-                              style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-                                color: AppTheme.lightTheme.colorScheme.primary,
-                                fontWeight: FontWeight.w600,
-                              ),
+                            ? AppTheme.lightTheme.colorScheme.primary
+                            : AppTheme.lightTheme.dividerColor,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        _buildAvatar(memberName, member['avatar'], member['initials']),
+                        SizedBox(width: 3.w),
+                        Expanded(
+                          child: Text(
+                            memberName,
+                            style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                              color: isSelected
+                                  ? AppTheme.lightTheme.colorScheme.primary
+                                  : AppTheme.lightTheme.colorScheme.onSurface,
+                              fontWeight: FontWeight.w500,
                             ),
-                            SizedBox(width: 2.w),
-                            Icon(Icons.check_circle,
-                                size: 20,
-                                color: AppTheme
-                                    .lightTheme.colorScheme.primary),
-                          ],
+                          ),
                         ),
-                    ]))),
-          ));
-    }).toList());
+                        if (isSelected)
+                          Row(
+                            children: [
+                              Text(
+                                '${widget.currencySymbol}${perPerson.toStringAsFixed(2)}',
+                                style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+                                  color: AppTheme.lightTheme.colorScheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              SizedBox(width: 2.w),
+                              Icon(
+                                Icons.check_circle,
+                                size: 20,
+                                color: AppTheme.lightTheme.colorScheme.primary,
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
   }
 
   Widget _buildOptimizedMemberList() {
@@ -417,16 +727,7 @@ class _SplitOptionsWidgetState extends State<SplitOptionsWidget> {
                                         .lightTheme.colorScheme.primary
                                     : AppTheme.lightTheme.dividerColor)),
                         child: Row(children: [
-                          CircleAvatar(
-                              radius: 16,
-                              backgroundColor:
-                                  AppTheme.lightTheme.colorScheme.surface,
-                              child: ClipOval(
-                                  child: CustomImageWidget(
-                                      imageUrl: member['avatar'] ?? '',
-                                      height: 32,
-                                      width: 32,
-                                      fit: BoxFit.cover))),
+                          _buildAvatar(memberName, member['avatar'], member['initials']),
                           SizedBox(width: 3.w),
                           Expanded(
                               child: Text(memberName,
@@ -512,16 +813,7 @@ class _SplitOptionsWidgetState extends State<SplitOptionsWidget> {
                   return Padding(
                       padding: EdgeInsets.only(bottom: 2.h),
                       child: Row(children: [
-                        CircleAvatar(
-                            radius: MediaQuery.of(context).size.width < 400 ? 14 : 16,
-                            backgroundColor:
-                                AppTheme.lightTheme.colorScheme.surface,
-                            child: ClipOval(
-                                child: CustomImageWidget(
-                                    imageUrl: member['avatar'] ?? '',
-                                    height: MediaQuery.of(context).size.width < 400 ? 28 : 32,
-                                    width: MediaQuery.of(context).size.width < 400 ? 28 : 32,
-                                    fit: BoxFit.cover))),
+                        _buildAvatar(memberName, member['avatar'], member['initials']),
                         SizedBox(width: 3.w),
                         Expanded(
                             child: Text(memberName,
@@ -551,6 +843,8 @@ class _SplitOptionsWidgetState extends State<SplitOptionsWidget> {
                                       focusNode: _percentageFocusNodes[memberName],
                                       keyboardType: TextInputType.numberWithOptions(decimal: true),
                                       textAlign: TextAlign.center,
+                                      enabled: !widget.isReceiptMode && !widget.isReadOnly,
+                                      readOnly: widget.isReceiptMode || widget.isReadOnly,
                                       style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                                       decoration: InputDecoration(
                                         isDense: true,
@@ -562,6 +856,13 @@ class _SplitOptionsWidgetState extends State<SplitOptionsWidget> {
                                           borderRadius: BorderRadius.circular(8),
                                           borderSide: BorderSide(color: AppTheme.lightTheme.colorScheme.primary)),
                                         hintText: '0.0',
+                                        suffixIcon: (widget.isReceiptMode || widget.isReadOnly)
+                                            ? Icon(
+                                                Icons.lock_outline,
+                                                color: AppTheme.lightTheme.colorScheme.secondary.withOpacity(0.6),
+                                                size: 16,
+                                              )
+                                            : null,
                                       ),
                                       validator: (value) {
                                         if (value == null || value.trim().isEmpty) {
@@ -581,14 +882,20 @@ class _SplitOptionsWidgetState extends State<SplitOptionsWidget> {
                                         HapticFeedback.lightImpact();
                                         _updatePercentage(memberName, value);
                                       } : null,
-                                      onFieldSubmitted: (_) {
+                                      onTap: (!widget.isReceiptMode && !widget.isReadOnly) ? () {
+                                        _isEditing = true;
+                                      } : null,
+                                      onEditingComplete: (!widget.isReceiptMode && !widget.isReadOnly) ? () {
+                                        _isEditing = false;
+                                      } : null,
+                                      onFieldSubmitted: (widget.isReceiptMode || widget.isReadOnly) ? null : (_) {
                                         final memberIndex = widget.groupMembers.indexWhere((m) => m['name'] == memberName);
                                         if (memberIndex < widget.groupMembers.length - 1) {
                                           final nextMember = widget.groupMembers[memberIndex + 1]['name'].toString();
                                           _percentageFocusNodes[nextMember]?.requestFocus();
                                         }
                                       },
-                                      inputFormatters: [
+                                      inputFormatters: (widget.isReceiptMode || widget.isReadOnly) ? [] : [
                                         FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
                                       ],
                                     ),
@@ -692,16 +999,7 @@ class _SplitOptionsWidgetState extends State<SplitOptionsWidget> {
                   return Padding(
                       padding: EdgeInsets.only(bottom: 2.h),
                       child: Row(children: [
-                        CircleAvatar(
-                            radius: MediaQuery.of(context).size.width < 400 ? 14 : 16,
-                            backgroundColor:
-                                AppTheme.lightTheme.colorScheme.surface,
-                            child: ClipOval(
-                                child: CustomImageWidget(
-                                    imageUrl: member['avatar'] ?? '',
-                                    height: MediaQuery.of(context).size.width < 400 ? 28 : 32,
-                                    width: MediaQuery.of(context).size.width < 400 ? 28 : 32,
-                                    fit: BoxFit.cover))),
+                        _buildAvatar(memberName, member['avatar'], member['initials']),
                         SizedBox(width: 3.w),
                         Expanded(
                             child: Text(memberName,

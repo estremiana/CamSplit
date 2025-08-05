@@ -44,6 +44,23 @@ class ExpenseDetailModel {
 
   /// Create ExpenseDetailModel from JSON response
   factory ExpenseDetailModel.fromJson(Map<String, dynamic> json) {
+    // Extract payer information from payers array or fallback to individual fields
+    String payerName = '';
+    int payerId = 0;
+    
+    if (json['payers'] != null && json['payers'] is List && (json['payers'] as List).isNotEmpty) {
+      // Use the first payer from the payers array
+      final firstPayer = json['payers'][0];
+      payerName = firstPayer['name'] ?? '';
+      // The backend sends 'id' which is actually the group_member_id
+      payerId = firstPayer['id'] ?? 0;
+      print('Extracted payer ID: $payerId from payer data: $firstPayer');
+    } else {
+      // Fallback to individual payer fields
+      payerName = json['payer_name'] ?? '';
+      payerId = json['payer_id'] ?? 0;
+    }
+    
     return ExpenseDetailModel(
       id: json['id'],
       title: json['title'] ?? '',
@@ -54,8 +71,8 @@ class ExpenseDetailModel {
       notes: json['notes'] ?? '',
       groupId: json['group_id']?.toString() ?? '',
       groupName: json['group_name'] ?? '',
-      payerName: json['payer_name'] ?? '',
-      payerId: json['payer_id'] ?? 0,
+      payerName: payerName,
+      payerId: payerId,
       splitType: json['split_type'] ?? 'equal',
       participantAmounts: (json['participant_amounts'] as List<dynamic>?)
           ?.map((participantJson) => ParticipantAmount.fromJson(participantJson))
@@ -155,7 +172,7 @@ class ExpenseDetailModel {
     if (participantAmounts.isEmpty) return false;
 
     // Check that all participant amounts are valid
-    if (!participantAmounts.every((p) => p.name.isNotEmpty && p.amount >= 0)) {
+    if (!participantAmounts.every((p) => (p.name?.isNotEmpty ?? false) && p.amount >= 0)) {
       return false;
     }
 
@@ -222,6 +239,7 @@ class ExpenseDetailModel {
 /// and excludes read-only fields like id, groupId, createdAt, etc.
 class ExpenseUpdateRequest {
   final int expenseId;
+  final int groupId; // Add group ID for backend validation
   final String title;
   final double amount;
   final String currency;
@@ -230,9 +248,11 @@ class ExpenseUpdateRequest {
   final String notes;
   final String splitType;
   final List<ParticipantAmount> participantAmounts;
+  final List<Map<String, dynamic>> payers; // Add payers for backend update
 
   ExpenseUpdateRequest({
     required this.expenseId,
+    required this.groupId,
     required this.title,
     required this.amount,
     required this.currency,
@@ -241,12 +261,24 @@ class ExpenseUpdateRequest {
     required this.notes,
     required this.splitType,
     required this.participantAmounts,
+    required this.payers,
   });
 
   /// Create ExpenseUpdateRequest from ExpenseDetailModel
   factory ExpenseUpdateRequest.fromExpenseDetail(ExpenseDetailModel expense) {
+    // Create payer data using the actual payer from the expense
+    final payers = [
+      {
+        'group_member_id': expense.payerId, // Use the actual payer ID from the expense
+        'amount_paid': expense.amount,
+        'payment_method': 'unknown',
+        'payment_date': DateTime.now().toIso8601String(),
+      }
+    ];
+    
     return ExpenseUpdateRequest(
       expenseId: expense.id,
+      groupId: int.tryParse(expense.groupId) ?? 0,
       title: expense.title,
       amount: expense.amount,
       currency: expense.currency,
@@ -255,6 +287,7 @@ class ExpenseUpdateRequest {
       notes: expense.notes,
       splitType: expense.splitType,
       participantAmounts: expense.participantAmounts,
+      payers: payers,
     );
   }
 
@@ -262,26 +295,32 @@ class ExpenseUpdateRequest {
   Map<String, dynamic> toJson() {
     return {
       'expense_id': expenseId,
+      'group_id': groupId,
       'title': title,
-      'amount': amount,
+      'total_amount': amount.isFinite ? amount : 0.0, // Ensure it's a valid number
       'currency': currency,
-      'date': date.toIso8601String(),
+      'date': '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}', // YYYY-MM-DD format
       'category': category,
       'notes': notes,
-      'split_type': splitType,
+      'split_type': splitType, // Backend expects 'split_type'
+      'receipt_image_url': null, // Backend expects this field
       'participant_amounts': participantAmounts.map((p) => p.toJson()).toList(),
+      'payers': payers, // Add payers for backend update
     };
   }
 
   /// Validate update request data
   bool isValid() {
     return expenseId > 0 &&
+           groupId > 0 &&
            title.isNotEmpty &&
-           amount >= 0 &&
+           amount > 0 && // Changed from >= 0 to > 0
+           amount.isFinite && // Ensure it's a valid number
            currency.isNotEmpty &&
            category.isNotEmpty &&
            _isValidSplitType() &&
-           _hasValidParticipantAmounts();
+           _hasValidParticipantAmounts() &&
+           _hasValidPayers();
   }
 
   /// Validate split type
@@ -295,7 +334,7 @@ class ExpenseUpdateRequest {
     if (participantAmounts.isEmpty) return false;
 
     // Check that all participant amounts are valid
-    if (!participantAmounts.every((p) => p.name.isNotEmpty && p.amount >= 0)) {
+    if (!participantAmounts.every((p) => (p.name?.isNotEmpty ?? false) && p.amount >= 0)) {
       return false;
     }
 
@@ -306,6 +345,23 @@ class ExpenseUpdateRequest {
     }
 
     return true;
+  }
+
+  /// Validate payers
+  bool _hasValidPayers() {
+    if (payers.isEmpty) return false;
+
+    // Check that all payers have required fields
+    if (!payers.every((p) => 
+        p['group_member_id'] != null && 
+        p['amount_paid'] != null && 
+        p['amount_paid'] > 0)) {
+      return false;
+    }
+
+    // Check that total paid matches expense amount
+    final totalPaid = payers.fold<double>(0, (sum, p) => sum + (p['amount_paid'] as double));
+    return (totalPaid - amount).abs() < 0.01;
   }
 
   @override

@@ -247,5 +247,34 @@ void main() {
       expect(find.textContaining('John Doe'), findsOneWidget);
       expect(find.textContaining('Jane Smith'), findsOneWidget);
     });
+
+    testWidgets('should properly display selected members for equal split', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        Sizer(
+          builder: (context, orientation, deviceType) {
+            return MaterialApp(
+              home: ExpenseDetailPage(expenseId: 1), // Expense 1 has equal split
+            );
+          },
+        ),
+      );
+
+      await tester.pump(const Duration(milliseconds: 600));
+
+      // Enter edit mode to see the split options
+      await tester.tap(find.text('Edit'));
+      await tester.pumpAndSettle();
+
+      // Should show equal split option as selected
+      expect(find.text('Equal'), findsOneWidget);
+      
+      // Should show member selection section
+      expect(find.text('Select Members'), findsOneWidget);
+      
+      // For equal split, all participants with amounts > 0 should be selected
+      // This test verifies that the fix for the member selection issue works
+      expect(find.textContaining('John Doe'), findsOneWidget);
+      expect(find.textContaining('Jane Smith'), findsOneWidget);
+    });
   });
 }

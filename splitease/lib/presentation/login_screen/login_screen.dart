@@ -70,7 +70,8 @@ class _LoginScreenState extends State<LoginScreen> {
       // Show biometric prompt for 2 seconds then navigate
       Future.delayed(const Duration(seconds: 2), () {
         if (mounted) {
-          Navigator.pushReplacementNamed(context, '/expense-dashboard');
+          // Use the new slideable navigation system
+          Navigator.pushReplacementNamed(context, '/main-navigation');
         }
       });
     } catch (e) {
@@ -127,25 +128,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _navigateToSignUp() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Sign Up',
-          style: AppTheme.lightTheme.textTheme.titleLarge,
-        ),
-        content: Text(
-          'Registration functionality will be implemented in the next version.',
-          style: AppTheme.lightTheme.textTheme.bodyMedium,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
+    Navigator.pushReplacementNamed(context, '/registration-screen');
   }
 
   @override
@@ -157,151 +140,142 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             SingleChildScrollView(
               padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 4.h),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: MediaQuery.of(context).size.height -
-                      MediaQuery.of(context).padding.top -
-                      MediaQuery.of(context).padding.bottom,
-                ),
-                child: IntrinsicHeight(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      SizedBox(height: 8.h),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SizedBox(height: 8.h),
 
-                      // App Logo
-                      Container(
-                        width: 25.w,
-                        height: 25.w,
-                        decoration: BoxDecoration(
-                          color: AppTheme.lightTheme.primaryColor,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppTheme.lightTheme.primaryColor
-                                  .withValues(alpha: 0.3),
-                              blurRadius: 20,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
+                  // App Logo
+                  Container(
+                    width: 25.w,
+                    height: 25.w,
+                    decoration: BoxDecoration(
+                      color: AppTheme.lightTheme.primaryColor,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.lightTheme.primaryColor
+                              .withValues(alpha: 0.3),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
                         ),
-                        child: Center(
-                          child: Text(
-                            'SE',
-                            style: AppTheme.lightTheme.textTheme.headlineMedium
-                                ?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      SizedBox(height: 3.h),
-
-                      Text(
-                        'SplitEase',
-                        style: AppTheme.lightTheme.textTheme.headlineLarge
+                      ],
+                    ),
+                    child: Center(
+                      child: Text(
+                        'SE',
+                        style: AppTheme.lightTheme.textTheme.headlineMedium
                             ?.copyWith(
+                          color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+                    ),
+                  ),
 
-                      SizedBox(height: 1.h),
+                  SizedBox(height: 3.h),
 
-                      Text(
-                        'Split expenses, share memories',
-                        style:
-                            AppTheme.lightTheme.textTheme.bodyLarge?.copyWith(
-                          color:
-                              AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                  Text(
+                    'SplitEase',
+                    style: AppTheme.lightTheme.textTheme.headlineLarge
+                        ?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+
+                  SizedBox(height: 1.h),
+
+                  Text(
+                    'Split expenses, share memories',
+                    style:
+                        AppTheme.lightTheme.textTheme.bodyLarge?.copyWith(
+                      color:
+                          AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+
+                  SizedBox(height: 6.h),
+
+                  // Login Form
+                  LoginFormWidget(
+                    formKey: _formKey,
+                    emailController: _emailController,
+                    passwordController: _passwordController,
+                    emailFocusNode: _emailFocusNode,
+                    passwordFocusNode: _passwordFocusNode,
+                    isPasswordVisible: _isPasswordVisible,
+                    isLoading: _isLoading,
+                    errorMessage: _errorMessage,
+                    onTogglePasswordVisibility: _togglePasswordVisibility,
+                    onLogin: _handleLogin,
+                    onForgotPassword: _handleForgotPassword,
+                  ),
+
+                  SizedBox(height: 4.h),
+
+                  // Divider
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Divider(
+                          color: AppTheme.lightTheme.dividerColor,
+                          thickness: 1,
                         ),
                       ),
-
-                      SizedBox(height: 6.h),
-
-                      // Login Form
-                      LoginFormWidget(
-                        formKey: _formKey,
-                        emailController: _emailController,
-                        passwordController: _passwordController,
-                        emailFocusNode: _emailFocusNode,
-                        passwordFocusNode: _passwordFocusNode,
-                        isPasswordVisible: _isPasswordVisible,
-                        isLoading: _isLoading,
-                        errorMessage: _errorMessage,
-                        onTogglePasswordVisibility: _togglePasswordVisibility,
-                        onLogin: _handleLogin,
-                        onForgotPassword: _handleForgotPassword,
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 4.w),
+                        child: Text(
+                          'or continue with',
+                          style: AppTheme.lightTheme.textTheme.bodySmall,
+                        ),
                       ),
-
-                      SizedBox(height: 4.h),
-
-                      // Divider
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Divider(
-                              color: AppTheme.lightTheme.dividerColor,
-                              thickness: 1,
-                            ),
-                          ),
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 4.w),
-                            child: Text(
-                              'or continue with',
-                              style: AppTheme.lightTheme.textTheme.bodySmall,
-                            ),
-                          ),
-                          Expanded(
-                            child: Divider(
-                              color: AppTheme.lightTheme.dividerColor,
-                              thickness: 1,
-                            ),
-                          ),
-                        ],
+                      Expanded(
+                        child: Divider(
+                          color: AppTheme.lightTheme.dividerColor,
+                          thickness: 1,
+                        ),
                       ),
-
-                      SizedBox(height: 4.h),
-
-                      // Social Login
-                      SocialLoginWidget(
-                        onSocialLogin: _handleSocialLogin,
-                      ),
-
-                      const Spacer(),
-
-                      // Sign Up Link
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'New user? ',
-                            style: AppTheme.lightTheme.textTheme.bodyMedium,
-                          ),
-                          TextButton(
-                            onPressed: _navigateToSignUp,
-                            style: TextButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            child: Text(
-                              'Sign Up',
-                              style: AppTheme.lightTheme.textTheme.bodyMedium
-                                  ?.copyWith(
-                                color: AppTheme.lightTheme.primaryColor,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      SizedBox(height: 2.h),
                     ],
                   ),
-                ),
+
+                  SizedBox(height: 4.h),
+
+                  // Social Login
+                  SocialLoginWidget(
+                    onSocialLogin: _handleSocialLogin,
+                  ),
+
+                  SizedBox(height: 4.h),
+
+                  // Sign Up Link
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'New user? ',
+                        style: AppTheme.lightTheme.textTheme.bodyMedium,
+                      ),
+                      TextButton(
+                        onPressed: _navigateToSignUp,
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: Text(
+                          'Sign Up',
+                          style: AppTheme.lightTheme.textTheme.bodyMedium
+                              ?.copyWith(
+                            color: AppTheme.lightTheme.primaryColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  SizedBox(height: 4.h), // Bottom padding to prevent overflow
+                ],
               ),
             ),
 

@@ -1,32 +1,47 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
 
 import '../../../core/app_export.dart';
+import '../../../models/settlement.dart';
+import '../../../services/settlement_service.dart';
+import 'settlement_processing_workflow.dart';
 
-class SettlementCardWidget extends StatelessWidget {
-  final Map<String, dynamic> settlement;
+class SettlementCardWidget extends StatefulWidget {
+  final Settlement settlement;
   final bool isPrivacyMode;
-  final VoidCallback onSettle;
-  final VoidCallback onRemind;
+  final VoidCallback? onSettle;
+  final VoidCallback? onRemind;
+  final VoidCallback? onRefresh;
 
   const SettlementCardWidget({
     super.key,
     required this.settlement,
     required this.isPrivacyMode,
-    required this.onSettle,
-    required this.onRemind,
+    this.onSettle,
+    this.onRemind,
+    this.onRefresh,
   });
 
   @override
+  State<SettlementCardWidget> createState() => _SettlementCardWidgetState();
+}
+
+class _SettlementCardWidgetState extends State<SettlementCardWidget> {
+  bool _isProcessing = false;
+  bool _isReminding = false;
+  bool _showProcessingWorkflow = false;
+  final SettlementService _settlementService = SettlementService();
+
+  @override
   Widget build(BuildContext context) {
-    final bool isOwed = settlement.containsKey('debtor');
-    final String personName = settlement['creditor'] ?? settlement['debtor'];
-    final String personAvatar =
-        settlement['creditorAvatar'] ?? settlement['debtorAvatar'];
-    final double amount = settlement['amount'];
-    final String description = settlement['description'];
-    final DateTime date = settlement['date'];
-    final String group = settlement['group'];
+    final bool isOwed = _isUserOwed();
+    final String personName = _getOtherPersonName();
+    final String personAvatar = _getOtherPersonAvatar();
+    final double amount = widget.settlement.amount;
+    final String description = _getSettlementDescription();
+    final DateTime date = widget.settlement.createdAt;
+    final String status = widget.settlement.status;
 
     return Container(
       margin: EdgeInsets.only(bottom: 2.h),
@@ -40,7 +55,7 @@ class SettlementCardWidget extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12.0),
             border: Border.all(
-              color: isOwed ? AppTheme.successLight : AppTheme.warningLight,
+              color: _getBorderColor(status, isOwed),
               width: 1.0,
             ),
           ),
@@ -49,21 +64,16 @@ class SettlementCardWidget extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  // Direction indicator
+                  // Status indicator
                   Container(
                     padding: EdgeInsets.all(2.w),
                     decoration: BoxDecoration(
-                      color: (isOwed
-                              ? AppTheme.successLight
-                              : AppTheme.warningLight)
-                          .withValues(alpha: 0.1),
+                      color: _getStatusColor(status).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8.0),
                     ),
                     child: CustomIconWidget(
-                      iconName: isOwed ? 'arrow_downward' : 'arrow_upward',
-                      color: isOwed
-                          ? AppTheme.successLight
-                          : AppTheme.warningLight,
+                      iconName: _getStatusIcon(status),
+                      color: _getStatusColor(status),
                       size: 16,
                     ),
                   ),
@@ -102,7 +112,7 @@ class SettlementCardWidget extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          isOwed ? 'owes you' : 'you owe',
+                          _getSettlementDirectionText(isOwed),
                           style:
                               AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
                             color: AppTheme.textSecondaryLight,
@@ -116,7 +126,7 @@ class SettlementCardWidget extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        isPrivacyMode
+                        widget.isPrivacyMode
                             ? '••••••'
                             : '\$${amount.toStringAsFixed(2)}',
                         style: AppTheme.getMonospaceStyle(
@@ -124,9 +134,7 @@ class SettlementCardWidget extends StatelessWidget {
                           fontSize: 16.sp,
                           fontWeight: FontWeight.w600,
                         ).copyWith(
-                          color: isOwed
-                              ? AppTheme.successLight
-                              : AppTheme.warningLight,
+                          color: _getAmountColor(status, isOwed),
                         ),
                       ),
                       Text(
@@ -141,7 +149,7 @@ class SettlementCardWidget extends StatelessWidget {
                 ],
               ),
               SizedBox(height: 2.h),
-              // Description and group
+              // Description and status
               Text(
                 description,
                 style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
@@ -149,140 +157,141 @@ class SettlementCardWidget extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 0.5.h),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 1.w),
-                decoration: BoxDecoration(
-                  color:
-                      AppTheme.lightTheme.primaryColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12.0),
-                ),
-                child: Text(
-                  group,
-                  style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-                    color: AppTheme.lightTheme.primaryColor,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-              SizedBox(height: 2.h),
-              // Suggested payment methods
-              if (settlement['suggestedMethods'] != null)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Suggested methods:',
-                      style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textSecondaryLight,
-                      ),
-                    ),
-                    SizedBox(height: 1.h),
-                    Wrap(
-                      spacing: 2.w,
-                      children: (settlement['suggestedMethods'] as List)
-                          .map((method) => Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 2.w,
-                                  vertical: 1.w,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.lightTheme.cardColor,
-                                  borderRadius: BorderRadius.circular(8.0),
-                                  border: Border.all(
-                                    color: AppTheme.borderLight,
-                                    width: 1.0,
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    CustomIconWidget(
-                                      iconName: _getPaymentMethodIcon(method),
-                                      color: AppTheme.lightTheme.primaryColor,
-                                      size: 16,
-                                    ),
-                                    SizedBox(width: 1.w),
-                                    Text(
-                                      method,
-                                      style: AppTheme
-                                          .lightTheme.textTheme.bodySmall
-                                          ?.copyWith(
-                                        color: AppTheme.textPrimaryLight,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ))
-                          .toList(),
-                    ),
-                    SizedBox(height: 2.h),
-                  ],
-                ),
-              // Action buttons
               Row(
                 children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: onRemind,
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(
-                          color: AppTheme.textSecondaryLight,
-                          width: 1.0,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          CustomIconWidget(
-                            iconName: 'notifications',
-                            color: AppTheme.textSecondaryLight,
-                            size: 16,
-                          ),
-                          SizedBox(width: 1.w),
-                          Text(
-                            'Remind',
-                            style: AppTheme.lightTheme.textTheme.bodyMedium
-                                ?.copyWith(
-                              color: AppTheme.textSecondaryLight,
-                            ),
-                          ),
-                        ],
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 1.w),
+                    decoration: BoxDecoration(
+                      color: _getStatusColor(status).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    child: Text(
+                      _getStatusText(status),
+                      style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+                        color: _getStatusColor(status),
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
-                  SizedBox(width: 3.w),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: onSettle,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isOwed
-                            ? AppTheme.successLight
-                            : AppTheme.warningLight,
-                        foregroundColor: Colors.white,
+                  if (widget.settlement.createdExpenseId != null) ...[
+                    SizedBox(width: 2.w),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 1.w),
+                      decoration: BoxDecoration(
+                        color: AppTheme.successLight.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12.0),
                       ),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           CustomIconWidget(
-                            iconName: 'payment',
-                            color: Colors.white,
-                            size: 16,
+                            iconName: 'receipt',
+                            color: AppTheme.successLight,
+                            size: 12,
                           ),
                           SizedBox(width: 1.w),
                           Text(
-                            isOwed ? 'Request' : 'Settle',
-                            style: AppTheme.lightTheme.textTheme.bodyMedium
-                                ?.copyWith(
-                              color: Colors.white,
+                            'Expense Created',
+                            style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+                              color: AppTheme.successLight,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ),
+                  ],
                 ],
               ),
+              SizedBox(height: 2.h),
+              // Action buttons
+              if (status == 'active' && _canProcessSettlement())
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _isReminding ? null : _handleRemind,
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(
+                            color: AppTheme.textSecondaryLight,
+                            width: 1.0,
+                          ),
+                        ),
+                        child: _isReminding
+                            ? SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    AppTheme.textSecondaryLight,
+                                  ),
+                                ),
+                              )
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  CustomIconWidget(
+                                    iconName: 'notifications',
+                                    color: AppTheme.textSecondaryLight,
+                                    size: 16,
+                                  ),
+                                  SizedBox(width: 1.w),
+                                  Text(
+                                    'Remind',
+                                    style: AppTheme.lightTheme.textTheme.bodyMedium
+                                        ?.copyWith(
+                                      color: AppTheme.textSecondaryLight,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ),
+                    SizedBox(width: 3.w),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _isProcessing ? null : _handleSettle,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isOwed
+                              ? AppTheme.successLight
+                              : AppTheme.warningLight,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: _isProcessing
+                            ? SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              )
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  CustomIconWidget(
+                                    iconName: 'payment',
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                  SizedBox(width: 1.w),
+                                  Text(
+                                    isOwed ? 'Request' : 'Settle',
+                                    style: AppTheme.lightTheme.textTheme.bodyMedium
+                                        ?.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
             ],
           ),
         ),
@@ -290,18 +299,226 @@ class SettlementCardWidget extends StatelessWidget {
     );
   }
 
-  String _getPaymentMethodIcon(String method) {
-    switch (method.toLowerCase()) {
-      case 'venmo':
-        return 'account_balance_wallet';
-      case 'paypal':
-        return 'payment';
-      case 'bank transfer':
-        return 'account_balance';
-      case 'cash':
-        return 'local_atm';
+  bool _isUserOwed() {
+    // This would need to be determined based on current user ID
+    // For now, using a simple heuristic based on the settlement data
+    return widget.settlement.toGroupMemberId > widget.settlement.fromGroupMemberId;
+  }
+
+  String _getOtherPersonName() {
+    // This would need to be determined based on current user ID
+    // For now, returning a placeholder
+    return 'John Doe';
+  }
+
+  String _getOtherPersonAvatar() {
+    // This would need to be determined based on current user ID
+    // For now, returning a placeholder
+    return '';
+  }
+
+  String _getSettlementDescription() {
+    return 'Settlement for group expenses';
+  }
+
+  String _getSettlementDirectionText(bool isOwed) {
+    return isOwed ? 'owes you' : 'you owe';
+  }
+
+  Color _getBorderColor(String status, bool isOwed) {
+    if (status == 'settled') return AppTheme.successLight;
+    if (status == 'obsolete') return AppTheme.textSecondaryLight;
+    return isOwed ? AppTheme.successLight : AppTheme.warningLight;
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'active':
+        return AppTheme.warningLight;
+      case 'settled':
+        return AppTheme.successLight;
+      case 'obsolete':
+        return AppTheme.textSecondaryLight;
       default:
-        return 'payment';
+        return AppTheme.textSecondaryLight;
+    }
+  }
+
+  Color _getAmountColor(String status, bool isOwed) {
+    if (status == 'settled') return AppTheme.successLight;
+    if (status == 'obsolete') return AppTheme.textSecondaryLight;
+    return isOwed ? AppTheme.successLight : AppTheme.warningLight;
+  }
+
+  String _getStatusIcon(String status) {
+    switch (status.toLowerCase()) {
+      case 'active':
+        return 'schedule';
+      case 'settled':
+        return 'check_circle';
+      case 'obsolete':
+        return 'cancel';
+      default:
+        return 'help';
+    }
+  }
+
+  String _getStatusText(String status) {
+    switch (status.toLowerCase()) {
+      case 'active':
+        return 'Pending';
+      case 'settled':
+        return 'Completed';
+      case 'obsolete':
+        return 'Obsolete';
+      default:
+        return 'Unknown';
+    }
+  }
+
+  bool _canProcessSettlement() {
+    // This would need to check if current user can process this settlement
+    // For now, allowing all active settlements to be processed
+    return true;
+  }
+
+  Future<void> _handleSettle() async {
+    if (_isProcessing) return;
+
+    setState(() {
+      _isProcessing = true;
+      _showProcessingWorkflow = true;
+    });
+
+    // Show processing workflow
+    showModalBottomSheet(
+      context: context,
+      isDismissible: false,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16.0)),
+      ),
+      builder: (context) => SettlementProcessingWorkflow(
+        onComplete: () async {
+          Navigator.pop(context);
+          await _processSettlement();
+        },
+        onCancel: () {
+          Navigator.pop(context);
+          setState(() {
+            _isProcessing = false;
+            _showProcessingWorkflow = false;
+          });
+        },
+      ),
+    );
+  }
+
+  Future<void> _processSettlement() async {
+    try {
+      HapticFeedback.mediumImpact();
+      
+      final result = await _settlementService.processSettlement(
+        widget.settlement.id.toString(),
+      );
+
+      if (result['success']) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Settlement processed successfully!'),
+            backgroundColor: AppTheme.successLight,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+          ),
+        );
+        
+        // Refresh the settlements list
+        widget.onRefresh?.call();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Failed to process settlement'),
+            backgroundColor: AppTheme.errorLight,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error processing settlement: ${e.toString()}'),
+          backgroundColor: AppTheme.errorLight,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.0),
+          ),
+        ),
+      );
+    } finally {
+      setState(() {
+        _isProcessing = false;
+        _showProcessingWorkflow = false;
+      });
+    }
+  }
+
+  Future<void> _handleRemind() async {
+    if (_isReminding) return;
+
+    setState(() {
+      _isReminding = true;
+    });
+
+    try {
+      HapticFeedback.selectionClick();
+      
+      final success = await _settlementService.sendSettlementReminder(
+        widget.settlement.id.toString(),
+      );
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Reminder sent successfully!'),
+            backgroundColor: AppTheme.lightTheme.primaryColor,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to send reminder'),
+            backgroundColor: AppTheme.errorLight,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error sending reminder: ${e.toString()}'),
+          backgroundColor: AppTheme.errorLight,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.0),
+          ),
+        ),
+      );
+    } finally {
+      setState(() {
+        _isReminding = false;
+      });
     }
   }
 }

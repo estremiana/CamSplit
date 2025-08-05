@@ -281,11 +281,22 @@ class _QuantityAssignmentWidgetState extends State<QuantityAssignmentWidget> {
                                   else
                                     CircleAvatar(
                                       radius: 3.w,
-                                      backgroundImage: NetworkImage(
-                                          widget.members.firstWhere((m) =>
+                                      backgroundColor: AppTheme.lightTheme.colorScheme.primaryContainer,
+                                      child: ClipOval(
+                                        child: CustomImageWidget(
+                                          imageUrl: widget.members.firstWhere((m) =>
                                               assignment['memberIds'].contains(
                                                   m['id']
-                                                      .toString()))['avatar']),
+                                                      .toString()))['avatar'],
+                                          width: 6.w,
+                                          height: 6.w,
+                                          fit: BoxFit.cover,
+                                          userName: widget.members.firstWhere((m) =>
+                                              assignment['memberIds'].contains(
+                                                  m['id']
+                                                      .toString()))['name'],
+                                        ),
+                                      ),
                                     ),
                                   SizedBox(width: 2.w),
                                   Expanded(

@@ -3,20 +3,30 @@ import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
 
 import '../../core/app_export.dart';
+import '../../models/dashboard_model.dart';
+import '../../models/expense.dart';
+import '../../services/api_service.dart';
+import '../../services/navigation_service.dart';
+import '../../services/user_service.dart';
+
 import './widgets/balance_card_widget.dart';
 import './widgets/empty_state_widget.dart';
-import './widgets/quick_stats_widget.dart';
 import './widgets/recent_expense_card_widget.dart';
 
 class ExpenseDashboard extends StatefulWidget {
-  const ExpenseDashboard({super.key});
+  final bool showBottomNavigation;
+  
+  const ExpenseDashboard({
+    super.key,
+    this.showBottomNavigation = true,
+  });
 
   @override
   State<ExpenseDashboard> createState() => _ExpenseDashboardState();
 }
 
 class _ExpenseDashboardState extends State<ExpenseDashboard>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
   final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
       GlobalKey<RefreshIndicatorState>();
   bool _isPrivacyMode = false;
@@ -85,15 +95,12 @@ class _ExpenseDashboardState extends State<ExpenseDashboard>
     }
   ];
 
-  // Mock user data
-  final Map<String, dynamic> _userData = {
-    "name": "Alex Johnson",
-    "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e",
+  // User data
+  UserModel? _currentUser;
+  DashboardModel? _dashboardData;
+  final Map<String, dynamic> _balanceData = {
     "totalOwed": 127.35,
     "totalOwing": 89.50,
-    "monthlySpending": 1245.80,
-    "pendingSettlements": 3,
-    "activeGroups": 4
   };
 
   @override
@@ -109,6 +116,34 @@ class _ExpenseDashboardState extends State<ExpenseDashboard>
     _fabTranslation = Tween<double>(begin: 0, end: 70).animate(
       CurvedAnimation(parent: _fabController, curve: Curves.easeInOut),
     );
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    setState(() {
+      _isLoading = true;
+    });
+    
+    try {
+      final user = await UserService.getCurrentUser();
+      final dashboard = await ApiService.instance.getDashboardModel();
+      if (mounted) {
+        setState(() {
+          _currentUser = user;
+          _dashboardData = dashboard;
+          // Update balance data from dashboard
+          _balanceData["totalOwed"] = dashboard.paymentSummary.totalOwed;
+          _balanceData["totalOwing"] = dashboard.paymentSummary.totalOwing;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -154,7 +189,11 @@ class _ExpenseDashboardState extends State<ExpenseDashboard>
   }
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
     return WillPopScope(
       onWillPop: () async {
         if (_fabMenuOpen) {
@@ -175,30 +214,47 @@ class _ExpenseDashboardState extends State<ExpenseDashboard>
           child: CustomScrollView(
             slivers: [
               _buildAppBar(),
-              _recentExpenses.isEmpty
+              _isLoading
                   ? SliverFillRemaining(
-                      child: EmptyStateWidget(
-                        onAddExpense: _openCameraCapture,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            CircularProgressIndicator(
+                              color: AppTheme.lightTheme.primaryColor,
+                            ),
+                            SizedBox(height: 2.h),
+                            Text(
+                              'Loading dashboard...',
+                              style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                                color: AppTheme.textSecondaryLight,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     )
-                  : SliverList(
+                  : (_dashboardData?.recentExpenses.isEmpty ?? _recentExpenses.isEmpty)
+                      ? SliverFillRemaining(
+                          child: EmptyStateWidget(
+                            onAddExpense: _openCameraCapture,
+                          ),
+                        )
+                      : SliverList(
                       delegate: SliverChildListDelegate([
                         SizedBox(height: 2.h),
-                        BalanceCardWidget(
-                          totalOwed: _userData["totalOwed"] as double,
-                          totalOwing: _userData["totalOwing"] as double,
-                          isPrivacyMode: _isPrivacyMode,
-                          onPrivacyToggle: _togglePrivacyMode,
-                        ),
-                        SizedBox(height: 3.h),
-                        QuickStatsWidget(
-                          monthlySpending:
-                              _userData["monthlySpending"] as double,
-                          pendingSettlements:
-                              _userData["pendingSettlements"] as int,
-                          activeGroups: _userData["activeGroups"] as int,
-                          isPrivacyMode: _isPrivacyMode,
-                        ),
+                        _dashboardData != null
+                            ? BalanceCardWidget.fromPaymentSummary(
+                                paymentSummary: _dashboardData!.paymentSummary,
+                                isPrivacyMode: _isPrivacyMode,
+                                onPrivacyToggle: _togglePrivacyMode,
+                              )
+                            : BalanceCardWidget(
+                                totalOwed: _balanceData["totalOwed"] as double,
+                                totalOwing: _balanceData["totalOwing"] as double,
+                                isPrivacyMode: _isPrivacyMode,
+                                onPrivacyToggle: _togglePrivacyMode,
+                              ),
                         SizedBox(height: 3.h),
                         _buildRecentExpensesSection(),
                         SizedBox(height: 10.h),
@@ -220,7 +276,7 @@ class _ExpenseDashboardState extends State<ExpenseDashboard>
           ],
         ),
         floatingActionButton: _buildFabMenu(),
-        bottomNavigationBar: _buildBottomNavigationBar(),
+        bottomNavigationBar: widget.showBottomNavigation ? _buildBottomNavigationBar() : null,
       ),
     );
   }
@@ -449,49 +505,58 @@ class _ExpenseDashboardState extends State<ExpenseDashboard>
           padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
           child: Row(
             children: [
-              GestureDetector(
-                onTap: () => _navigateToProfile(),
-                child: Container(
-                  width: 12.w,
-                  height: 12.w,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: AppTheme.lightTheme.primaryColor,
-                      width: 2,
-                    ),
-                  ),
-                  child: ClipOval(
-                    child: CustomImageWidget(
-                      imageUrl: _userData["avatar"] as String,
-                      width: 12.w,
-                      height: 12.w,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(width: 3.w),
+              // Welcome button area - tappable avatar and text (Requirements 3.1, 3.2, 3.3)
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Welcome back,',
-                      style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textSecondaryLight,
+                child: GestureDetector(
+                  onTap: () => _navigateToProfile(),
+                  behavior: HitTestBehavior.opaque,
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 12.w,
+                        height: 12.w,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppTheme.lightTheme.primaryColor,
+                            width: 2,
+                          ),
+                        ),
+                        child: ClipOval(
+                          child: CustomImageWidget(
+                            imageUrl: _currentUser?.avatar,
+                            width: 12.w,
+                            height: 12.w,
+                            fit: BoxFit.cover,
+                            userName: _currentUser?.name,
+                          ),
+                        ),
                       ),
-                    ),
-                    Text(
-                      _userData["name"] as String,
-                      style:
-                          AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
+                      SizedBox(width: 3.w),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Welcome back,',
+                              style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+                                color: AppTheme.textSecondaryLight,
+                              ),
+                            ),
+                            Text(
+                              _currentUser?.name ?? 'Loading...',
+                              style:
+                                  AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
                       ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               IconButton(
@@ -526,51 +591,49 @@ class _ExpenseDashboardState extends State<ExpenseDashboard>
   }
 
   Widget _buildRecentExpensesSection() {
+    final expenses = _dashboardData?.recentExpenses ?? _recentExpenses;
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 4.w),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Recent Expenses',
-                style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              TextButton(
-                onPressed: _viewAllExpenses,
-                child: Text(
-                  'View All',
-                  style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.lightTheme.primaryColor,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
+          child: Text(
+            'Recent Expenses',
+            style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
         SizedBox(height: 1.h),
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: _recentExpenses.length,
-          itemBuilder: (context, index) {
-            final expense = _recentExpenses[index];
-            return RecentExpenseCardWidget(
-              expense: expense,
-              isPrivacyMode: _isPrivacyMode,
-              onEdit: () => _editExpense(expense),
-              onDuplicate: () => _duplicateExpense(expense),
-              onShare: () => _shareExpense(expense),
-              onDelete: () => _deleteExpense(expense),
-              onTap: () => _viewExpenseDetails(expense),
-            );
-          },
-        ),
+        expenses.isEmpty
+            ? Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4.w),
+                child: Text(
+                  'No recent expenses',
+                  style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                    color: AppTheme.textSecondaryLight,
+                  ),
+                ),
+              )
+            : ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: expenses.length,
+                itemBuilder: (context, index) {
+                  final expense = expenses[index];
+                  final expenseMap = _convertExpenseToMap(expense);
+                  return RecentExpenseCardWidget(
+                    expense: expenseMap,
+                    isPrivacyMode: _isPrivacyMode,
+                    onEdit: () => _editExpense(expenseMap),
+                    onDuplicate: () => _duplicateExpense(expenseMap),
+                    onShare: () => _shareExpense(expenseMap),
+                    onDelete: () => _deleteExpense(expenseMap),
+                    onTap: () => _viewExpenseDetails(expenseMap),
+                  );
+                },
+              ),
       ],
     );
   }
@@ -640,27 +703,58 @@ class _ExpenseDashboardState extends State<ExpenseDashboard>
       _isLoading = true;
     });
 
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 2));
-
-    setState(() {
-      _isLoading = false;
-    });
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Expenses updated successfully',
-            style: AppTheme.lightTheme.snackBarTheme.contentTextStyle,
+    try {
+      // Refresh user data from API
+      final user = await UserService.refreshUser();
+      final dashboard = await ApiService.instance.getDashboardModel();
+      
+      if (mounted) {
+        setState(() {
+          _currentUser = user;
+          _dashboardData = dashboard;
+          // Update balance data from dashboard
+          _balanceData["totalOwed"] = dashboard.paymentSummary.totalOwed;
+          _balanceData["totalOwing"] = dashboard.paymentSummary.totalOwing;
+        });
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Dashboard updated successfully',
+              style: AppTheme.lightTheme.snackBarTheme.contentTextStyle,
+            ),
+            backgroundColor: AppTheme.successLight,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8.0),
+            ),
           ),
-          backgroundColor: AppTheme.successLight,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8.0),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to update dashboard',
+              style: AppTheme.lightTheme.snackBarTheme.contentTextStyle,
+            ),
+            backgroundColor: AppTheme.errorLight,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8.0),
+            ),
           ),
-        ),
-      );
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -691,7 +785,16 @@ class _ExpenseDashboardState extends State<ExpenseDashboard>
   }
 
   void _navigateToProfile() {
-    Navigator.pushNamed(context, '/profile-settings');
+    // Add haptic feedback for welcome button interaction (Requirement 3.3)
+    HapticFeedback.selectionClick();
+    
+    // Use NavigationService for smooth sliding transition (Requirements 3.1, 3.2)
+    bool navigationSuccess = NavigationService.navigateToProfile();
+    
+    // Fallback to traditional navigation if NavigationService is not available
+    if (!navigationSuccess) {
+      Navigator.pushNamed(context, '/profile-settings');
+    }
   }
 
   void _showNotifications() {
@@ -746,9 +849,7 @@ class _ExpenseDashboardState extends State<ExpenseDashboard>
     );
   }
 
-  void _viewAllExpenses() {
-    Navigator.pushNamed(context, '/expense-creation');
-  }
+
 
   void _editExpense(Map<String, dynamic> expense) {
     HapticFeedback.selectionClick();
@@ -803,5 +904,43 @@ class _ExpenseDashboardState extends State<ExpenseDashboard>
   void _viewExpenseDetails(Map<String, dynamic> expense) {
     HapticFeedback.selectionClick();
     // Navigate to expense details screen
+    Navigator.pushNamed(
+      context,
+      AppRoutes.expenseDetail,
+      arguments: {'expenseId': expense['id']},
+    );
+  }
+
+  Map<String, dynamic> _convertExpenseToMap(dynamic expense) {
+    if (expense is Expense) {
+      return {
+        "id": expense.id,
+        "description": expense.title,
+        "amount": expense.totalAmount,
+        "group": expense.groupName ?? "Unknown Group",
+        "receiptUrl": expense.receiptImages.isNotEmpty 
+            ? expense.receiptImages.first.imageUrl 
+            : "https://images.pexels.com/photos/264636/pexels-photo-264636.jpeg",
+        "paidBy": expense.payerNickname ?? "Unknown",
+        "splitWith": expense.splits.map((split) => "User ${split.groupMemberId}").toList(),
+        "date": expense.date ?? expense.createdAt,
+        "amountOwed": expense.amountOwed,
+      };
+    } else if (expense is Map<String, dynamic>) {
+      return expense;
+    } else {
+      // Fallback for any other type
+      return {
+        "id": 0,
+        "description": "Unknown Expense",
+        "amount": 0.0,
+        "group": "Unknown Group",
+        "receiptUrl": "https://images.pexels.com/photos/264636/pexels-photo-264636.jpeg",
+        "paidBy": "Unknown",
+        "splitWith": [],
+        "date": DateTime.now(),
+        "amountOwed": 0.0,
+      };
+    }
   }
 }

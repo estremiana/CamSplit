@@ -6,7 +6,6 @@ import '../../core/app_export.dart';
 import '../../models/receipt_mode_data.dart';
 import '../../models/participant_amount.dart';
 import '../../models/group.dart';
-import '../../models/mock_group_data.dart';
 import '../../services/group_service.dart';
 import '../receipt_ocr_review/widgets/progress_indicator_widget.dart';
 import './widgets/assignment_instructions_widget.dart';
@@ -49,39 +48,17 @@ class _ItemAssignmentState extends State<ItemAssignment>
   List<Group> _availableGroups = [];
   String? _selectedGroupId;
 
-  // Mock group members data
-  List<Map<String, dynamic>> _groupMembers = [
-    {
-      "id": 1,
-      "name": "You",
-      "avatar":
-          "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80"
-    },
-    {
-      "id": 2,
-      "name": "Sarah",
-      "avatar":
-          "https://images.unsplash.com/photo-1494790108755-2616b612b1e9?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80"
-    },
-    {
-      "id": 3,
-      "name": "Mike",
-      "avatar":
-          "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80"
-    },
-    {
-      "id": 4,
-      "name": "Emma",
-      "avatar":
-          "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80"
-    },
-  ];
+  // Group members data (loaded from API)
+  List<Map<String, dynamic>> _groupMembers = [];
+  
+  // Track new participants added during assignment
+  List<Map<String, dynamic>> _newParticipants = [];
 
   @override
   void initState() {
     super.initState();
     _loadData();
-    _loadGroupData();
+    _loadGroupData(); // This is now async but we don't need to await it in initState
   }
 
   @override
@@ -112,63 +89,140 @@ class _ItemAssignmentState extends State<ItemAssignment>
     });
   }
 
-  void _loadGroupData() {
-    // TODO: Replace with actual backend API calls when backend integration is implemented
-    // Load mock groups data sorted by most recent usage
+  Future<void> _loadGroupData() async {
     setState(() {
-      _availableGroups = MockGroupData.getGroupsSortedByMostRecent();
-      // Pre-select the most recent group (first in sorted list)
-      if (_availableGroups.isNotEmpty) {
-        _selectedGroupId = _availableGroups.first.id;
-        _updateGroupMembers(_selectedGroupId!);
-      }
+      _isLoading = true;
     });
+
+    try {
+      // Load groups from backend API
+      final groups = await GroupService.getAllGroups();
+      
+      setState(() {
+        _availableGroups = groups;
+        _isLoading = false;
+        
+        // Pre-select the most recent group (first in sorted list)
+        if (_availableGroups.isNotEmpty) {
+          _selectedGroupId = _availableGroups.first.id.toString();
+          // Load members for the initially selected group
+          _updateGroupMembers(_selectedGroupId!); // Don't await here, let it run asynchronously
+        }
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _availableGroups = [];
+        _selectedGroupId = null;
+        _groupMembers = [];
+      });
+      
+      // Show error message to user
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load groups: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 5),
+          ),
+        );
+      }
+    }
   }
 
   void _onGroupChanged(String groupId) {
+    print('DEBUG: _onGroupChanged - groupId: $groupId');
+    
     // Update selected group and members
     _selectedGroupId = groupId;
-    _updateGroupMembers(groupId);
     
     // Clear all existing assignments when group changes
     _clearAllAssignments();
+    
+    // Update group members (this will handle loading state and member fetching)
+    _updateGroupMembers(groupId); // Let it run asynchronously
     
     // Force UI refresh to ensure all widgets reflect the new participant list
     // This ensures QuantityAssignmentWidget and AssignmentSummaryWidget update properly
     if (mounted) {
       setState(() {
-        // State has been updated in _updateGroupMembers and _clearAllAssignments
-        // This setState ensures all child widgets receive the updated member list
+        // State has been updated in _clearAllAssignments
+        // _updateGroupMembers will update the state when it completes
       });
     }
   }
 
-  void _updateGroupMembers(String groupId) {
-    final selectedGroup = _availableGroups.firstWhere(
-      (group) => group.id == groupId,
-      orElse: () => _availableGroups.first,
-    );
-
-    // Convert Group members to the format expected by the existing code
-    final newGroupMembers = selectedGroup.members.map((member) => {
-      'id': int.parse(member.id),
-      'name': member.name,
-      'avatar': member.avatar,
-    }).toList();
-
-    // Update group members and maintain UI state consistency
+  void _updateGroupMembers(String groupId) async {
+    print('DEBUG: _updateGroupMembers - groupId: $groupId');
+    
     setState(() {
-      _groupMembers = newGroupMembers;
-      
-      // Reset assignment totals to ensure clean state with new participants
-      _previousIndividualTotals = null;
-      _currentIndividualTotals = null;
-      _equalSplitTotals = null;
-      
-      // Maintain expanded states but reset selection states that depend on members
-      // Keep _expandedQuantityItemId and _expandedItemId as they are item-specific
-      // Reset any member-specific selections if they exist
+      _isLoading = true;
     });
+
+    try {
+      // Fetch group members from the backend API
+      final groupWithMembers = await GroupService.getGroupWithMembers(groupId);
+      print('DEBUG: _updateGroupMembers - loaded group: ${groupWithMembers?.name}, members count: ${groupWithMembers?.members.length}');
+      
+      if (groupWithMembers != null) {
+        // Convert Group members to the format expected by the existing code
+        final newGroupMembers = groupWithMembers.members.map((member) => <String, dynamic>{
+          'id': member.id.toString(),
+          'name': member.nickname,
+          'avatar': '', // GroupMember doesn't have avatar field, will use initials
+        }).toList();
+
+        // Update group members and maintain UI state consistency
+        setState(() {
+          _groupMembers = newGroupMembers;
+          _isLoading = false;
+          
+          // Reset assignment totals to ensure clean state with new participants
+          _previousIndividualTotals = null;
+          _currentIndividualTotals = null;
+          _equalSplitTotals = null;
+          
+          // Maintain expanded states but reset selection states that depend on members
+          // Keep _expandedQuantityItemId and _expandedItemId as they are item-specific
+          // Reset any member-specific selections if they exist
+        });
+        
+        print('DEBUG: _updateGroupMembers - updated group members count: ${_groupMembers.length}');
+        for (var member in _groupMembers) {
+          print('DEBUG: _updateGroupMembers - member: ${member['name']} (ID: ${member['id']})');
+        }
+      } else {
+        setState(() {
+          _groupMembers = [];
+          _isLoading = false;
+        });
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to load group members'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() {
+        _groupMembers = [];
+        _isLoading = false;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load group members: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 5),
+          ),
+        );
+      }
+    }
   }
 
   void _clearAllAssignments() {
@@ -631,7 +685,7 @@ class _ItemAssignmentState extends State<ItemAssignment>
           final individualQuantity = memberIds.length > 1 ? quantity : quantity;
           final individualPrice = totalPrice / memberIds.length;
           
-          transformedQuantityAssignments.add({
+          transformedQuantityAssignments.add(<String, dynamic>{
             'itemId': itemId,
             'participantId': memberId.toString(),
             'quantity': individualQuantity,
@@ -645,9 +699,21 @@ class _ItemAssignmentState extends State<ItemAssignment>
 
     // Get the selected group information
     final selectedGroup = _availableGroups.firstWhere(
-      (group) => group.id == _selectedGroupId,
+      (group) => group.id.toString() == _selectedGroupId,
       orElse: () => _availableGroups.first,
     );
+
+    print('DEBUG: _prepareReceiptModeData - selectedGroupId: $_selectedGroupId');
+    print('DEBUG: _prepareReceiptModeData - selectedGroup: ${selectedGroup.name} (ID: ${selectedGroup.id})');
+    print('DEBUG: _prepareReceiptModeData - groupMembers count: ${_groupMembers.length}');
+    for (var member in _groupMembers) {
+      print('DEBUG: _prepareReceiptModeData - group member: ${member['name']} (ID: ${member['id']})');
+    }
+
+    // Separate existing group members from new participants
+    final existingGroupMembers = _groupMembers.where((member) => 
+      !_newParticipants.any((newParticipant) => newParticipant['id'] == member['id'])
+    ).toList();
 
     // Create and return structured receipt mode data
     return ReceiptModeData(
@@ -656,10 +722,11 @@ class _ItemAssignmentState extends State<ItemAssignment>
       mode: 'receipt',
       isEqualSplit: _isEqualSplit,
       items: transformedItems,
-      groupMembers: _groupMembers,
+      groupMembers: existingGroupMembers,
       quantityAssignments: transformedQuantityAssignments,
-      selectedGroupId: selectedGroup.id,
+      selectedGroupId: selectedGroup.id.toString(),
       selectedGroupName: selectedGroup.name,
+      newParticipants: _newParticipants.isNotEmpty ? _newParticipants : null,
     );
   }
 
@@ -790,20 +857,22 @@ class _ItemAssignmentState extends State<ItemAssignment>
                     onPressed: () {
                       if (nameController.text.isNotEmpty) {
                         // Generate a unique random ID that doesn't conflict with existing members
-                        final existingIds = _groupMembers.map((m) => m['id'] as int).toSet();
-                        int newId;
+                        final existingIds = _groupMembers.map((m) => m['id'].toString()).toSet();
+                        String newId;
                         do {
-                          newId = DateTime.now().millisecondsSinceEpoch.remainder(1000000) + (existingIds.length + 1);
+                          newId = DateTime.now().millisecondsSinceEpoch.remainder(1000000).toString();
                         } while (existingIds.contains(newId));
                         
-                        final newParticipant = {
+                        final newParticipant = <String, dynamic>{
                           "id": newId,
                           "name": nameController.text.trim(),
                           "avatar": avatarUrl,
+                          "isNewParticipant": true, // Mark as new participant
                         };
 
                         setState(() {
                           _groupMembers.add(newParticipant);
+                          _newParticipants.add(newParticipant); // Track for later use
                         });
 
                         Navigator.pop(context);
@@ -1061,7 +1130,8 @@ class _ItemAssignmentState extends State<ItemAssignment>
                         availableGroups: _availableGroups,
                         selectedGroupId: _selectedGroupId,
                         onGroupChanged: _onGroupChanged,
-                        hasExistingAssignments: _hasExistingAssignments()),
+                        hasExistingAssignments: _hasExistingAssignments(),
+                        isLoadingGroups: _isLoading),
 
                     SizedBox(height: 3.h),
 

@@ -2,421 +2,481 @@ import 'group.dart';
 import 'group_member.dart';
 
 class MockGroupData {
-  // TODO: Replace with actual backend API calls when backend integration is implemented
-  // 
-  // Expected backend API structure based on existing API patterns:
-  // 
-  // GET /api/groups
-  // Response: {
-  //   "groups": [
-  //     {
-  //       "id": "1",
-  //       "name": "Weekend Getaway",
-  //       "members": [
-  //         {
-  //           "id": "1",
-  //           "name": "John Doe",
-  //           "email": "john@example.com",
-  //           "avatar": "https://...",
-  //           "is_current_user": true,
-  //           "joined_at": "2024-01-01T00:00:00.000Z"
-  //         }
-  //       ],
-  //       "last_used": "2024-07-25T10:00:00.000Z",
-  //       "created_at": "2024-07-20T00:00:00.000Z",
-  //       "updated_at": "2024-07-25T10:00:00.000Z"
-  //     }
-  //   ],
-  //   "count": 6,
-  //   "message": "Groups retrieved successfully"
-  // }
-  //
-  // GET /api/groups/:id
-  // Response: {
-  //   "group": { /* group object */ },
-  //   "message": "Group retrieved successfully"
-  // }
-  //
-  // POST /api/groups
-  // Request: { "name": "New Group", "member_ids": ["1", "2"] }
-  // Response: { "group": { /* created group */ }, "message": "Group created successfully" }
-  //
-  // PUT /api/groups/:id
-  // Request: { "name": "Updated Name" }
-  // Response: { "group": { /* updated group */ }, "message": "Group updated successfully" }
-  //
-  // DELETE /api/groups/:id
-  // Response: { "message": "Group deleted successfully" }
-  //
-  // POST /api/groups/:id/members
-  // Request: { "user_id": "3", "name": "Jane Doe", "email": "jane@example.com" }
-  // Response: { "member": { /* added member */ }, "message": "Member added successfully" }
-  //
-  // DELETE /api/groups/:id/members/:memberId
-  // Response: { "message": "Member removed successfully" }
-  //
-  // PATCH /api/groups/:id/last-used
-  // Response: { "message": "Last used timestamp updated" }
-  
-  // This mock data simulates the expected backend response format for groups
-  // Data format matches the Group and GroupMember models for seamless backend integration
-  // All timestamps use ISO 8601 format as expected by the backend
-  // Group IDs and member IDs are strings to match typical backend UUID format
-  
   static List<Group> getMockGroups() {
-    final now = DateTime.now();
-    
     return [
-      // Most recently used group - Weekend Trip
+      // Roommates Group
       Group(
-        id: '1',
-        name: 'Weekend Getaway 🏖️',
+        id: 1,
+        name: 'Roommates',
+        currency: 'USD',
+        description: 'Apartment expenses with roommates',
+        createdBy: 1,
         members: [
           GroupMember(
-            id: '1',
-            name: 'You',
+            id: 1,
+            groupId: 1,
+            userId: 1,
+            nickname: 'You',
             email: 'you@example.com',
-            avatar: 'https://ui-avatars.com/api/?name=You&background=4F46E5&color=fff',
-            isCurrentUser: true,
-            joinedAt: now.subtract(const Duration(days: 3)),
+            role: 'admin',
+            isRegisteredUser: true,
+            createdAt: DateTime.now().subtract(Duration(days: 30)),
+            updatedAt: DateTime.now(),
           ),
           GroupMember(
-            id: '2',
-            name: 'Sarah Johnson',
-            email: 'sarah.johnson@example.com',
-            avatar: 'https://ui-avatars.com/api/?name=Sarah+Johnson&background=059669&color=fff',
-            isCurrentUser: false,
-            joinedAt: now.subtract(const Duration(days: 2)),
+            id: 2,
+            groupId: 1,
+            userId: 2,
+            nickname: 'Sarah Johnson',
+            email: 'sarah@example.com',
+            role: 'member',
+            isRegisteredUser: true,
+            createdAt: DateTime.now().subtract(Duration(days: 29)),
+            updatedAt: DateTime.now(),
           ),
           GroupMember(
-            id: '3',
-            name: 'Mike Chen',
-            email: 'mike.chen@example.com',
-            avatar: 'https://ui-avatars.com/api/?name=Mike+Chen&background=DC2626&color=fff',
-            isCurrentUser: false,
-            joinedAt: now.subtract(const Duration(days: 1)),
+            id: 3,
+            groupId: 1,
+            userId: 3,
+            nickname: 'Mike Chen',
+            email: 'mike@example.com',
+            role: 'member',
+            isRegisteredUser: true,
+            createdAt: DateTime.now().subtract(Duration(days: 28)),
+            updatedAt: DateTime.now(),
           ),
           GroupMember(
-            id: '10',
-            name: 'Jessica Taylor',
-            email: 'jessica.taylor@example.com',
-            avatar: 'https://ui-avatars.com/api/?name=Jessica+Taylor&background=7C3AED&color=fff',
-            isCurrentUser: false,
-            joinedAt: now.subtract(const Duration(hours: 12)),
+            id: 4,
+            groupId: 1,
+            userId: 4,
+            nickname: 'Jessica Taylor',
+            email: 'jessica@example.com',
+            role: 'member',
+            isRegisteredUser: true,
+            createdAt: DateTime.now().subtract(Duration(days: 27)),
+            updatedAt: DateTime.now(),
           ),
         ],
-        lastUsed: now.subtract(const Duration(hours: 2)),
-        createdAt: now.subtract(const Duration(days: 3)),
-        updatedAt: now.subtract(const Duration(hours: 2)),
+        lastUsed: DateTime.now(),
+        createdAt: DateTime.now().subtract(Duration(days: 30)),
+        updatedAt: DateTime.now(),
       ),
-      
-      // Second most recent - Office Lunch
+
+      // Work Team Group
       Group(
-        id: '2',
-        name: 'Office Lunch Squad 🍕',
+        id: 2,
+        name: 'Work Team',
+        currency: 'USD',
+        description: 'Team lunch and coffee expenses',
+        createdBy: 1,
         members: [
           GroupMember(
-            id: '101',
-            name: 'You',
+            id: 5,
+            groupId: 2,
+            userId: 1,
+            nickname: 'You',
             email: 'you@example.com',
-            avatar: 'https://ui-avatars.com/api/?name=You&background=4F46E5&color=fff',
-            isCurrentUser: true,
-            joinedAt: now.subtract(const Duration(days: 7)),
+            role: 'admin',
+            isRegisteredUser: true,
+            createdAt: DateTime.now().subtract(Duration(days: 20)),
+            updatedAt: DateTime.now(),
           ),
           GroupMember(
-            id: '4',
-            name: 'Emma Wilson',
-            email: 'emma.wilson@example.com',
-            avatar: 'https://ui-avatars.com/api/?name=Emma+Wilson&background=EA580C&color=fff',
-            isCurrentUser: false,
-            joinedAt: now.subtract(const Duration(days: 6)),
+            id: 6,
+            groupId: 2,
+            userId: 5,
+            nickname: 'Emma Wilson',
+            email: 'emma@example.com',
+            role: 'member',
+            isRegisteredUser: true,
+            createdAt: DateTime.now().subtract(Duration(days: 19)),
+            updatedAt: DateTime.now(),
           ),
           GroupMember(
-            id: '5',
-            name: 'Alex Rodriguez',
-            email: 'alex.rodriguez@example.com',
-            avatar: 'https://ui-avatars.com/api/?name=Alex+Rodriguez&background=0891B2&color=fff',
-            isCurrentUser: false,
-            joinedAt: now.subtract(const Duration(days: 5)),
+            id: 7,
+            groupId: 2,
+            userId: 6,
+            nickname: 'Alex Rodriguez',
+            email: 'alex@example.com',
+            role: 'member',
+            isRegisteredUser: true,
+            createdAt: DateTime.now().subtract(Duration(days: 18)),
+            updatedAt: DateTime.now(),
           ),
           GroupMember(
-            id: '6',
-            name: 'Lisa Park',
-            email: 'lisa.park@example.com',
-            avatar: 'https://ui-avatars.com/api/?name=Lisa+Park&background=BE185D&color=fff',
-            isCurrentUser: false,
-            joinedAt: now.subtract(const Duration(days: 4)),
+            id: 8,
+            groupId: 2,
+            userId: 7,
+            nickname: 'Lisa Park',
+            email: 'lisa@example.com',
+            role: 'member',
+            isRegisteredUser: true,
+            createdAt: DateTime.now().subtract(Duration(days: 17)),
+            updatedAt: DateTime.now(),
           ),
           GroupMember(
-            id: '11',
-            name: 'David Kim',
-            email: 'david.kim@example.com',
-            avatar: 'https://ui-avatars.com/api/?name=David+Kim&background=16A34A&color=fff',
-            isCurrentUser: false,
-            joinedAt: now.subtract(const Duration(days: 3)),
+            id: 9,
+            groupId: 2,
+            userId: 8,
+            nickname: 'David Kim',
+            email: 'david@example.com',
+            role: 'member',
+            isRegisteredUser: true,
+            createdAt: DateTime.now().subtract(Duration(days: 16)),
+            updatedAt: DateTime.now(),
           ),
         ],
-        lastUsed: now.subtract(const Duration(days: 1)),
-        createdAt: now.subtract(const Duration(days: 7)),
-        updatedAt: now.subtract(const Duration(days: 1)),
+        lastUsed: DateTime.now().subtract(Duration(days: 1)),
+        createdAt: DateTime.now().subtract(Duration(days: 20)),
+        updatedAt: DateTime.now(),
       ),
-      
-      // Third - Family Dinner
+
+      // Family Group
       Group(
-        id: '3',
-        name: 'Family Dinner 👨‍👩‍👧‍👦',
+        id: 3,
+        name: 'Family',
+        currency: 'USD',
+        description: 'Family expenses and groceries',
+        createdBy: 1,
         members: [
           GroupMember(
-            id: '201',
-            name: 'You',
+            id: 10,
+            groupId: 3,
+            userId: 1,
+            nickname: 'You',
             email: 'you@example.com',
-            avatar: 'https://ui-avatars.com/api/?name=You&background=4F46E5&color=fff',
-            isCurrentUser: true,
-            joinedAt: now.subtract(const Duration(days: 14)),
+            role: 'admin',
+            isRegisteredUser: true,
+            createdAt: DateTime.now().subtract(Duration(days: 60)),
+            updatedAt: DateTime.now(),
           ),
           GroupMember(
-            id: '7',
-            name: 'Mom',
-            email: 'mom@family.com',
-            avatar: 'https://ui-avatars.com/api/?name=Mom&background=DB2777&color=fff',
-            isCurrentUser: false,
-            joinedAt: now.subtract(const Duration(days: 14)),
+            id: 11,
+            groupId: 3,
+            userId: null,
+            nickname: 'Mom',
+            email: 'mom@example.com',
+            role: 'member',
+            isRegisteredUser: false,
+            createdAt: DateTime.now().subtract(Duration(days: 59)),
+            updatedAt: DateTime.now(),
           ),
           GroupMember(
-            id: '8',
-            name: 'Dad',
-            email: 'dad@family.com',
-            avatar: 'https://ui-avatars.com/api/?name=Dad&background=1F2937&color=fff',
-            isCurrentUser: false,
-            joinedAt: now.subtract(const Duration(days: 14)),
+            id: 12,
+            groupId: 3,
+            userId: null,
+            nickname: 'Dad',
+            email: 'dad@example.com',
+            role: 'member',
+            isRegisteredUser: false,
+            createdAt: DateTime.now().subtract(Duration(days: 58)),
+            updatedAt: DateTime.now(),
           ),
           GroupMember(
-            id: '9',
-            name: 'Sister',
-            email: 'sister@family.com',
-            avatar: 'https://ui-avatars.com/api/?name=Sister&background=F59E0B&color=fff',
-            isCurrentUser: false,
-            joinedAt: now.subtract(const Duration(days: 13)),
+            id: 13,
+            groupId: 3,
+            userId: null,
+            nickname: 'Sister',
+            email: 'sister@example.com',
+            role: 'member',
+            isRegisteredUser: false,
+            createdAt: DateTime.now().subtract(Duration(days: 57)),
+            updatedAt: DateTime.now(),
           ),
         ],
-        lastUsed: now.subtract(const Duration(days: 5)),
-        createdAt: now.subtract(const Duration(days: 14)),
-        updatedAt: now.subtract(const Duration(days: 5)),
+        lastUsed: DateTime.now().subtract(Duration(days: 3)),
+        createdAt: DateTime.now().subtract(Duration(days: 60)),
+        updatedAt: DateTime.now(),
       ),
-      
-      // Fourth - Study Group
+
+      // Trip Group
       Group(
-        id: '4',
-        name: 'Study Group 📚',
+        id: 4,
+        name: 'Weekend Trip',
+        currency: 'USD',
+        description: 'Weekend getaway expenses',
+        createdBy: 1,
         members: [
           GroupMember(
-            id: '301',
-            name: 'You',
+            id: 14,
+            groupId: 4,
+            userId: 1,
+            nickname: 'You',
             email: 'you@example.com',
-            avatar: 'https://ui-avatars.com/api/?name=You&background=4F46E5&color=fff',
-            isCurrentUser: true,
-            joinedAt: now.subtract(const Duration(days: 21)),
+            role: 'admin',
+            isRegisteredUser: true,
+            createdAt: DateTime.now().subtract(Duration(days: 10)),
+            updatedAt: DateTime.now(),
           ),
           GroupMember(
-            id: '12',
-            name: 'Rachel Green',
-            email: 'rachel.green@university.edu',
-            avatar: 'https://ui-avatars.com/api/?name=Rachel+Green&background=10B981&color=fff',
-            isCurrentUser: false,
-            joinedAt: now.subtract(const Duration(days: 20)),
+            id: 15,
+            groupId: 4,
+            userId: 9,
+            nickname: 'Rachel Green',
+            email: 'rachel@example.com',
+            role: 'member',
+            isRegisteredUser: true,
+            createdAt: DateTime.now().subtract(Duration(days: 9)),
+            updatedAt: DateTime.now(),
           ),
           GroupMember(
-            id: '13',
-            name: 'Tom Anderson',
-            email: 'tom.anderson@university.edu',
-            avatar: 'https://ui-avatars.com/api/?name=Tom+Anderson&background=8B5CF6&color=fff',
-            isCurrentUser: false,
-            joinedAt: now.subtract(const Duration(days: 19)),
+            id: 16,
+            groupId: 4,
+            userId: 10,
+            nickname: 'Tom Anderson',
+            email: 'tom@example.com',
+            role: 'member',
+            isRegisteredUser: true,
+            createdAt: DateTime.now().subtract(Duration(days: 8)),
+            updatedAt: DateTime.now(),
           ),
         ],
-        lastUsed: now.subtract(const Duration(days: 8)),
-        createdAt: now.subtract(const Duration(days: 21)),
-        updatedAt: now.subtract(const Duration(days: 8)),
+        lastUsed: DateTime.now().subtract(Duration(days: 5)),
+        createdAt: DateTime.now().subtract(Duration(days: 10)),
+        updatedAt: DateTime.now(),
       ),
-      
-      // Fifth - Roommates
+
+      // Study Group
       Group(
-        id: '5',
-        name: 'Roommates 🏠',
+        id: 5,
+        name: 'Study Group',
+        currency: 'USD',
+        description: 'Study materials and coffee',
+        createdBy: 1,
         members: [
           GroupMember(
-            id: '401',
-            name: 'You',
+            id: 17,
+            groupId: 5,
+            userId: 1,
+            nickname: 'You',
             email: 'you@example.com',
-            avatar: 'https://ui-avatars.com/api/?name=You&background=4F46E5&color=fff',
-            isCurrentUser: true,
-            joinedAt: now.subtract(const Duration(days: 30)),
+            role: 'admin',
+            isRegisteredUser: true,
+            createdAt: DateTime.now().subtract(Duration(days: 15)),
+            updatedAt: DateTime.now(),
           ),
           GroupMember(
-            id: '14',
-            name: 'Chris Martinez',
-            email: 'chris.martinez@example.com',
-            avatar: 'https://ui-avatars.com/api/?name=Chris+Martinez&background=EF4444&color=fff',
-            isCurrentUser: false,
-            joinedAt: now.subtract(const Duration(days: 30)),
+            id: 18,
+            groupId: 5,
+            userId: 11,
+            nickname: 'Chris Martinez',
+            email: 'chris@example.com',
+            role: 'member',
+            isRegisteredUser: true,
+            createdAt: DateTime.now().subtract(Duration(days: 14)),
+            updatedAt: DateTime.now(),
           ),
           GroupMember(
-            id: '15',
-            name: 'Amy Foster',
-            email: 'amy.foster@example.com',
-            avatar: 'https://ui-avatars.com/api/?name=Amy+Foster&background=06B6D4&color=fff',
-            isCurrentUser: false,
-            joinedAt: now.subtract(const Duration(days: 29)),
+            id: 19,
+            groupId: 5,
+            userId: 12,
+            nickname: 'Amy Foster',
+            email: 'amy@example.com',
+            role: 'member',
+            isRegisteredUser: true,
+            createdAt: DateTime.now().subtract(Duration(days: 13)),
+            updatedAt: DateTime.now(),
           ),
         ],
-        lastUsed: now.subtract(const Duration(days: 12)),
-        createdAt: now.subtract(const Duration(days: 30)),
-        updatedAt: now.subtract(const Duration(days: 12)),
+        lastUsed: DateTime.now().subtract(Duration(days: 2)),
+        createdAt: DateTime.now().subtract(Duration(days: 15)),
+        updatedAt: DateTime.now(),
       ),
-      
-      // Sixth - Book Club
+
+      // Gym Group
       Group(
-        id: '6',
-        name: 'Book Club 📖',
+        id: 6,
+        name: 'Gym Buddies',
+        currency: 'USD',
+        description: 'Gym membership and supplements',
+        createdBy: 1,
         members: [
           GroupMember(
-            id: '501',
-            name: 'You',
+            id: 20,
+            groupId: 6,
+            userId: 1,
+            nickname: 'You',
             email: 'you@example.com',
-            avatar: 'https://ui-avatars.com/api/?name=You&background=4F46E5&color=fff',
-            isCurrentUser: true,
-            joinedAt: now.subtract(const Duration(days: 45)),
+            role: 'admin',
+            isRegisteredUser: true,
+            createdAt: DateTime.now().subtract(Duration(days: 45)),
+            updatedAt: DateTime.now(),
           ),
           GroupMember(
-            id: '16',
-            name: 'Helen Davis',
-            email: 'helen.davis@example.com',
-            avatar: 'https://ui-avatars.com/api/?name=Helen+Davis&background=84CC16&color=fff',
-            isCurrentUser: false,
-            joinedAt: now.subtract(const Duration(days: 44)),
+            id: 21,
+            groupId: 6,
+            userId: 13,
+            nickname: 'Helen Davis',
+            email: 'helen@example.com',
+            role: 'member',
+            isRegisteredUser: true,
+            createdAt: DateTime.now().subtract(Duration(days: 44)),
+            updatedAt: DateTime.now(),
           ),
           GroupMember(
-            id: '17',
-            name: 'Robert Brown',
-            email: 'robert.brown@example.com',
-            avatar: 'https://ui-avatars.com/api/?name=Robert+Brown&background=A855F7&color=fff',
-            isCurrentUser: false,
-            joinedAt: now.subtract(const Duration(days: 43)),
+            id: 22,
+            groupId: 6,
+            userId: 14,
+            nickname: 'Robert Brown',
+            email: 'robert@example.com',
+            role: 'member',
+            isRegisteredUser: true,
+            createdAt: DateTime.now().subtract(Duration(days: 43)),
+            updatedAt: DateTime.now(),
           ),
           GroupMember(
-            id: '18',
-            name: 'Maria Garcia',
-            email: 'maria.garcia@example.com',
-            avatar: 'https://ui-avatars.com/api/?name=Maria+Garcia&background=F97316&color=fff',
-            isCurrentUser: false,
-            joinedAt: now.subtract(const Duration(days: 42)),
+            id: 23,
+            groupId: 6,
+            userId: 15,
+            nickname: 'Maria Garcia',
+            email: 'maria@example.com',
+            role: 'member',
+            isRegisteredUser: true,
+            createdAt: DateTime.now().subtract(Duration(days: 42)),
+            updatedAt: DateTime.now(),
           ),
           GroupMember(
-            id: '19',
-            name: 'Kevin Lee',
-            email: 'kevin.lee@example.com',
-            avatar: 'https://ui-avatars.com/api/?name=Kevin+Lee&background=14B8A6&color=fff',
-            isCurrentUser: false,
-            joinedAt: now.subtract(const Duration(days: 41)),
+            id: 24,
+            groupId: 6,
+            userId: 16,
+            nickname: 'Kevin Lee',
+            email: 'kevin@example.com',
+            role: 'member',
+            isRegisteredUser: true,
+            createdAt: DateTime.now().subtract(Duration(days: 41)),
+            updatedAt: DateTime.now(),
           ),
         ],
-        lastUsed: now.subtract(const Duration(days: 20)),
-        createdAt: now.subtract(const Duration(days: 45)),
-        updatedAt: now.subtract(const Duration(days: 20)),
+        lastUsed: DateTime.now().subtract(Duration(days: 1)),
+        createdAt: DateTime.now().subtract(Duration(days: 45)),
+        updatedAt: DateTime.now(),
       ),
-      
-      // Seventh - Gym Buddies
+
+      // Book Club
       Group(
-        id: '7',
-        name: 'Gym Buddies 💪',
+        id: 7,
+        name: 'Book Club',
+        currency: 'USD',
+        description: 'Book purchases and coffee meetings',
+        createdBy: 1,
         members: [
           GroupMember(
-            id: '601',
-            name: 'You',
+            id: 25,
+            groupId: 7,
+            userId: 1,
+            nickname: 'You',
             email: 'you@example.com',
-            avatar: 'https://ui-avatars.com/api/?name=You&background=4F46E5&color=fff',
-            isCurrentUser: true,
-            joinedAt: now.subtract(const Duration(days: 60)),
+            role: 'admin',
+            isRegisteredUser: true,
+            createdAt: DateTime.now().subtract(Duration(days: 25)),
+            updatedAt: DateTime.now(),
           ),
           GroupMember(
-            id: '20',
-            name: 'Marcus Johnson',
-            email: 'marcus.johnson@example.com',
-            avatar: 'https://ui-avatars.com/api/?name=Marcus+Johnson&background=DC2626&color=fff',
-            isCurrentUser: false,
-            joinedAt: now.subtract(const Duration(days: 58)),
+            id: 26,
+            groupId: 7,
+            userId: 17,
+            nickname: 'Marcus Johnson',
+            email: 'marcus@example.com',
+            role: 'member',
+            isRegisteredUser: true,
+            createdAt: DateTime.now().subtract(Duration(days: 24)),
+            updatedAt: DateTime.now(),
           ),
           GroupMember(
-            id: '21',
-            name: 'Sophia Williams',
-            email: 'sophia.williams@example.com',
-            avatar: 'https://ui-avatars.com/api/?name=Sophia+Williams&background=059669&color=fff',
-            isCurrentUser: false,
-            joinedAt: now.subtract(const Duration(days: 55)),
+            id: 27,
+            groupId: 7,
+            userId: 18,
+            nickname: 'Sophia Williams',
+            email: 'sophia@example.com',
+            role: 'member',
+            isRegisteredUser: true,
+            createdAt: DateTime.now().subtract(Duration(days: 23)),
+            updatedAt: DateTime.now(),
           ),
         ],
-        lastUsed: now.subtract(const Duration(days: 25)),
-        createdAt: now.subtract(const Duration(days: 60)),
-        updatedAt: now.subtract(const Duration(days: 25)),
+        lastUsed: DateTime.now().subtract(Duration(days: 4)),
+        createdAt: DateTime.now().subtract(Duration(days: 25)),
+        updatedAt: DateTime.now(),
       ),
-      
-      // Eighth - Travel Squad (least recent)
+
+      // Cooking Club
       Group(
-        id: '8',
-        name: 'Travel Squad ✈️',
+        id: 8,
+        name: 'Cooking Club',
+        currency: 'USD',
+        description: 'Ingredients and cooking supplies',
+        createdBy: 1,
         members: [
           GroupMember(
-            id: '701',
-            name: 'You',
+            id: 28,
+            groupId: 8,
+            userId: 1,
+            nickname: 'You',
             email: 'you@example.com',
-            avatar: 'https://ui-avatars.com/api/?name=You&background=4F46E5&color=fff',
-            isCurrentUser: true,
-            joinedAt: now.subtract(const Duration(days: 90)),
+            role: 'admin',
+            isRegisteredUser: true,
+            createdAt: DateTime.now().subtract(Duration(days: 35)),
+            updatedAt: DateTime.now(),
           ),
           GroupMember(
-            id: '22',
-            name: 'Oliver Thompson',
-            email: 'oliver.thompson@example.com',
-            avatar: 'https://ui-avatars.com/api/?name=Oliver+Thompson&background=7C3AED&color=fff',
-            isCurrentUser: false,
-            joinedAt: now.subtract(const Duration(days: 88)),
+            id: 29,
+            groupId: 8,
+            userId: 19,
+            nickname: 'Oliver Thompson',
+            email: 'oliver@example.com',
+            role: 'member',
+            isRegisteredUser: true,
+            createdAt: DateTime.now().subtract(Duration(days: 34)),
+            updatedAt: DateTime.now(),
           ),
           GroupMember(
-            id: '23',
-            name: 'Isabella Martinez',
-            email: 'isabella.martinez@example.com',
-            avatar: 'https://ui-avatars.com/api/?name=Isabella+Martinez&background=EA580C&color=fff',
-            isCurrentUser: false,
-            joinedAt: now.subtract(const Duration(days: 85)),
+            id: 30,
+            groupId: 8,
+            userId: 20,
+            nickname: 'Isabella Martinez',
+            email: 'isabella@example.com',
+            role: 'member',
+            isRegisteredUser: true,
+            createdAt: DateTime.now().subtract(Duration(days: 33)),
+            updatedAt: DateTime.now(),
           ),
           GroupMember(
-            id: '24',
-            name: 'Ethan Wilson',
-            email: 'ethan.wilson@example.com',
-            avatar: 'https://ui-avatars.com/api/?name=Ethan+Wilson&background=0891B2&color=fff',
-            isCurrentUser: false,
-            joinedAt: now.subtract(const Duration(days: 82)),
+            id: 31,
+            groupId: 8,
+            userId: 21,
+            nickname: 'Ethan Wilson',
+            email: 'ethan@example.com',
+            role: 'member',
+            isRegisteredUser: true,
+            createdAt: DateTime.now().subtract(Duration(days: 32)),
+            updatedAt: DateTime.now(),
           ),
           GroupMember(
-            id: '25',
-            name: 'Ava Davis',
-            email: 'ava.davis@example.com',
-            avatar: 'https://ui-avatars.com/api/?name=Ava+Davis&background=BE185D&color=fff',
-            isCurrentUser: false,
-            joinedAt: now.subtract(const Duration(days: 80)),
+            id: 32,
+            groupId: 8,
+            userId: 22,
+            nickname: 'Ava Davis',
+            email: 'ava@example.com',
+            role: 'member',
+            isRegisteredUser: true,
+            createdAt: DateTime.now().subtract(Duration(days: 31)),
+            updatedAt: DateTime.now(),
           ),
           GroupMember(
-            id: '26',
-            name: 'Liam Anderson',
-            email: 'liam.anderson@example.com',
-            avatar: 'https://ui-avatars.com/api/?name=Liam+Anderson&background=16A34A&color=fff',
-            isCurrentUser: false,
-            joinedAt: now.subtract(const Duration(days: 78)),
+            id: 33,
+            groupId: 8,
+            userId: 23,
+            nickname: 'Liam Anderson',
+            email: 'liam@example.com',
+            role: 'member',
+            isRegisteredUser: true,
+            createdAt: DateTime.now().subtract(Duration(days: 30)),
+            updatedAt: DateTime.now(),
           ),
         ],
-        lastUsed: now.subtract(const Duration(days: 35)),
-        createdAt: now.subtract(const Duration(days: 90)),
-        updatedAt: now.subtract(const Duration(days: 35)),
+        lastUsed: DateTime.now().subtract(Duration(days: 6)),
+        createdAt: DateTime.now().subtract(Duration(days: 35)),
+        updatedAt: DateTime.now(),
       ),
     ];
   }
@@ -431,7 +491,9 @@ class MockGroupData {
   // Helper method to get a specific group by ID
   static Group? getGroupById(String groupId) {
     try {
-      return getMockGroups().firstWhere((group) => group.id == groupId);
+      final id = int.tryParse(groupId);
+      if (id == null) return null;
+      return getMockGroups().firstWhere((group) => group.id == id);
     } catch (e) {
       return null;
     }
@@ -557,8 +619,8 @@ class MockGroupData {
   }
 
   // Simulate backend response for group update
-  static Map<String, dynamic> simulateUpdateGroupApiResponse(String groupId, String groupName) {
-    final group = getGroupById(groupId);
+  static Map<String, dynamic> simulateUpdateGroupApiResponse(int groupId, String groupName) {
+    final group = getGroupById(groupId.toString());
     if (group == null) {
       return {
         'error': 'Group not found',
@@ -575,8 +637,8 @@ class MockGroupData {
   }
 
   // Simulate backend response for group deletion
-  static Map<String, dynamic> simulateDeleteGroupApiResponse(String groupId) {
-    final group = getGroupById(groupId);
+  static Map<String, dynamic> simulateDeleteGroupApiResponse(int groupId) {
+    final group = getGroupById(groupId.toString());
     if (group == null) {
       return {
         'error': 'Group not found',

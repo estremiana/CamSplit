@@ -84,135 +84,137 @@ class _EnhancedEmptyStateWidgetState extends State<EnhancedEmptyStateWidget>
       builder: (context, child) {
         return FadeTransition(
           opacity: _fadeAnimation,
-          child: Center(
-            child: Padding(
-              padding: EdgeInsets.all(8.w),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Animated icon
-                  Transform.scale(
-                    scale: _bounceAnimation.value,
-                    child: Container(
-                      width: 24.w,
-                      height: 24.w,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            AppTheme.lightTheme.colorScheme.primary,
-                            AppTheme.lightTheme.colorScheme.primary
-                                .withValues(alpha: 0.7),
+          child: SingleChildScrollView(
+            child: Center(
+              child: Padding(
+                padding: EdgeInsets.all(8.w),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Animated icon
+                    Transform.scale(
+                      scale: _bounceAnimation.value,
+                      child: Container(
+                        width: 24.w,
+                        height: 24.w,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              AppTheme.lightTheme.colorScheme.primary,
+                              AppTheme.lightTheme.colorScheme.primary
+                                  .withValues(alpha: 0.7),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.lightTheme.colorScheme.primary
+                                  .withValues(alpha: 0.3),
+                              blurRadius: 20,
+                              offset: const Offset(0, 8),
+                            ),
                           ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
                         ),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.lightTheme.colorScheme.primary
-                                .withValues(alpha: 0.3),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
+                        child: Icon(
+                          Icons.receipt_long,
+                          color: AppTheme.lightTheme.colorScheme.onPrimary,
+                          size: 12.w,
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(height: 4.h),
+
+                    // Title
+                    Text(
+                      widget.title,
+                      style:
+                          AppTheme.lightTheme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.lightTheme.colorScheme.onSurface,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+
+                    SizedBox(height: 2.h),
+
+                    // Description
+                    Text(
+                      widget.description,
+                      style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                        color: AppTheme.lightTheme.colorScheme.secondary,
+                        height: 1.5,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+
+                    SizedBox(height: 4.h),
+
+                    // Helpful steps
+                    Container(
+                      padding: EdgeInsets.all(4.w),
+                      decoration: BoxDecoration(
+                        color: AppTheme.lightTheme.colorScheme.surfaceContainer,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppTheme.lightTheme.dividerColor,
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Next Steps:',
+                            style: AppTheme.lightTheme.textTheme.titleSmall
+                                ?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          SizedBox(height: 2.h),
+                          _buildStep(
+                            number: '1',
+                            text: 'Take a photo of your receipt',
+                            icon: Icons.camera_alt,
+                          ),
+                          SizedBox(height: 1.h),
+                          _buildStep(
+                            number: '2',
+                            text: 'Review and edit detected items',
+                            icon: Icons.edit,
+                          ),
+                          SizedBox(height: 1.h),
+                          _buildStep(
+                            number: '3',
+                            text: 'Assign items to group members',
+                            icon: Icons.group,
                           ),
                         ],
                       ),
-                      child: Icon(
-                        Icons.receipt_long,
-                        color: AppTheme.lightTheme.colorScheme.onPrimary,
-                        size: 12.w,
-                      ),
                     ),
-                  ),
 
-                  SizedBox(height: 4.h),
-
-                  // Title
-                  Text(
-                    widget.title,
-                    style:
-                        AppTheme.lightTheme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.lightTheme.colorScheme.onSurface,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-
-                  SizedBox(height: 2.h),
-
-                  // Description
-                  Text(
-                    widget.description,
-                    style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
-                      color: AppTheme.lightTheme.colorScheme.secondary,
-                      height: 1.5,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-
-                  SizedBox(height: 4.h),
-
-                  // Helpful steps
-                  Container(
-                    padding: EdgeInsets.all(4.w),
-                    decoration: BoxDecoration(
-                      color: AppTheme.lightTheme.colorScheme.surfaceContainer,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: AppTheme.lightTheme.dividerColor,
-                        width: 1,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Next Steps:',
-                          style: AppTheme.lightTheme.textTheme.titleSmall
-                              ?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        SizedBox(height: 2.h),
-                        _buildStep(
-                          number: '1',
-                          text: 'Take a photo of your receipt',
-                          icon: Icons.camera_alt,
-                        ),
-                        SizedBox(height: 1.h),
-                        _buildStep(
-                          number: '2',
-                          text: 'Review and edit detected items',
-                          icon: Icons.edit,
-                        ),
-                        SizedBox(height: 1.h),
-                        _buildStep(
-                          number: '3',
-                          text: 'Assign items to group members',
-                          icon: Icons.group,
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  if (widget.actionText != null &&
-                      widget.onActionPressed != null) ...[
-                    SizedBox(height: 4.h),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: widget.onActionPressed,
-                        icon: const Icon(Icons.camera_alt),
-                        label: Text(widget.actionText!),
-                        style: ElevatedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(vertical: 2.h),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                    if (widget.actionText != null &&
+                        widget.onActionPressed != null) ...[
+                      SizedBox(height: 4.h),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: widget.onActionPressed,
+                          icon: const Icon(Icons.camera_alt),
+                          label: Text(widget.actionText!),
+                          style: ElevatedButton.styleFrom(
+                            padding: EdgeInsets.symmetric(vertical: 2.h),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                         ),
                       ),
-                    ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ),

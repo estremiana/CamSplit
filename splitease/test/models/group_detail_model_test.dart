@@ -121,7 +121,6 @@ void main() {
   group('GroupDetailModel Model Tests', () {
     late GroupMember testMember;
     late GroupExpense testExpense;
-    late DebtRelationship testDebt;
 
     setUp(() {
       testMember = GroupMember(
@@ -144,16 +143,7 @@ void main() {
         createdAt: DateTime.now().subtract(const Duration(hours: 1)),
       );
 
-      testDebt = DebtRelationship(
-        debtorId: 2,
-        debtorName: 'Debtor',
-        creditorId: 1,
-        creditorName: 'Creditor',
-        amount: 15.00,
-        currency: 'EUR',
-        createdAt: DateTime.now().subtract(const Duration(hours: 1)),
-        updatedAt: DateTime.now().subtract(const Duration(minutes: 30)),
-      );
+
     });
 
     test('should create GroupDetailModel from JSON correctly', () {
@@ -184,18 +174,7 @@ void main() {
             'created_at': '2024-01-15T12:05:00.000Z',
           }
         ],
-        'debts': [
-          {
-            'debtor_id': 2,
-            'debtor_name': 'Debtor',
-            'creditor_id': 1,
-            'creditor_name': 'Creditor',
-            'amount': 15.00,
-            'currency': 'EUR',
-            'created_at': '2024-01-15T10:00:00.000Z',
-            'updated_at': '2024-01-15T10:30:00.000Z',
-          }
-        ],
+
         'user_balance': 15.00,
         'currency': 'EUR',
         'last_activity': '2024-01-15T15:00:00.000Z',
@@ -213,7 +192,6 @@ void main() {
       expect(groupDetail.imageUrl, 'group.jpg');
       expect(groupDetail.members.length, 1);
       expect(groupDetail.expenses.length, 1);
-      expect(groupDetail.debts.length, 1);
       expect(groupDetail.userBalance, 15.00);
       expect(groupDetail.currency, 'EUR');
       expect(groupDetail.canEdit, true);
@@ -228,7 +206,7 @@ void main() {
         imageUrl: 'group.jpg',
         members: [testMember],
         expenses: [testExpense],
-        debts: [testDebt],
+        settlements: [],
         userBalance: 15.00,
         currency: 'EUR',
         lastActivity: DateTime.parse('2024-01-15T15:00:00.000Z'),
@@ -246,7 +224,7 @@ void main() {
       expect(json['image_url'], 'group.jpg');
       expect(json['members'], isA<List>());
       expect(json['expenses'], isA<List>());
-      expect(json['debts'], isA<List>());
+      expect(json['settlements'], isA<List>());
       expect(json['user_balance'], 15.00);
       expect(json['currency'], 'EUR');
       expect(json['can_edit'], true);
@@ -260,7 +238,7 @@ void main() {
         description: 'Valid description',
         members: [testMember],
         expenses: [testExpense],
-        debts: [testDebt],
+        settlements: [],
         userBalance: 0.00,
         currency: 'EUR',
         lastActivity: DateTime.now().subtract(const Duration(minutes: 30)),
@@ -279,7 +257,7 @@ void main() {
         description: '',
         members: [],
         expenses: [],
-        debts: [],
+        settlements: [],
         userBalance: 0.00,
         currency: '',
         lastActivity: DateTime.now(),
@@ -300,7 +278,7 @@ void main() {
         description: 'Test description',
         members: [testMember],
         expenses: [testExpense],
-        debts: [testDebt],
+        settlements: [],
         userBalance: 15.00,
         currency: 'EUR',
         lastActivity: DateTime.now(),
@@ -313,7 +291,7 @@ void main() {
       expect(groupDetail.memberCount, 1);
       expect(groupDetail.expenseCount, 1);
       expect(groupDetail.hasExpenses, true);
-      expect(groupDetail.hasDebts, true);
+      expect(groupDetail.hasSettlements, false);
       expect(groupDetail.isSettledUp, false);
       expect(groupDetail.currentUser, equals(testMember));
     });
@@ -325,7 +303,7 @@ void main() {
         description: '',
         members: [testMember],
         expenses: [],
-        debts: [],
+        settlements: [],
         userBalance: 25.50,
         currency: 'EUR',
         lastActivity: DateTime.now(),
@@ -341,7 +319,7 @@ void main() {
         description: '',
         members: [testMember],
         expenses: [],
-        debts: [],
+        settlements: [],
         userBalance: -15.75,
         currency: 'EUR',
         lastActivity: DateTime.now(),
@@ -357,7 +335,7 @@ void main() {
         description: '',
         members: [testMember],
         expenses: [],
-        debts: [],
+        settlements: [],
         userBalance: 0.00,
         currency: 'EUR',
         lastActivity: DateTime.now(),
@@ -401,7 +379,7 @@ void main() {
         description: '',
         members: [testMember],
         expenses: [oldExpense, newExpense],
-        debts: [],
+        settlements: [],
         userBalance: 0.00,
         currency: 'EUR',
         lastActivity: DateTime.now(),
@@ -417,24 +395,13 @@ void main() {
     });
 
     test('should check member removal permissions correctly', () {
-      final memberWithDebt = DebtRelationship(
-        debtorId: 2,
-        debtorName: 'Member With Debt',
-        creditorId: 1,
-        creditorName: 'Creditor',
-        amount: 10.00,
-        currency: 'EUR',
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
-
       final groupDetail = GroupDetailModel(
         id: 1,
         name: 'Test',
         description: '',
         members: [testMember],
         expenses: [],
-        debts: [memberWithDebt],
+        settlements: [],
         userBalance: 0.00,
         currency: 'EUR',
         lastActivity: DateTime.now(),
@@ -444,8 +411,8 @@ void main() {
         updatedAt: DateTime.now(),
       );
 
-      expect(groupDetail.canRemoveMember('2'), false); // Has debt
-      expect(groupDetail.canRemoveMember('3'), true); // No debt
+      expect(groupDetail.canRemoveMember('2'), true); // No active settlements
+      expect(groupDetail.canRemoveMember('3'), true); // No active settlements
 
       final noEditPermission = GroupDetailModel(
         id: 1,
@@ -453,7 +420,7 @@ void main() {
         description: '',
         members: [testMember],
         expenses: [],
-        debts: [],
+        settlements: [],
         userBalance: 0.00,
         currency: 'EUR',
         lastActivity: DateTime.now(),
@@ -473,7 +440,7 @@ void main() {
         description: '',
         members: [],
         expenses: [],
-        debts: [],
+        settlements: [],
         userBalance: 0.00,
         currency: 'EUR',
         lastActivity: DateTime.now(),
@@ -505,7 +472,7 @@ void main() {
         description: '',
         members: [],
         expenses: [],
-        debts: [],
+        settlements: [],
         userBalance: 0.00,
         currency: 'EUR',
         lastActivity: DateTime.now(),
