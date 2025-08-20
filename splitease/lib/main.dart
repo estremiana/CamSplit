@@ -139,22 +139,39 @@ class _MyAppState extends State<MyApp> {
 
   void _handleDeepLink(Uri uri) {
     try {
-      // Handle camsplit://join/{inviteCode} links
+      print('Handling deep link: $uri');
+      
+      // Handle camsplit://join/{inviteCode} links (custom scheme)
       if (uri.scheme == 'camsplit' && uri.host == 'join') {
         final inviteCode = uri.pathSegments.last;
         if (inviteCode.isNotEmpty) {
-          // Use the navigator key to access the navigator
-          // Push the invite screen on top of the current screen (like a popup)
-          _navigatorKey.currentState?.push(
-            MaterialPageRoute(
-              builder: (context) => JoinGroupScreen(inviteCode: inviteCode),
-            ),
-          );
+          _navigateToJoinGroup(inviteCode);
+        }
+      }
+      
+      // Handle https://camsplit.onrender.com/join/{inviteCode} links (Universal Links)
+      else if (uri.scheme == 'https' && 
+               uri.host == 'camsplit.onrender.com' && 
+               uri.pathSegments.isNotEmpty && 
+               uri.pathSegments.first == 'join') {
+        final inviteCode = uri.pathSegments.last;
+        if (inviteCode.isNotEmpty) {
+          _navigateToJoinGroup(inviteCode);
         }
       }
     } catch (e) {
       print('Error handling deep link: $e');
     }
+  }
+  
+  void _navigateToJoinGroup(String inviteCode) {
+    // Use the navigator key to access the navigator
+    // Push the invite screen on top of the current screen (like a popup)
+    _navigatorKey.currentState?.push(
+      MaterialPageRoute(
+        builder: (context) => JoinGroupScreen(inviteCode: inviteCode),
+      ),
+    );
   }
 
   @override
