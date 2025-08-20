@@ -18,7 +18,29 @@ const ocrRoutes = require('./routes/ocrRoutes');
 const app = express();
 
 // Middleware
-app.use(cors());
+// CORS configuration
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Allow localhost for development
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      return callback(null, true);
+    }
+    
+    // Allow Render deployment domain
+    if (origin.includes('camsplit.onrender.com')) {
+      return callback(null, true);
+    }
+    
+    // Allow Flutter app (no origin)
+    callback(null, true);
+  },
+  credentials: true
+};
+
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 

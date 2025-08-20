@@ -1096,9 +1096,17 @@ class ApiService {
     
     // Validate token by making a profile API call (which requires authentication)
     try {
-      final response = await _dio.get(ApiConfig.profileEndpoint);
+      // Add timeout to prevent hanging
+      final response = await _dio.get(
+        ApiConfig.profileEndpoint,
+        options: Options(
+          sendTimeout: Duration(seconds: 5),
+          receiveTimeout: Duration(seconds: 5),
+        ),
+      );
       return response.statusCode == 200 && response.data['success'];
     } catch (error) {
+      print('Authentication check failed: $error');
       // Token is invalid or expired - tokens are already cleared by the error interceptor
       return false;
     }

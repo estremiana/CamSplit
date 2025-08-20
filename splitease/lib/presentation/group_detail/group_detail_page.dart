@@ -35,7 +35,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> with RealTimeUpdateMi
   bool _isOptimisticUpdate = false;
   GroupDetailModel? _groupDetail;
   String? _errorMessage;
-  final LoadingOverlay _loadingOverlay = LoadingOverlay();
+  final LoadingOverlayManager _loadingOverlay = LoadingOverlayManager();
   
   // Retry mechanism
   int _retryCount = 0;
@@ -305,10 +305,15 @@ class _GroupDetailPageState extends State<GroupDetailPage> with RealTimeUpdateMi
   }
 
   void _onAddExpense() async {
-    // Show loading overlay during navigation
-    _loadingOverlay.show(context, 'Preparing expense creation...');
+    // Show loading overlay briefly while preparing navigation
+    _loadingOverlay.show(context: context, message: 'Opening expense creation...');
+    
+    // Hide the overlay immediately and navigate
+    await Future.delayed(Duration(milliseconds: 300));
+    _loadingOverlay.hide();
     
     try {
+      // Navigate to expense creation without timeout
       final result = await Navigator.pushNamed(
         context,
         AppRoutes.expenseCreation,
@@ -318,8 +323,6 @@ class _GroupDetailPageState extends State<GroupDetailPage> with RealTimeUpdateMi
         },
       );
       
-      _loadingOverlay.hide();
-      
       // Check if expense was created successfully
       if (result != null && result is Map<String, dynamic>) {
         if (result['success'] == true && result['expense'] != null) {
@@ -328,7 +331,6 @@ class _GroupDetailPageState extends State<GroupDetailPage> with RealTimeUpdateMi
         }
       }
     } catch (e) {
-      _loadingOverlay.hide();
       SnackBarUtils.showError(context, 'Failed to open expense creation: $e');
     }
   }

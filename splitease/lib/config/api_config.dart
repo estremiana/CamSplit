@@ -1,20 +1,27 @@
+import 'device_config.dart';
+
 class ApiConfig {
-  // Development environment
-  static const String devBaseUrl = 'http://10.0.2.2:5000/api';
-  static const String devBackendUrl = 'http://10.0.2.2:5000';
-  
   // Production environment
-  // For ngrok: Replace with your ngrok URL (e.g., 'https://abc123.ngrok.io/api')
-  static const String prodBaseUrl = 'https://your-ngrok-url.ngrok.io/api';
-  static const String prodBackendUrl = 'https://your-ngrok-url.ngrok.io';
+  // Render deployment URL
+  static const String prodBaseUrl = 'https://camsplit.onrender.com/api';
+  static const String prodBackendUrl = 'https://camsplit.onrender.com';
   
   // Current environment (change this to switch between dev/prod)
-  // Set to true when using ngrok or deployed server
-  static const bool isProduction = false;
+  // Set to true when using Render deployment
+  static const bool isProduction = true;
   
-  // Get the appropriate base URL based on environment
-  static String get baseUrl => isProduction ? prodBaseUrl : devBaseUrl;
-  static String get backendUrl => isProduction ? prodBackendUrl : devBackendUrl;
+  // Get the appropriate base URL based on environment and platform
+  static String get baseUrl {
+    if (isProduction) return prodBaseUrl;
+    return DeviceConfig.baseUrl;
+  }
+  
+  static String get backendUrl {
+    if (isProduction) return prodBackendUrl;
+    return DeviceConfig.backendUrl;
+  }
+  
+
   
   // User endpoints
   static const String loginEndpoint = '/users/login';

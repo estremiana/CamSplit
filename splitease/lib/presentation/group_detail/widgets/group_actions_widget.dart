@@ -152,8 +152,8 @@ class GroupActionsWidget extends StatelessWidget {
     Navigator.pop(context);
     
     try {
-      final loadingOverlay = LoadingOverlay();
-      loadingOverlay.show(context, 'Generating invite link...');
+      final loadingOverlay = LoadingOverlayManager();
+      loadingOverlay.show(context: context, message: 'Generating invite link...');
       
       final apiService = ApiService.instance;
       final response = await apiService.generateInviteLink(groupDetail.id.toString());

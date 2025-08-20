@@ -5,14 +5,24 @@ import '../../../core/app_export.dart';
 
 class CameraControlsWidget extends StatelessWidget {
   final bool isCapturing;
+  final bool isFlashOn;
+  final bool canSwitchCamera;
+  final bool hasFlash;
   final VoidCallback onCapture;
   final VoidCallback onGallery;
+  final VoidCallback onFlashToggle;
+  final VoidCallback? onSwitchCamera;
 
   const CameraControlsWidget({
     super.key,
     required this.isCapturing,
+    required this.isFlashOn,
+    required this.canSwitchCamera,
+    this.hasFlash = true,
     required this.onCapture,
     required this.onGallery,
+    required this.onFlashToggle,
+    this.onSwitchCamera,
   });
 
   @override
@@ -28,8 +38,8 @@ class CameraControlsWidget extends StatelessWidget {
           // Capture Button
           _buildCaptureButton(),
 
-          // Placeholder for symmetry
-          SizedBox(width: 16.w),
+          // Flash Toggle or Camera Switch
+          _buildRightButton(),
         ],
       ),
     );
@@ -129,5 +139,78 @@ class CameraControlsWidget extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildRightButton() {
+    if (canSwitchCamera && onSwitchCamera != null) {
+      // Show camera switch button
+      return GestureDetector(
+        onTap: onSwitchCamera,
+        child: Container(
+          width: 16.w,
+          height: 16.w,
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.3),
+              width: 1,
+            ),
+          ),
+          child: Center(
+            child: CustomIconWidget(
+              iconName: 'flip_camera_ios',
+              color: Colors.white.withValues(alpha: 0.8),
+              size: 20,
+            ),
+          ),
+        ),
+      );
+    } else if (hasFlash) {
+      // Show flash toggle button only if device has flash
+      return GestureDetector(
+        onTap: onFlashToggle,
+        child: Container(
+          width: 16.w,
+          height: 16.w,
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.3),
+              width: 1,
+            ),
+          ),
+          child: Center(
+            child: CustomIconWidget(
+              iconName: isFlashOn ? 'flash_on' : 'flash_off',
+              color: isFlashOn ? Colors.yellow : Colors.white.withValues(alpha: 0.8),
+              size: 20,
+            ),
+          ),
+        ),
+      );
+    } else {
+      // Show placeholder for devices without flash
+      return Container(
+        width: 16.w,
+        height: 16.w,
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.1),
+            width: 1,
+          ),
+        ),
+        child: Center(
+          child: CustomIconWidget(
+            iconName: 'flash_off',
+            color: Colors.white.withValues(alpha: 0.3),
+            size: 20,
+          ),
+        ),
+      );
+    }
   }
 }

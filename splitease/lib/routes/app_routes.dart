@@ -11,6 +11,7 @@ import '../presentation/receipt_ocr_review/receipt_ocr_review.dart';
 import '../presentation/settlement_summary/settlement_summary.dart';
 import '../presentation/edit_profile/edit_profile.dart';
 import '../widgets/main_navigation_container.dart';
+import '../models/receipt_mode_data.dart';
 
 class AppRoutes {
   // TODO: Add your routes here
@@ -128,6 +129,54 @@ class AppRoutes {
         final expenseId = args?['expenseId'] as int? ?? 1;
         return MaterialPageRoute(
           builder: (context) => ExpenseDetailPage(expenseId: expenseId),
+          settings: settings,
+        );
+        
+      case expenseCreation:
+        final args = settings.arguments as Map<String, dynamic>?;
+        final mode = args?['mode'] as String? ?? 'manual';
+        final receiptData = args?['receiptData'];
+        return MaterialPageRoute(
+          builder: (context) => ExpenseCreation(
+            mode: mode,
+            receiptData: receiptData != null ? ReceiptModeData.fromJson(receiptData) : null,
+          ),
+          settings: settings,
+        );
+        
+      case itemAssignment:
+        // ItemAssignment doesn't take receiptData or groupId parameters
+        // It gets data from route arguments in initState
+        return MaterialPageRoute(
+          builder: (context) => const ItemAssignment(),
+          settings: settings,
+        );
+        
+      case cameraReceiptCapture:
+        return MaterialPageRoute(
+          builder: (context) => const CameraReceiptCapture(),
+          settings: settings,
+        );
+        
+      case receiptOcrReview:
+        // ReceiptOcrReview doesn't take imagePath parameter
+        // It gets data from route arguments in initState
+        return MaterialPageRoute(
+          builder: (context) => const ReceiptOcrReview(),
+          settings: settings,
+        );
+        
+      case settlementSummary:
+        final args = settings.arguments as Map<String, dynamic>?;
+        final groupId = args?['groupId']?.toString(); // Convert to String
+        return MaterialPageRoute(
+          builder: (context) => SettlementSummary(groupId: groupId),
+          settings: settings,
+        );
+        
+      case editProfile:
+        return MaterialPageRoute(
+          builder: (context) => const EditProfile(),
           settings: settings,
         );
         

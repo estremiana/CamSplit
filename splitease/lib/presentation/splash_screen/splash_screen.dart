@@ -133,9 +133,23 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   void _navigateToNextScreen() async {
-    // Check actual authentication status using API service
+    // Check actual authentication status using API service with timeout
     final apiService = ApiService.instance;
-    final bool isAuthenticated = await apiService.isAuthenticated();
+    bool isAuthenticated = false;
+    
+    try {
+      // Add timeout to prevent hanging
+      isAuthenticated = await apiService.isAuthenticated().timeout(
+        Duration(seconds: 10),
+        onTimeout: () {
+          print('Authentication check timed out, defaulting to login screen');
+          return false;
+        },
+      );
+    } catch (e) {
+      print('Authentication check failed: $e');
+      isAuthenticated = false;
+    }
 
     Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) {

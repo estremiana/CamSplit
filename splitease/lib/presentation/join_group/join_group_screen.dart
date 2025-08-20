@@ -19,7 +19,7 @@ class JoinGroupScreen extends StatefulWidget {
 
 class _JoinGroupScreenState extends State<JoinGroupScreen> {
   final ApiService _apiService = ApiService.instance;
-  final LoadingOverlay _loadingOverlay = LoadingOverlay();
+  final LoadingOverlayManager _loadingOverlay = LoadingOverlayManager();
   
   InviteDetails? _inviteDetails;
   List<AvailableMember> _availableMembers = [];
@@ -73,7 +73,7 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
 
   Future<void> _joinByClaimingMember(AvailableMember member) async {
     try {
-      _loadingOverlay.show(context, 'Joining group...');
+      _loadingOverlay.show(context: context, message: 'Joining group...');
       
       final response = await _apiService.joinByClaimingMember(
         widget.inviteCode, 
@@ -406,7 +406,7 @@ class _CreateMemberScreenState extends State<CreateMemberScreen> {
   final _nicknameController = TextEditingController();
   final _emailController = TextEditingController();
   final ApiService _apiService = ApiService.instance;
-  final LoadingOverlay _loadingOverlay = LoadingOverlay();
+  final LoadingOverlayManager _loadingOverlay = LoadingOverlayManager();
 
   @override
   void dispose() {
@@ -419,7 +419,7 @@ class _CreateMemberScreenState extends State<CreateMemberScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     try {
-      _loadingOverlay.show(context, 'Creating member...');
+      _loadingOverlay.show(context: context, message: 'Creating member...');
       
       final response = await _apiService.joinByCreatingMember(
         widget.inviteCode,
