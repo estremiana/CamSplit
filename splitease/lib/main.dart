@@ -13,44 +13,67 @@ import 'services/haptic_feedback_service.dart';
 import 'services/animation_service.dart';
 import 'presentation/join_group/join_group_screen.dart';
 import 'presentation/splash_screen/splash_screen.dart';
+import 'package:splitease/config/config_test.dart';
 
 void main() async {
+  print('🚀 Starting CamSplit app...');
   WidgetsFlutterBinding.ensureInitialized();
+  print('✅ Flutter binding initialized');
 
   // 🚨 CRITICAL: Custom error handling - DO NOT REMOVE
   ErrorWidget.builder = (FlutterErrorDetails details) {
+    print('❌ Error widget triggered: ${details.exception}');
     return CustomErrorWidget(
       errorDetails: details,
     );
   };
   
+  // Test device configuration
+  print('🔧 Testing device configuration...');
+  ConfigTest.testConfiguration();
+  print('✅ Device configuration tested');
+  
   // Initialize navigation services
+  print('🔧 Initializing navigation services...');
   await _initializeNavigationServices();
+  print('✅ Navigation services initialized');
   
   // 🚨 CRITICAL: Device orientation lock - DO NOT REMOVE
+  print('🔧 Setting device orientation...');
   Future.wait([
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp])
   ]).then((value) {
+    print('✅ Device orientation set, running app...');
     runApp(MyApp());
   });
 }
 
 /// Initialize all navigation-related services
 Future<void> _initializeNavigationServices() async {
+  print('🔧 Preloading navigation icons...');
   // Preload navigation icons to ensure immediate availability
   IconPreloader.preloadNavigationIcons();
+  print('✅ Navigation icons preloaded');
   
+  print('🔧 Starting performance monitoring...');
   // Initialize performance monitoring
   PerformanceMonitor.startMonitoring();
+  print('✅ Performance monitoring started');
   
+  print('🔧 Initializing haptic feedback service...');
   // Initialize haptic feedback service
   HapticFeedbackService.initialize();
+  print('✅ Haptic feedback service initialized');
   
+  print('🔧 Initializing animation service...');
   // Initialize animation service
   AnimationService.initialize();
+  print('✅ Animation service initialized');
   
+  print('🔧 Initializing navigation service...');
   // Initialize navigation service
   NavigationService.initialize();
+  print('✅ Navigation service initialized');
   
   debugPrint('Navigation services initialized successfully');
 }
@@ -70,11 +93,14 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
+    print('🔧 Initializing MyApp...');
     _initDeepLinkHandling();
+    print('✅ Deep link handling initialized');
     
     // Fallback: Mark app as ready after 3 seconds if navigation observer doesn't trigger
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted && !_isAppReady) {
+        print('⏰ Fallback: Marking app as ready after 3 seconds');
         setState(() {
           _isAppReady = true;
         });
@@ -210,3 +236,5 @@ class _NavigationObserver extends NavigatorObserver {
     PerformanceMonitor.recordNavigationLatency(const Duration(milliseconds: 50));
   }
 }
+
+

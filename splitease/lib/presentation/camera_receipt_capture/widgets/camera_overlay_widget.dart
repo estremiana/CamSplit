@@ -2,15 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 
 import '../../../core/app_export.dart';
+import '../../../services/receipt_detection_service.dart';
 
 class CameraOverlayWidget extends StatelessWidget {
-  final bool isReceiptDetected;
+  final DetectionResult? detectionResult;
+  final bool isDetecting;
   final Animation<double> pulseAnimation;
   final Animation<double> cornerAnimation;
 
   const CameraOverlayWidget({
     super.key,
-    required this.isReceiptDetected,
+    this.detectionResult,
+    this.isDetecting = false,
     required this.pulseAnimation,
     required this.cornerAnimation,
   });
@@ -26,29 +29,25 @@ class CameraOverlayWidget extends StatelessWidget {
               animation: pulseAnimation,
               builder: (context, child) {
                 return Transform.scale(
-                  scale: isReceiptDetected ? 1.0 : pulseAnimation.value,
+                  scale: _shouldShowStaticFrame() ? 1.0 : pulseAnimation.value,
                   child: Container(
                     width: 80.w,
                     height: 50.h,
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: isReceiptDetected
-                            ? AppTheme.successLight
-                            : Colors.white.withValues(alpha: 0.8),
+                        color: _getFrameColor(),
                         width: 2,
                       ),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Stack(
                       children: [
-                        // Corner Indicators
-                        _buildCornerIndicators(),
+                        // Corner Indicators - only show when not detecting or when detection is active
+                        if (!isDetecting || _hasValidDetectionResult())
+                          _buildCornerIndicators(),
 
                         // Center Guidelines
                         _buildGuidelines(),
-
-                        // Detection Status
-                        _buildDetectionStatus(),
                       ],
                     ),
                   ),
@@ -57,11 +56,37 @@ class CameraOverlayWidget extends StatelessWidget {
             ),
           ),
 
-          // Instructions Overlay
-          _buildInstructionsOverlay(),
+          // Detection Status - only show when actively detecting or when there's a real result
+          if (isDetecting || _hasValidDetectionResult())
+            _buildDetectionStatus(),
         ],
       ),
     );
+  }
+
+  bool _shouldShowStaticFrame() {
+    return detectionResult?.isDetected == true && 
+           detectionResult!.confidence >= 0.7;
+  }
+
+  bool _hasValidDetectionResult() {
+    return detectionResult != null && 
+           (detectionResult!.isDetected || detectionResult!.errorMessage != null);
+  }
+
+  Color _getFrameColor() {
+    if (detectionResult?.isDetected == true) {
+      final confidence = detectionResult!.confidence;
+      if (confidence >= 0.8) {
+        return AppTheme.successLight;
+      } else if (confidence >= 0.6) {
+        return Colors.orange;
+      } else {
+        return Colors.red;
+      }
+    }
+    
+    return Colors.white.withValues(alpha: 0.8);
   }
 
   Widget _buildCornerIndicators() {
@@ -75,22 +100,18 @@ class CameraOverlayWidget extends StatelessWidget {
               top: -2,
               left: -2,
               child: Transform.scale(
-                scale: cornerAnimation.value,
+                scale: _shouldAnimateCorner() ? cornerAnimation.value : 1.0,
                 child: Container(
                   width: 8.w,
                   height: 8.w,
                   decoration: BoxDecoration(
                     border: Border(
                       top: BorderSide(
-                        color: isReceiptDetected
-                            ? AppTheme.successLight
-                            : Colors.white,
+                        color: _getFrameColor(),
                         width: 4,
                       ),
                       left: BorderSide(
-                        color: isReceiptDetected
-                            ? AppTheme.successLight
-                            : Colors.white,
+                        color: _getFrameColor(),
                         width: 4,
                       ),
                     ),
@@ -104,22 +125,18 @@ class CameraOverlayWidget extends StatelessWidget {
               top: -2,
               right: -2,
               child: Transform.scale(
-                scale: cornerAnimation.value,
+                scale: _shouldAnimateCorner() ? cornerAnimation.value : 1.0,
                 child: Container(
                   width: 8.w,
                   height: 8.w,
                   decoration: BoxDecoration(
                     border: Border(
                       top: BorderSide(
-                        color: isReceiptDetected
-                            ? AppTheme.successLight
-                            : Colors.white,
+                        color: _getFrameColor(),
                         width: 4,
                       ),
                       right: BorderSide(
-                        color: isReceiptDetected
-                            ? AppTheme.successLight
-                            : Colors.white,
+                        color: _getFrameColor(),
                         width: 4,
                       ),
                     ),
@@ -133,22 +150,18 @@ class CameraOverlayWidget extends StatelessWidget {
               bottom: -2,
               left: -2,
               child: Transform.scale(
-                scale: cornerAnimation.value,
+                scale: _shouldAnimateCorner() ? cornerAnimation.value : 1.0,
                 child: Container(
                   width: 8.w,
                   height: 8.w,
                   decoration: BoxDecoration(
                     border: Border(
                       bottom: BorderSide(
-                        color: isReceiptDetected
-                            ? AppTheme.successLight
-                            : Colors.white,
+                        color: _getFrameColor(),
                         width: 4,
                       ),
                       left: BorderSide(
-                        color: isReceiptDetected
-                            ? AppTheme.successLight
-                            : Colors.white,
+                        color: _getFrameColor(),
                         width: 4,
                       ),
                     ),
@@ -162,22 +175,18 @@ class CameraOverlayWidget extends StatelessWidget {
               bottom: -2,
               right: -2,
               child: Transform.scale(
-                scale: cornerAnimation.value,
+                scale: _shouldAnimateCorner() ? cornerAnimation.value : 1.0,
                 child: Container(
                   width: 8.w,
                   height: 8.w,
                   decoration: BoxDecoration(
                     border: Border(
                       bottom: BorderSide(
-                        color: isReceiptDetected
-                            ? AppTheme.successLight
-                            : Colors.white,
+                        color: _getFrameColor(),
                         width: 4,
                       ),
                       right: BorderSide(
-                        color: isReceiptDetected
-                            ? AppTheme.successLight
-                            : Colors.white,
+                        color: _getFrameColor(),
                         width: 4,
                       ),
                     ),
@@ -189,6 +198,11 @@ class CameraOverlayWidget extends StatelessWidget {
         );
       },
     );
+  }
+
+  bool _shouldAnimateCorner() {
+    return detectionResult?.isDetected == true && 
+           detectionResult!.confidence >= 0.7;
   }
 
   Widget _buildGuidelines() {
@@ -215,29 +229,31 @@ class CameraOverlayWidget extends StatelessWidget {
           duration: const Duration(milliseconds: 300),
           padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
           decoration: BoxDecoration(
-            color: isReceiptDetected
-                ? AppTheme.successLight.withValues(alpha: 0.9)
-                : Colors.black.withValues(alpha: 0.7),
+            color: _getStatusColor().withValues(alpha: 0.9),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CustomIconWidget(
-                iconName: isReceiptDetected ? 'check_circle' : 'search',
-                color: Colors.white,
-                size: 16,
-              ),
+              _buildStatusIcon(),
               SizedBox(width: 2.w),
               Text(
-                isReceiptDetected
-                    ? 'Receipt Detected'
-                    : 'Position receipt in frame',
+                _getStatusText(),
                 style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.w500,
                 ),
               ),
+              if (_shouldShowConfidence()) ...[
+                SizedBox(width: 2.w),
+                Text(
+                  '${(detectionResult!.confidence * 100).toInt()}%',
+                  style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -245,74 +261,106 @@ class CameraOverlayWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildInstructionsOverlay() {
-    return Positioned(
-      top: 15.h,
-      left: 4.w,
-      right: 4.w,
-      child: Container(
-        padding: EdgeInsets.all(4.w),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.7),
-          borderRadius: BorderRadius.circular(12),
+  bool _shouldShowConfidence() {
+    return detectionResult?.confidence != null && 
+           detectionResult!.confidence > 0.0 &&
+           detectionResult!.isDetected;
+  }
+
+  Widget _buildStatusIcon() {
+    if (isDetecting) {
+      return SizedBox(
+        width: 16,
+        height: 16,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
         ),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                CustomIconWidget(
-                  iconName: 'info',
-                  color: Colors.white,
-                  size: 20,
-                ),
-                SizedBox(width: 3.w),
-                Expanded(
-                  child: Text(
-                    'Tips for best results:',
-                    style: AppTheme.lightTheme.textTheme.titleSmall?.copyWith(
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 2.h),
-            _buildTip('Place receipt flat and fully visible'),
-            _buildTip('Ensure good lighting'),
-            _buildTip('Avoid shadows and glare'),
-            _buildTip('Keep camera steady'),
-          ],
-        ),
-      ),
+      );
+    }
+
+    if (detectionResult?.isDetected == true) {
+      final confidence = detectionResult!.confidence;
+      if (confidence >= 0.8) {
+        return CustomIconWidget(
+          iconName: 'check_circle',
+          color: Colors.white,
+          size: 16,
+        );
+      } else if (confidence >= 0.6) {
+        return CustomIconWidget(
+          iconName: 'warning',
+          color: Colors.white,
+          size: 16,
+        );
+      } else {
+        return CustomIconWidget(
+          iconName: 'error',
+          color: Colors.white,
+          size: 16,
+        );
+      }
+    }
+
+    if (detectionResult?.errorMessage != null) {
+      return CustomIconWidget(
+        iconName: 'error_outline',
+        color: Colors.white,
+        size: 16,
+      );
+    }
+
+    return CustomIconWidget(
+      iconName: 'search',
+      color: Colors.white,
+      size: 16,
     );
   }
 
-  Widget _buildTip(String text) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 1.h),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 1.w,
-            height: 1.w,
-            margin: EdgeInsets.only(top: 1.5.w, right: 3.w),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-            ),
-          ),
-          Expanded(
-            child: Text(
-              text,
-              style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-                color: Colors.white.withValues(alpha: 0.9),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  Color _getStatusColor() {
+    if (isDetecting) {
+      return Colors.blue;
+    }
+    
+    if (detectionResult?.isDetected == true) {
+      final confidence = detectionResult!.confidence;
+      if (confidence >= 0.8) {
+        return AppTheme.successLight;
+      } else if (confidence >= 0.6) {
+        return Colors.orange;
+      } else {
+        return Colors.red;
+      }
+    }
+    
+    if (detectionResult?.errorMessage != null) {
+      return Colors.red;
+    }
+    
+    return Colors.black.withValues(alpha: 0.7);
+  }
+
+  String _getStatusText() {
+    if (isDetecting) {
+      return 'Detecting...';
+    }
+    
+    if (detectionResult?.isDetected == true) {
+      final confidence = detectionResult!.confidence;
+      if (confidence >= 0.8) {
+        return 'Receipt Detected';
+      } else if (confidence >= 0.6) {
+        return 'Possible Receipt';
+      } else {
+        return 'Low Confidence';
+      }
+    }
+    
+    if (detectionResult?.errorMessage != null) {
+      return 'Detection Error';
+    }
+    
+    return 'Position receipt in frame';
   }
 }
 

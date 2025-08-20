@@ -91,6 +91,9 @@ class _ExpenseCreationState extends State<ExpenseCreation>
   // Context detection and group field visibility
   bool _showGroupField = true;
 
+  // Store groupId from arguments for later use after groups are loaded
+  int? _pendingGroupId;
+
   // Get groups from real service
   List<String> get _groups {
     return _realGroups.map((group) => group.name).toList();
@@ -115,20 +118,49 @@ class _ExpenseCreationState extends State<ExpenseCreation>
     
     // Defer reading arguments to determine if we need to load groups
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initializeFromArguments();
-      // Initialize receipt mode after arguments are processed
-      _initializeReceiptMode();
-      
-      // In receipt mode, we already have all data, no need to load groups
-      if (_isReceiptMode && _receiptData != null) {
-        debugPrint('Receipt mode: Skipping _loadGroups() since we have all data');
-        _initializeFromReceiptData();
-      } else {
-        // Only load groups for manual mode
-        debugPrint('Manual mode: Loading groups from backend');
-        _loadGroups().then((_) {
-          debugPrint('Groups loaded for manual mode');
-        });
+      try {
+        _initializeFromArguments();
+        // Initialize receipt mode after arguments are processed
+        _initializeReceiptMode();
+        
+        // In receipt mode, we already have all data, no need to load groups
+        if (_isReceiptMode && _receiptData != null) {
+          debugPrint('Receipt mode: Skipping _loadGroups() since we have all data');
+          _initializeFromReceiptData();
+        } else {
+          // Only load groups for manual mode
+          debugPrint('Manual mode: Loading groups from backend');
+          _loadGroups().then((_) {
+            debugPrint('Groups loaded for manual mode');
+          }).catchError((error) {
+            debugPrint('Error loading groups: $error');
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Failed to load groups: $error'),
+                  backgroundColor: Colors.red,
+                  action: SnackBarAction(
+                    label: 'Retry',
+                    textColor: Colors.white,
+                    onPressed: () => _loadGroups(),
+                  ),
+                  duration: Duration(seconds: 5),
+                ),
+              );
+            }
+          });
+        }
+      } catch (e) {
+        debugPrint('Error during initialization: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to initialize expense creation: $e'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 5),
+            ),
+          );
+        }
       }
     });
   }
@@ -143,7 +175,12 @@ class _ExpenseCreationState extends State<ExpenseCreation>
     }
 
     try {
-      final groups = await GroupService.getAllGroups();
+      final groups = await GroupService.getAllGroups().timeout(
+        Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Timeout loading groups');
+        },
+      );
       debugPrint('Groups loaded: ${groups.length}');
       for (var group in groups) {
         debugPrint('Group: ${group.name} (ID: ${group.id}), Members: ${group.members.length}');
@@ -176,8 +213,20 @@ class _ExpenseCreationState extends State<ExpenseCreation>
               }
             });
           } else {
-            // Set default selected group if available and not already set
-            if (_selectedGroup.isEmpty) {
+            // Handle group selection after groups are loaded
+            if (_pendingGroupId != null) {
+              // Try to find the specific group that was requested
+              final requestedGroup = groups.firstWhere(
+                (group) => group.id == _pendingGroupId,
+                orElse: () => groups.first, // Fallback to first group if not found
+              );
+              _selectedGroup = requestedGroup.name;
+              debugPrint('Selected requested group: $_selectedGroup (ID: ${requestedGroup.id})');
+              // Load members for the selected group
+              _loadGroupMembers(requestedGroup.id.toString());
+              _pendingGroupId = null; // Clear the pending groupId
+            } else if (_selectedGroup.isEmpty) {
+              // Set default selected group if available and not already set
               _selectedGroup = groups.first.name;
               debugPrint('Setting default group: $_selectedGroup (ID: ${groups.first.id})');
               // Load members for the default group
@@ -237,7 +286,12 @@ class _ExpenseCreationState extends State<ExpenseCreation>
     }
 
     try {
-      final group = await GroupService.getGroupWithMembers(groupId);
+      final group = await GroupService.getGroupWithMembers(groupId).timeout(
+        Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Timeout loading group members');
+        },
+      );
       debugPrint('Group loaded from API: ${group?.name}, Members count: ${group?.members.length}');
       if (mounted && group != null) {
         // Handle empty group scenario
@@ -515,27 +569,9 @@ class _ExpenseCreationState extends State<ExpenseCreation>
       if (!_isReceiptMode) {
         // Handle group context from group detail page
         if (args['groupId'] != null) {
-          final groupId = args['groupId'] as int;
-          // Find the group in the loaded groups
-          final group = _realGroups.firstWhere(
-            (group) => group.id == groupId,
-            orElse: () => _realGroups.isNotEmpty ? _realGroups.first : Group(
-              id: 0,
-              name: 'Unknown Group',
-              currency: 'USD',
-              description: '',
-              createdBy: 0,
-              members: [],
-              lastUsed: DateTime.now(),
-              createdAt: DateTime.now(),
-              updatedAt: DateTime.now(),
-            ),
-          );
-          setState(() {
-            _selectedGroup = group.name;
-            // Load members for the selected group
-            _loadGroupMembers(group.id.toString());
-          });
+          _pendingGroupId = args['groupId'] as int;
+          debugPrint('Stored pending group ID: $_pendingGroupId');
+          // Don't try to find the group yet - wait for groups to be loaded
         }
         
         // Handle backward compatibility for receipt mode via arguments

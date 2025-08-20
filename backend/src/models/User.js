@@ -30,8 +30,9 @@ class User {
     }
 
     // Check if user already exists
-    const existingUser = await User.findByEmail(email);
-    if (existingUser) {
+    try {
+      await User.findByEmail(email);
+    } catch (error) { 
       throw new Error('User with this email already exists');
     }
 

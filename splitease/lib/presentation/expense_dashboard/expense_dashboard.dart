@@ -5,6 +5,7 @@ import 'package:sizer/sizer.dart';
 import '../../core/app_export.dart';
 import '../../models/dashboard_model.dart';
 import '../../models/expense.dart';
+import '../../routes/app_routes.dart';
 import '../../services/api_service.dart';
 import '../../services/navigation_service.dart';
 import '../../services/user_service.dart';
@@ -165,7 +166,7 @@ class _ExpenseDashboardState extends State<ExpenseDashboard>
 
   void _openCameraCapture() {
     HapticFeedback.mediumImpact();
-    Navigator.pushNamed(context, '/camera-receipt-capture');
+    Navigator.pushNamed(context, AppRoutes.cameraReceiptCapture);
     _closeFabMenu();
   }
 
