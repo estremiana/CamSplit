@@ -3,11 +3,12 @@ require('dotenv').config();
 
 // Database configuration
 const dbConfig = {
-  user: process.env.DB_USER || 'postgres',
-  host: process.env.DB_HOST || 'localhost',
-  database: process.env.DB_NAME || 'camsplit',
-  password: process.env.DB_PASSWORD || 'password',
-  port: process.env.DB_PORT || 5432,
+  //user: process.env.DB_USER || 'postgres',
+  //host: process.env.DB_HOST || 'localhost',
+  //database: process.env.DB_NAME || 'camsplit',
+  //password: process.env.DB_PASSWORD || 'password',
+  //port: process.env.DB_PORT || 5432,
+  connectionString: process.env.DB_URL,
   // Connection pool settings
   max: 20, // Maximum number of clients in the pool
   idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
