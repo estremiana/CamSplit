@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
+import 'package:currency_picker/currency_picker.dart';
 
 import '../../../core/app_export.dart';
+import '../../../widgets/currency_display_widget.dart';
 
 class QuickStatsWidget extends StatelessWidget {
   final double monthlySpending;
   final int pendingSettlements;
   final int activeGroups;
   final bool isPrivacyMode;
+  final Currency currency;
 
   const QuickStatsWidget({
     super.key,
@@ -15,7 +18,20 @@ class QuickStatsWidget extends StatelessWidget {
     required this.pendingSettlements,
     required this.activeGroups,
     required this.isPrivacyMode,
-  });
+    Currency? currency,
+  }) : currency = currency ?? const Currency(
+         code: 'EUR',
+         name: 'Euro',
+         symbol: '€',
+         flag: '🇪🇺',
+         number: 978,
+         decimalDigits: 2,
+         namePlural: 'Euros',
+         symbolOnLeft: true,
+         decimalSeparator: '.',
+         thousandsSeparator: ',',
+         spaceBetweenAmountAndSymbol: false,
+       );
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +45,10 @@ class QuickStatsWidget extends StatelessWidget {
               title: 'Monthly',
               value: isPrivacyMode
                   ? '••••••'
-                  : '\$${monthlySpending.toStringAsFixed(0)}',
+                  : null,
+              currencyValue: isPrivacyMode
+                  ? null
+                  : monthlySpending,
               color: AppTheme.lightTheme.primaryColor,
               backgroundColor:
                   AppTheme.lightTheme.primaryColor.withValues(alpha: 0.1),
@@ -41,6 +60,7 @@ class QuickStatsWidget extends StatelessWidget {
               icon: 'pending_actions',
               title: 'Pending',
               value: pendingSettlements.toString(),
+              currencyValue: null,
               color: AppTheme.warningLight,
               backgroundColor: AppTheme.warningLight.withValues(alpha: 0.1),
             ),
@@ -51,6 +71,7 @@ class QuickStatsWidget extends StatelessWidget {
               icon: 'groups',
               title: 'Groups',
               value: activeGroups.toString(),
+              currencyValue: null,
               color: AppTheme.successLight,
               backgroundColor: AppTheme.successLight.withValues(alpha: 0.1),
             ),
@@ -63,7 +84,8 @@ class QuickStatsWidget extends StatelessWidget {
   Widget _buildStatCard({
     required String icon,
     required String title,
-    required String value,
+    String? value,
+    double? currencyValue,
     required Color color,
     required Color backgroundColor,
   }) {
@@ -102,14 +124,24 @@ class QuickStatsWidget extends StatelessWidget {
               ),
             ),
             SizedBox(height: 0.5.h),
-            Text(
-              value,
-              style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: color,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
+            value != null
+                ? Text(
+                    value,
+                    style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: color,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  )
+                : CurrencyDisplayWidget(
+                    amount: currencyValue!,
+                    currency: currency,
+                    style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: color,
+                    ),
+                    decimalPlaces: 0,
+                  ),
           ],
         ),
       ),

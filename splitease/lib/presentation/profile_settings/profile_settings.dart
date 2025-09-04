@@ -3,6 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
 
 import '../../core/app_export.dart';
+import '../../widgets/currency_selection_widget.dart';
+import '../../services/currency_service.dart';
+import 'package:currency_picker/currency_picker.dart';
 
 import './widgets/logout_button_widget.dart';
 import './widgets/profile_summary_card_widget.dart';
@@ -36,7 +39,7 @@ class _ProfileSettingsState extends State<ProfileSettings> with AutomaticKeepAli
     "notifications": true,
     "emailNotifications": true,
     "darkMode": false,
-    "currency": "USD",
+    "currency": SplitEaseCurrencyService.getDefaultCurrency(),
     "language": "English",
     "biometricAuth": true,
     "autoSync": true,
@@ -185,7 +188,7 @@ class _ProfileSettingsState extends State<ProfileSettings> with AutomaticKeepAli
                 settings: [
                   {
                     'title': 'Currency',
-                    'subtitle': _appSettings['currency'],
+                    'subtitle': '${_appSettings['currency'].flag} ${_appSettings['currency'].code} - ${_appSettings['currency'].name}',
                     'type': 'navigation',
                     'onTap': _selectCurrency,
                   },
@@ -452,7 +455,24 @@ class _ProfileSettingsState extends State<ProfileSettings> with AutomaticKeepAli
       // Map UI setting keys to backend preference keys
       switch (key) {
         case 'currency':
-          preferences['currency'] = value;
+          // Convert Currency object to JSON for backend
+          if (value is Currency) {
+            preferences['currency'] = {
+              'code': value.code,
+              'name': value.name,
+              'symbol': value.symbol,
+              'flag': value.flag,
+              'number': value.number,
+              'decimalDigits': value.decimalDigits,
+              'namePlural': value.namePlural,
+              'symbolOnLeft': value.symbolOnLeft,
+              'decimalSeparator': value.decimalSeparator,
+              'thousandsSeparator': value.thousandsSeparator,
+              'spaceBetweenAmountAndSymbol': value.spaceBetweenAmountAndSymbol,
+            };
+          } else {
+            preferences['currency'] = value;
+          }
           break;
         case 'notifications':
           preferences['notifications'] = value;
@@ -496,7 +516,47 @@ class _ProfileSettingsState extends State<ProfileSettings> with AutomaticKeepAli
 
   void _selectCurrency() {
     HapticFeedback.selectionClick();
-    // Show currency selection dialog
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16.0)),
+      ),
+      builder: (context) => CurrencySelectionWidget(
+        selectedCurrency: _appSettings['currency'],
+        onCurrencySelected: (Currency selectedCurrency) async {
+          // Update the app settings
+          setState(() {
+            _appSettings['currency'] = selectedCurrency;
+          });
+          
+          // Update user preferences in the backend
+          await _updateUserPreference('currency', selectedCurrency);
+          
+          // Update the currency service
+          await SplitEaseCurrencyService.setUserPreferredCurrency(selectedCurrency);
+          
+          // Close the modal
+          Navigator.pop(context);
+          
+          // Show success feedback
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Currency updated to ${selectedCurrency.name}',
+                style: AppTheme.lightTheme.snackBarTheme.contentTextStyle,
+              ),
+              backgroundColor: AppTheme.successLight,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.0),
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   void _selectLanguage() {

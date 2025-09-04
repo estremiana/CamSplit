@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
+import 'package:currency_picker/currency_picker.dart';
 
 import '../../../core/app_export.dart';
+import '../../../widgets/currency_selection_widget.dart';
 
 class ProfileFormWidget extends StatelessWidget {
   final TextEditingController firstNameController;
@@ -9,9 +11,9 @@ class ProfileFormWidget extends StatelessWidget {
   final TextEditingController emailController;
   final TextEditingController phoneController;
   final TextEditingController bioController;
-  final String selectedCurrency;
+  final Currency selectedCurrency;
   final String selectedTimezone;
-  final Function(String) onCurrencyChanged;
+  final Function(Currency) onCurrencyChanged;
   final Function(String) onTimezoneChanged;
 
   const ProfileFormWidget({
@@ -182,7 +184,7 @@ class ProfileFormWidget extends StatelessWidget {
                       ),
                       SizedBox(height: 0.5.h),
                       Text(
-                        selectedCurrency,
+                        '${selectedCurrency.flag} ${selectedCurrency.code} - ${selectedCurrency.name}',
                         style: AppTheme.lightTheme.textTheme.bodyLarge,
                       ),
                     ],
@@ -248,51 +250,18 @@ class ProfileFormWidget extends StatelessWidget {
   }
 
   void _showCurrencyPicker(BuildContext context) {
-    final currencies = ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'CHF', 'CNY'];
-
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16.0)),
       ),
-      builder: (context) => Container(
-        padding: EdgeInsets.all(4.w),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 10.w,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppTheme.borderLight,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            SizedBox(height: 2.h),
-            Text(
-              'Select Currency',
-              style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            SizedBox(height: 2.h),
-            ...currencies.map((currency) => ListTile(
-                  title: Text(currency),
-                  trailing: selectedCurrency == currency
-                      ? CustomIconWidget(
-                          iconName: 'check',
-                          color: AppTheme.lightTheme.primaryColor,
-                          size: 20,
-                        )
-                      : null,
-                  onTap: () {
-                    Navigator.pop(context);
-                    onCurrencyChanged(currency);
-                  },
-                )),
-            SizedBox(height: 2.h),
-          ],
-        ),
+      builder: (context) => CurrencySelectionWidget(
+        selectedCurrency: selectedCurrency,
+        onCurrencySelected: (Currency selectedCurrency) {
+          Navigator.pop(context);
+          onCurrencyChanged(selectedCurrency);
+        },
       ),
     );
   }

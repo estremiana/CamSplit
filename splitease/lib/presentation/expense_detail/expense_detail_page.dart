@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
 import 'package:currency_picker/currency_picker.dart';
 import '../../core/app_export.dart';
@@ -6,6 +7,7 @@ import '../../models/expense_detail_model.dart';
 import '../../models/participant_amount.dart';
 import '../../models/group_member.dart';
 import '../../services/expense_detail_service.dart';
+import '../../services/currency_service.dart';
 import '../expense_creation/widgets/expense_details_widget.dart';
 import '../expense_creation/widgets/receipt_image_widget.dart';
 import '../expense_creation/widgets/split_options_widget.dart';
@@ -538,20 +540,23 @@ class _ExpenseDetailPageState extends State<ExpenseDetailPage> {
       }
     }
     
-    // Set currency
-    _selectedCurrency = Currency(
-      code: _expense!.currency,
-      name: _expense!.currency,
-      symbol: _expense!.currency == 'EUR' ? '€' : _expense!.currency,
-      flag: _expense!.currency,
-      number: _expense!.currency == 'EUR' ? 978 : 840,
-      decimalDigits: 2,
-      namePlural: '${_expense!.currency}s',
-      symbolOnLeft: false,
-      decimalSeparator: ',',
-      thousandsSeparator: '.',
-      spaceBetweenAmountAndSymbol: true,
-    );
+    // Set currency - use group currency context if available, otherwise use expense currency
+    try {
+      final groupId = int.tryParse(_expense!.groupId);
+      if (groupId != null) {
+        // Try to get group currency from service
+        _selectedCurrency = SplitEaseCurrencyService.getGroupCurrency(groupId);
+        print('Using group currency context: ${_selectedCurrency?.code}');
+      } else {
+        // Fallback to expense currency
+        _selectedCurrency = _expense!.currency;
+        print('Using expense currency: ${_selectedCurrency?.code}');
+      }
+    } catch (e) {
+      // Fallback to expense currency if group currency lookup fails
+      _selectedCurrency = _expense!.currency;
+      print('Fallback to expense currency: ${_selectedCurrency?.code}');
+    }
     
     // Set selected payer ID - only if it's not already set or if it's different
     if (_selectedPayerId == 0 || _selectedPayerId != _expense!.payerId) {
@@ -597,6 +602,35 @@ class _ExpenseDetailPageState extends State<ExpenseDetailPage> {
         _formKey.currentState?.reset();
       }
     });
+  }
+
+  /// Show visual feedback when currency changes
+  void _showCurrencyChangeFeedback(Currency newCurrency) {
+    // Show a brief snackbar with the currency change
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              Icons.currency_exchange,
+              color: Colors.white,
+              size: 20,
+            ),
+            SizedBox(width: 8),
+            Text('Currency changed to ${newCurrency.code}'),
+          ],
+        ),
+        backgroundColor: AppTheme.lightTheme.primaryColor,
+        duration: Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+    );
+    
+    // Trigger haptic feedback for currency change
+    HapticFeedback.lightImpact();
   }
 
   void _cancelEdit() {
@@ -725,7 +759,7 @@ class _ExpenseDetailPageState extends State<ExpenseDetailPage> {
         date: _selectedDate,
         notes: _notesController.text.trim(),
         splitType: _splitType,
-        currency: _selectedCurrency?.code ?? _expense!.currency,
+        currency: _selectedCurrency ?? _expense!.currency,
         // Update participant amounts based on split type
         participantAmounts: calculatedParticipantAmounts,
         updatedAt: DateTime.now(),
@@ -1551,6 +1585,9 @@ class _ExpenseDetailPageState extends State<ExpenseDetailPage> {
                         currency: _selectedCurrency,
                         onCurrencyChanged: _isEditMode ? (currency) {
                           setState(() => _selectedCurrency = currency);
+                          if (currency != null) {
+                            _showCurrencyChangeFeedback(currency);
+                          }
                         } : null,
                         mode: 'detail',
                         isReceiptMode: false,
@@ -1600,7 +1637,7 @@ class _ExpenseDetailPageState extends State<ExpenseDetailPage> {
                                 'avatar': '', // No avatar data in expense detail model
                               }).toList(),
                         totalAmount: double.tryParse(_totalController.text) ?? _totalAmount,
-                        currencySymbol: _selectedCurrency?.symbol ?? _expense!.currency,
+                        currency: _selectedCurrency ?? _expense!.currency,
                         isReceiptMode: false,
                         prefilledCustomAmounts: _splitType == 'custom' ? _customAmounts : null,
                         selectedMembers: _selectedMembers,

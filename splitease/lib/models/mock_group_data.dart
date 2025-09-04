@@ -1,5 +1,6 @@
 import 'group.dart';
 import 'group_member.dart';
+import '../services/currency_migration_service.dart';
 
 class MockGroupData {
   static List<Group> getMockGroups() {
@@ -8,7 +9,7 @@ class MockGroupData {
       Group(
         id: 1,
         name: 'Roommates',
-        currency: 'USD',
+        currency: CurrencyMigrationService.parseFromBackend('USD'),
         description: 'Apartment expenses with roommates',
         createdBy: 1,
         members: [
@@ -66,7 +67,7 @@ class MockGroupData {
       Group(
         id: 2,
         name: 'Work Team',
-        currency: 'USD',
+        currency: CurrencyMigrationService.parseFromBackend('USD'),
         description: 'Team lunch and coffee expenses',
         createdBy: 1,
         members: [
@@ -135,7 +136,7 @@ class MockGroupData {
       Group(
         id: 3,
         name: 'Family',
-        currency: 'USD',
+        currency: CurrencyMigrationService.parseFromBackend('USD'),
         description: 'Family expenses and groceries',
         createdBy: 1,
         members: [
@@ -193,7 +194,7 @@ class MockGroupData {
       Group(
         id: 4,
         name: 'Weekend Trip',
-        currency: 'USD',
+        currency: CurrencyMigrationService.parseFromBackend('USD'),
         description: 'Weekend getaway expenses',
         createdBy: 1,
         members: [
@@ -240,7 +241,7 @@ class MockGroupData {
       Group(
         id: 5,
         name: 'Study Group',
-        currency: 'USD',
+        currency: CurrencyMigrationService.parseFromBackend('USD'),
         description: 'Study materials and coffee',
         createdBy: 1,
         members: [
@@ -287,7 +288,7 @@ class MockGroupData {
       Group(
         id: 6,
         name: 'Gym Buddies',
-        currency: 'USD',
+        currency: CurrencyMigrationService.parseFromBackend('USD'),
         description: 'Gym membership and supplements',
         createdBy: 1,
         members: [
@@ -356,7 +357,7 @@ class MockGroupData {
       Group(
         id: 7,
         name: 'Book Club',
-        currency: 'USD',
+        currency: CurrencyMigrationService.parseFromBackend('USD'),
         description: 'Book purchases and coffee meetings',
         createdBy: 1,
         members: [
@@ -403,7 +404,7 @@ class MockGroupData {
       Group(
         id: 8,
         name: 'Cooking Club',
-        currency: 'USD',
+        currency: CurrencyMigrationService.parseFromBackend('USD'),
         description: 'Ingredients and cooking supplies',
         createdBy: 1,
         members: [

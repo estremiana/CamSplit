@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
+import 'package:currency_picker/currency_picker.dart';
 
 import '../../../core/app_export.dart';
-import '../../../models/group.dart';
 import '../../../services/group_service.dart';
-import '../../../routes/app_routes.dart';
+import '../../../services/currency_service.dart';
 import '../../../widgets/group_creation_progress.dart';
+import '../../../widgets/currency_selection_widget.dart';
 
 class CreateGroupModalWidget extends StatefulWidget {
   final Function(Group) onGroupCreated;
@@ -25,8 +26,7 @@ class _CreateGroupModalWidgetState extends State<CreateGroupModalWidget> {
   final _descriptionController = TextEditingController();
   final _emailController = TextEditingController();
 
-  String _selectedCurrency = 'USD';
-  final List<String> _currencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD'];
+  Currency _selectedCurrency = SplitEaseCurrencyService.getDefaultCurrency();
   final List<String> _inviteEmails = [];
   bool _isLoading = false;
   bool _isCreating = false;
@@ -91,6 +91,8 @@ class _CreateGroupModalWidgetState extends State<CreateGroupModalWidget> {
       final newGroup = await GroupService.createGroup(
         _nameController.text.trim(),
         _inviteEmails,
+        currency: _selectedCurrency,
+        description: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
       );
 
       setState(() {
@@ -567,34 +569,67 @@ class _CreateGroupModalWidgetState extends State<CreateGroupModalWidget> {
           ),
         ),
         SizedBox(height: 2.h),
-        DropdownButtonFormField<String>(
-          value: _selectedCurrency,
-          decoration: InputDecoration(
-            labelText: 'Select Currency',
-            prefixIcon: Padding(
-              padding: EdgeInsets.all(3.w),
-              child: CustomIconWidget(
-                iconName: 'attach_money',
-                color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
-                size: 20,
+        GestureDetector(
+          onTap: () => _showCurrencyPicker(context),
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+            decoration: BoxDecoration(
+              color: AppTheme.lightTheme.cardColor,
+              borderRadius: BorderRadius.circular(8.0),
+              border: Border.all(
+                color: AppTheme.borderLight,
+                width: 1.0,
               ),
             ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Group Currency',
+                        style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+                          color: AppTheme.textSecondaryLight,
+                        ),
+                      ),
+                      SizedBox(height: 0.5.h),
+                      Text(
+                        '${_selectedCurrency.flag} ${_selectedCurrency.code} - ${_selectedCurrency.name}',
+                        style: AppTheme.lightTheme.textTheme.bodyLarge,
+                      ),
+                    ],
+                  ),
+                ),
+                CustomIconWidget(
+                  iconName: 'chevron_right',
+                  color: AppTheme.textSecondaryLight,
+                  size: 20,
+                ),
+              ],
+            ),
           ),
-          items: _currencies.map((currency) {
-            return DropdownMenuItem(
-              value: currency,
-              child: Text(currency),
-            );
-          }).toList(),
-          onChanged: (value) {
-            if (value != null) {
-              setState(() {
-                _selectedCurrency = value;
-              });
-            }
-          },
         ),
       ],
+    );
+  }
+
+  void _showCurrencyPicker(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16.0)),
+      ),
+      builder: (context) => CurrencySelectionWidget(
+        selectedCurrency: _selectedCurrency,
+        onCurrencySelected: (Currency selectedCurrency) {
+          setState(() {
+            _selectedCurrency = selectedCurrency;
+          });
+          Navigator.pop(context);
+        },
+      ),
     );
   }
 

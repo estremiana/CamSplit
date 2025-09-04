@@ -1,4 +1,6 @@
 import 'participant_amount.dart';
+import 'package:currency_picker/currency_picker.dart';
+import '../services/currency_migration_service.dart';
 
 /// Model representing detailed expense information for viewing and editing
 /// 
@@ -9,7 +11,7 @@ class ExpenseDetailModel {
   final int id;
   final String title;
   final double amount;
-  final String currency;
+  final Currency currency;
   final DateTime date;
   final String category;
   final String notes;
@@ -65,7 +67,7 @@ class ExpenseDetailModel {
       id: json['id'],
       title: json['title'] ?? '',
       amount: (json['amount'] ?? 0).toDouble(),
-      currency: json['currency'] ?? 'EUR',
+      currency: CurrencyMigrationService.parseFromBackend(json['currency'] ?? 'EUR'),
       date: DateTime.parse(json['date']),
       category: json['category'] ?? 'Other',
       notes: json['notes'] ?? '',
@@ -89,7 +91,7 @@ class ExpenseDetailModel {
       'id': id,
       'title': title,
       'amount': amount,
-      'currency': currency,
+      'currency': CurrencyMigrationService.prepareForBackend(currency, format: 'code'),
       'date': date.toIso8601String(),
       'category': category,
       'notes': notes,
@@ -110,7 +112,7 @@ class ExpenseDetailModel {
     int? id,
     String? title,
     double? amount,
-    String? currency,
+    Currency? currency,
     DateTime? date,
     String? category,
     String? notes,
@@ -150,7 +152,7 @@ class ExpenseDetailModel {
     return id > 0 &&
            title.isNotEmpty &&
            amount >= 0 &&
-           currency.isNotEmpty &&
+           currency.code.isNotEmpty &&
            category.isNotEmpty &&
            groupId.isNotEmpty &&
            groupName.isNotEmpty &&
@@ -209,7 +211,7 @@ class ExpenseDetailModel {
 
   /// Get formatted amount with currency
   String get formattedAmount {
-    return '${amount.toStringAsFixed(2)} $currency';
+    return '${amount.toStringAsFixed(2)} ${currency.code}';
   }
 
   /// Check if expense can be edited (not older than 30 days)
@@ -242,7 +244,7 @@ class ExpenseUpdateRequest {
   final int groupId; // Add group ID for backend validation
   final String title;
   final double amount;
-  final String currency;
+  final Currency currency;
   final DateTime date;
   final String category;
   final String notes;
@@ -298,7 +300,7 @@ class ExpenseUpdateRequest {
       'group_id': groupId,
       'title': title,
       'total_amount': amount.isFinite ? amount : 0.0, // Ensure it's a valid number
-      'currency': currency,
+      'currency': CurrencyMigrationService.prepareForBackend(currency, format: 'code'),
       'date': '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}', // YYYY-MM-DD format
       'category': category,
       'notes': notes,
@@ -316,7 +318,7 @@ class ExpenseUpdateRequest {
            title.isNotEmpty &&
            amount > 0 && // Changed from >= 0 to > 0
            amount.isFinite && // Ensure it's a valid number
-           currency.isNotEmpty &&
+           currency.code.isNotEmpty &&
            category.isNotEmpty &&
            _isValidSplitType() &&
            _hasValidParticipantAmounts() &&

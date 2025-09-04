@@ -5,6 +5,7 @@ import '../../../core/app_export.dart';
 import '../../../models/receipt_mode_config.dart';
 import 'group_dropdown_widget.dart';
 import 'package:currency_picker/currency_picker.dart';
+import '../../../widgets/currency_selection_widget.dart';
 
 class ExpenseDetailsWidget extends StatelessWidget {
   final String selectedGroup;
@@ -530,51 +531,16 @@ class ExpenseDetailsWidget extends StatelessWidget {
               ),
             ),
             SizedBox(width: 2.w),
-            SizedBox(
+            CurrencySelectionWidget(
+              selectedCurrency: currency,
+              onCurrencySelected: onCurrencyChanged ?? (Currency currency) {},
+              isCompact: true,
               width: 80,
-              child: GestureDetector(
-                onTap: (!isReadOnly && (receiptModeConfig?.isTotalEditable ?? true) && onCurrencyChanged != null)
-                    ? () {
-                        showCurrencyPicker(
-                          context: context,
-                          showFlag: true,
-                          showCurrencyName: true,
-                          showCurrencyCode: true,
-                          onSelect: (Currency currencyObj) {
-                            onCurrencyChanged!(currencyObj);
-                          },
-                        );
-                      }
-                    : null,
-                child: AbsorbPointer(
-                  child: TextFormField(
-                    decoration: InputDecoration(
-                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                      suffixIcon: (!isReadOnly && (receiptModeConfig?.isTotalEditable ?? true))
-                          ? CustomIconWidget(
-                              iconName: 'arrow_drop_down',
-                              color: AppTheme.lightTheme.colorScheme.secondary,
-                              size: 20,
-                            )
-                          : Icon(
-                              Icons.lock_outline,
-                              color: AppTheme.lightTheme.colorScheme.secondary.withOpacity(0.6),
-                              size: 16,
-                            ),
-                      // Apply disabled styling when read-only
-                      fillColor: (isReadOnly || (receiptModeConfig != null && !receiptModeConfig!.isTotalEditable && isReceiptMode))
-                          ? AppTheme.lightTheme.colorScheme.surface.withOpacity(0.5)
-                          : null,
-                      filled: (isReadOnly || (receiptModeConfig != null && !receiptModeConfig!.isTotalEditable && isReceiptMode)),
-                    ),
-                    style: (isReadOnly || (receiptModeConfig != null && !receiptModeConfig!.isTotalEditable && isReceiptMode))
-                        ? TextStyle(color: AppTheme.lightTheme.colorScheme.onSurface.withOpacity(0.6))
-                        : null,
-                    controller: TextEditingController(text: currency?.symbol ?? 'EUR'),
-                    enabled: !isReadOnly && (receiptModeConfig?.isTotalEditable ?? true),
-                  ),
-                ),
-              ),
+              isEnabled: !isReadOnly && (receiptModeConfig?.isTotalEditable ?? true),
+              isReadOnly: isReadOnly || (receiptModeConfig != null && !receiptModeConfig!.isTotalEditable && isReceiptMode),
+              showFlag: false,
+              showCurrencyName: false,
+              showCurrencyCode: true, // Must be true to satisfy currency_picker assertion
             ),
           ],
         ),

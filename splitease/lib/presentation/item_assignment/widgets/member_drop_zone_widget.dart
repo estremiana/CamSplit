@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
+import 'package:currency_picker/currency_picker.dart';
 
 import '../../../core/app_export.dart';
 import '../../../theme/app_theme.dart';
+import '../../../widgets/currency_display_widget.dart';
 import './member_avatar_widget.dart';
 
 class MemberDropZoneWidget extends StatefulWidget {
@@ -11,6 +13,7 @@ class MemberDropZoneWidget extends StatefulWidget {
   final List<Map<String, dynamic>> assignedItems;
   final Function(Map<String, dynamic>, Map<String, dynamic>) onItemDropped;
   final VoidCallback? onTap;
+  final Currency currency;
 
   const MemberDropZoneWidget({
     super.key,
@@ -18,6 +21,7 @@ class MemberDropZoneWidget extends StatefulWidget {
     required this.assignedItems,
     required this.onItemDropped,
     this.onTap,
+    required this.currency,
   });
 
   @override
@@ -155,8 +159,9 @@ class _MemberDropZoneWidgetState extends State<MemberDropZoneWidget>
                                   ),
                                 ),
                                 if (widget.assignedItems.isNotEmpty)
-                                  Text(
-                                    '\$${totalAmount.toStringAsFixed(2)}',
+                                  CurrencyDisplayWidget(
+                                    amount: totalAmount,
+                                    currency: widget.currency,
                                     style: AppTheme.getMonospaceStyle(
                                       isLight: true,
                                       fontSize: 14,
@@ -270,8 +275,9 @@ class _MemberDropZoneWidgetState extends State<MemberDropZoneWidget>
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
-                                      Text(
-                                        '\$${item['total_price'].toStringAsFixed(2)}',
+                                      CurrencyDisplayWidget(
+                                        amount: item['total_price'] as double,
+                                        currency: widget.currency,
                                         style: AppTheme.getMonospaceStyle(
                                           isLight: true,
                                           fontSize: 12,

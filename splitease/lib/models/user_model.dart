@@ -1,3 +1,7 @@
+import 'package:currency_picker/currency_picker.dart';
+import '../services/currency_service.dart';
+import '../services/currency_migration_service.dart';
+
 class UserModel {
   final String id;
   final String name; // Keep for backward compatibility (first_name + last_name)
@@ -123,7 +127,7 @@ class UserModel {
 }
 
 class UserPreferences {
-  final String currency;
+  final Currency currency;
   final String language;
   final bool notifications;
   final bool emailNotifications;
@@ -142,8 +146,17 @@ class UserPreferences {
   });
 
   factory UserPreferences.fromJson(Map<String, dynamic> json) {
+    // Handle currency using migration service for backward compatibility
+    Currency currency;
+    try {
+      currency = CurrencyMigrationService.migrateCurrencyData(json['currency'] ?? 'EUR');
+    } catch (e) {
+      // Fallback to EUR if migration fails
+      currency = SplitEaseCurrencyService.getCurrencyByCode('EUR');
+    }
+    
     return UserPreferences(
-      currency: json['currency'] ?? 'USD',
+      currency: currency,
       language: json['language'] ?? 'en',
       notifications: json['notifications'] ?? true,
       emailNotifications: json['email_notifications'] ?? true,
@@ -155,7 +168,7 @@ class UserPreferences {
 
   Map<String, dynamic> toJson() {
     return {
-      'currency': currency,
+      'currency': CurrencyMigrationService.prepareForBackend(currency, format: 'code'),
       'language': language,
       'notifications': notifications,
       'email_notifications': emailNotifications,
@@ -166,7 +179,7 @@ class UserPreferences {
   }
 
   UserPreferences copyWith({
-    String? currency,
+    Currency? currency,
     String? language,
     bool? notifications,
     bool? emailNotifications,

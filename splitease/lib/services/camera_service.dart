@@ -20,11 +20,11 @@ class CameraService {
   FlashMode _currentFlashMode = FlashMode.off;
   
   // Performance optimization variables
-  ResolutionPreset _currentResolution = ResolutionPreset.medium;
+  ResolutionPreset _currentResolution = ResolutionPreset.high;
   bool _isLowEndDevice = false;
   bool _isHighEndDevice = false;
-  static const int _maxImageSize = 1920; // Maximum image size for processing
-  static const int _compressionQuality = 85; // JPEG compression quality
+  static const int _maxImageSize = 3840; // Maximum image size for processing (4K)
+  static const int _compressionQuality = 95; // JPEG compression quality (higher for better quality)
   
   // Error handling and retry variables
   final ErrorHandlerService _errorHandler = ErrorHandlerService.instance;
@@ -41,27 +41,46 @@ class CameraService {
   
   Future<void> initialize() async {
     try {
+      print('CameraService: Starting initialization...');
+      
       // Check camera permissions first
       final status = await Permission.camera.request();
       if (status != PermissionStatus.granted) {
         _hasPermission = false;
         _errorMessage = 'Camera permission denied';
+        print('CameraService: Permission denied - $status');
         throw _errorHandler.handlePermissionError(status);
       }
       
       _hasPermission = true;
+      print('CameraService: Permission granted');
       
-      if (_cameras != null && _isInitialized) return;
+      if (_cameras != null && _isInitialized && _controller != null && _controller!.value.isInitialized) {
+        print('CameraService: Already initialized, skipping...');
+        return;
+      }
       
+      // Get available cameras
       _cameras = await availableCameras();
       if (_cameras!.isEmpty) {
         _errorMessage = 'No cameras available';
+        print('CameraService: No cameras available');
         throw _errorHandler.handleError('No cameras available', ErrorType.camera);
       }
+      
+      print('CameraService: Found ${_cameras!.length} cameras');
       
       // Determine optimal resolution based on device capabilities
       _determineOptimalResolution();
       
+      // Dispose existing controller if any
+      if (_controller != null) {
+        print('CameraService: Disposing existing controller');
+        await _controller!.dispose();
+        _controller = null;
+      }
+      
+      // Create controller with optimized settings
       _controller = CameraController(
         _cameras![0],
         _currentResolution,
@@ -69,17 +88,45 @@ class CameraService {
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
       
-      await _controller!.initialize();
+      print('CameraService: Controller created, initializing...');
+      
+      // Initialize with timeout
+      await _controller!.initialize().timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          print('CameraService: Initialization timeout');
+          throw _errorHandler.handleError('Camera initialization timeout', ErrorType.camera);
+        },
+      );
+      
       _isInitialized = true;
       _errorMessage = null;
       _initializationRetryCount = 0; // Reset retry count on success
       
-      // Set initial flash mode
-      await _controller!.setFlashMode(_currentFlashMode);
+      print('CameraService: Initialization successful');
+      print('CameraService: Controller value isInitialized: ${_controller!.value.isInitialized}');
+      
+      // Set initial flash mode (non-blocking)
+      _controller!.setFlashMode(_currentFlashMode).catchError((e) {
+        print('CameraService: Flash mode setting failed: $e');
+        // Silently handle flash errors
+      });
       
     } catch (e) {
       _isInitialized = false;
       _errorMessage = e.toString();
+      
+      print('CameraService: Initialization failed: $e');
+      
+      // Clean up on error
+      if (_controller != null) {
+        try {
+          await _controller!.dispose();
+        } catch (disposeError) {
+          print('CameraService: Error disposing controller: $disposeError');
+        }
+        _controller = null;
+      }
       
       // Handle specific error types
       if (e is ErrorInfo) {
@@ -101,30 +148,31 @@ class CameraService {
       } catch (e) {
         _initializationRetryCount++;
         
+        // Clean up on error
+        _controller?.dispose();
+        _controller = null;
+        _isInitialized = false;
+        
         if (_initializationRetryCount >= _maxRetryAttempts) {
           // Max retries reached, throw the error
           throw e;
         }
         
-        // Wait before retrying
-        await Future.delayed(_retryDelay);
+        // Wait before retrying with exponential backoff
+        final delay = Duration(seconds: _retryDelay.inSeconds * _initializationRetryCount);
+        await Future.delayed(delay);
       }
     }
   }
   
   // Performance optimization methods
   void _determineOptimalResolution() {
-    // This is a simplified device capability detection
-    // In a real implementation, you would use device_info_plus package
-    // to get actual device specifications
-    
-    // For now, we'll use a conservative approach
+    // Use high resolution by default for better image quality
+    // Only use lower resolution for very low-end devices
     if (_isLowEndDevice) {
-      _currentResolution = ResolutionPreset.low;
-    } else if (_isHighEndDevice) {
-      _currentResolution = ResolutionPreset.high;
-    } else {
       _currentResolution = ResolutionPreset.medium;
+    } else {
+      _currentResolution = ResolutionPreset.high;
     }
   }
   
@@ -166,13 +214,20 @@ class CameraService {
     }
     
     try {
-      final XFile image = await _controller!.takePicture();
+      // Capture image with timeout
+      final XFile image = await _controller!.takePicture().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          throw _errorHandler.handleError('Image capture timeout', ErrorType.camera);
+        },
+      );
+      
       final File originalFile = File(image.path);
       
-      // Compress and optimize the captured image
-      final File optimizedFile = await _compressAndOptimizeImage(originalFile);
+      // For better performance, return the original file immediately
+      // and let the UI handle optimization if needed
+      return originalFile;
       
-      return optimizedFile;
     } catch (e) {
       throw _errorHandler.handleError(e, ErrorType.processing);
     }
@@ -295,7 +350,12 @@ class CameraService {
   }
   
   Widget buildCameraPreview() {
+    print('CameraService: buildCameraPreview called');
+    print('CameraService: _isInitialized: $_isInitialized');
+    print('CameraService: _controller: ${_controller != null}');
+    
     if (!_isInitialized || _controller == null) {
+      print('CameraService: Not initialized or no controller');
       return Container(
         color: Colors.black,
         child: Center(
@@ -315,11 +375,32 @@ class CameraService {
       );
     }
     
-    // Return real camera preview with proper aspect ratio handling
-    return AspectRatio(
-      aspectRatio: _controller!.value.aspectRatio,
-      child: CameraPreview(_controller!),
-    );
+    // Check if controller is properly initialized
+    print('CameraService: Controller value isInitialized: ${_controller!.value.isInitialized}');
+    if (!_controller!.value.isInitialized) {
+      print('CameraService: Controller not initialized');
+      return Container(
+        color: Colors.black,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(color: Colors.white),
+              const SizedBox(height: 16),
+              const Text(
+                'Camera controller initializing...',
+                style: TextStyle(color: Colors.white),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    
+    print('CameraService: Returning CameraPreview');
+    // Return camera preview directly
+    return CameraPreview(_controller!);
   }
   
   Future<File?> pickImageFromGallery() async {
@@ -392,10 +473,20 @@ class CameraService {
   List<CameraDescription>? get cameras => _cameras;
   bool get hasFlash => _controller?.value.flashMode != FlashMode.off || _currentFlashMode != FlashMode.off;
   
+  // Performance monitoring
+  bool get isPerformanceOptimized => _isInitialized && _controller?.value.isInitialized == true;
+  String get performanceStatus {
+    if (!_isInitialized) return 'Not initialized';
+    if (_controller?.value.isInitialized != true) return 'Controller not ready';
+    return 'Optimized';
+  }
+  
   void dispose() {
     _controller?.dispose();
     _controller = null;
     _isInitialized = false;
     _initializationRetryCount = 0;
+    _cameras = null;
+    _errorMessage = null;
   }
 } 

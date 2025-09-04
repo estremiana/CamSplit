@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
+import 'package:currency_picker/currency_picker.dart';
 
 import '../../../core/app_export.dart';
 import '../../../theme/app_theme.dart';
+import '../../../widgets/currency_display_widget.dart';
 import './member_avatar_widget.dart';
 
 class AssignmentItemCardWidget extends StatefulWidget {
@@ -12,6 +14,7 @@ class AssignmentItemCardWidget extends StatefulWidget {
   final Function(Map<String, dynamic>) onAssignmentChanged;
   final bool isExpanded;
   final VoidCallback onToggleExpanded;
+  final Currency currency;
 
   const AssignmentItemCardWidget({
     super.key,
@@ -20,6 +23,7 @@ class AssignmentItemCardWidget extends StatefulWidget {
     required this.onAssignmentChanged,
     required this.isExpanded,
     required this.onToggleExpanded,
+    required this.currency,
   });
 
   @override
@@ -98,13 +102,35 @@ class _AssignmentItemCardWidgetState extends State<AssignmentItemCardWidget> {
                           ),
                         ),
                         SizedBox(height: 0.5.h),
-                        Text(
-                          '\$${widget.item['unit_price'].toStringAsFixed(2)} x $_quantity = \$${((widget.item['unit_price'] as double) * _quantity).toStringAsFixed(2)}',
-                          style: AppTheme.getMonospaceStyle(
-                            isLight: true,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        Row(
+                          children: [
+                            CurrencyDisplayWidget(
+                              amount: widget.item['unit_price'] as double,
+                              currency: widget.currency,
+                              style: AppTheme.getMonospaceStyle(
+                                isLight: true,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              ' x $_quantity = ',
+                              style: AppTheme.getMonospaceStyle(
+                                isLight: true,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            CurrencyDisplayWidget(
+                              amount: (widget.item['unit_price'] as double) * _quantity,
+                              currency: widget.currency,
+                              style: AppTheme.getMonospaceStyle(
+                                isLight: true,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
                         if (widget.item['category'] != null) ...[
                           SizedBox(height: 0.5.h),
@@ -314,8 +340,9 @@ class _AssignmentItemCardWidgetState extends State<AssignmentItemCardWidget> {
                                       style: AppTheme
                                           .lightTheme.textTheme.bodyMedium,
                                     ),
-                                    Text(
-                                      '\$${_calculateMemberShare().toStringAsFixed(2)}',
+                                    CurrencyDisplayWidget(
+                                      amount: _calculateMemberShare(),
+                                      currency: widget.currency,
                                       style: AppTheme.getMonospaceStyle(
                                         isLight: true,
                                         fontSize: 14,
@@ -336,8 +363,9 @@ class _AssignmentItemCardWidgetState extends State<AssignmentItemCardWidget> {
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
-                                    Text(
-                                      '\$${((widget.item['unit_price'] as double) * _quantity).toStringAsFixed(2)}',
+                                    CurrencyDisplayWidget(
+                                      amount: (widget.item['unit_price'] as double) * _quantity,
+                                      currency: widget.currency,
                                       style: AppTheme.getMonospaceStyle(
                                         isLight: true,
                                         fontSize: 14,

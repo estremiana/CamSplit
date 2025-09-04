@@ -1,9 +1,12 @@
 import 'group_member.dart';
+import 'package:currency_picker/currency_picker.dart';
+import '../services/currency_service.dart';
+import '../services/currency_migration_service.dart';
 
 class Group {
   final int id;
   final String name;
-  final String currency;
+  final Currency currency;
   final String? description;
   final int createdBy;
   final List<GroupMember> members;
@@ -40,10 +43,19 @@ class Group {
       memberCountFromApi = int.tryParse(json['member_count'].toString());
     }
     
+    // Handle currency using migration service for backward compatibility
+    Currency currency;
+    try {
+      currency = CurrencyMigrationService.migrateCurrencyData(json['currency'] ?? 'EUR');
+    } catch (e) {
+      // Fallback to EUR if migration fails
+      currency = SplitEaseCurrencyService.getCurrencyByCode('EUR');
+    }
+    
     return Group(
       id: int.tryParse(json['id']?.toString() ?? '0') ?? 0,
       name: json['name']?.toString() ?? '',
-      currency: json['currency']?.toString() ?? 'USD',
+      currency: currency,
       description: json['description']?.toString(),
       createdBy: int.tryParse(json['created_by']?.toString() ?? '0') ?? 0,
       members: members,
@@ -58,7 +70,7 @@ class Group {
     return {
       'id': id,
       'name': name,
-      'currency': currency,
+      'currency': CurrencyMigrationService.prepareForBackend(currency, format: 'code'),
       'description': description,
       'created_by': createdBy,
       'members': members.map((member) => member.toJson()).toList(),
@@ -73,7 +85,7 @@ class Group {
   bool isValid() {
     return id > 0 && 
            name.isNotEmpty && 
-           currency.isNotEmpty &&
+           currency.code.isNotEmpty &&
            createdBy > 0 &&
            members.isNotEmpty &&
            members.every((member) => member.isValid());

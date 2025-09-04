@@ -1,35 +1,54 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
+import 'package:currency_picker/currency_picker.dart';
 
 import '../../../core/app_export.dart';
 import '../../../models/dashboard_model.dart';
+import '../../../services/currency_service.dart';
+import '../../../widgets/currency_display_widget.dart';
 
 class BalanceCardWidget extends StatelessWidget {
   final double totalOwed;
   final double totalOwing;
   final bool isPrivacyMode;
   final VoidCallback onPrivacyToggle;
+  final Currency currency;
 
-  const BalanceCardWidget({
+  BalanceCardWidget({
     super.key,
     required this.totalOwed,
     required this.totalOwing,
     required this.isPrivacyMode,
     required this.onPrivacyToggle,
-  });
+    Currency? currency,
+  }) : currency = currency ?? Currency(
+         code: 'EUR',
+         name: 'Euro',
+         symbol: '€',
+         flag: '🇪🇺',
+         number: 978,
+         decimalDigits: 2,
+         namePlural: 'Euros',
+         symbolOnLeft: true,
+         decimalSeparator: '.',
+         thousandsSeparator: ',',
+         spaceBetweenAmountAndSymbol: false,
+       );
 
   // Alternative constructor for new payment summary structure
   factory BalanceCardWidget.fromPaymentSummary({
     required PaymentSummaryModel paymentSummary,
     required bool isPrivacyMode,
     required VoidCallback onPrivacyToggle,
+    Currency? currency,
   }) {
     return BalanceCardWidget(
       totalOwed: paymentSummary.totalOwed,
       totalOwing: paymentSummary.totalOwing,
       isPrivacyMode: isPrivacyMode,
       onPrivacyToggle: onPrivacyToggle,
+      currency: currency,
     );
   }
 
@@ -108,18 +127,28 @@ class BalanceCardWidget extends StatelessWidget {
                           ),
                         ),
                         SizedBox(height: 0.5.h),
-                        Text(
-                          isPrivacyMode
-                              ? '••••••'
-                              : '\$${totalOwed.toStringAsFixed(2)}',
-                          style: AppTheme.getMonospaceStyle(
-                            isLight: false,
-                            fontSize: 18.sp,
-                            fontWeight: FontWeight.w600,
-                          ).copyWith(
-                            color: AppTheme.onPrimaryLight,
-                          ),
-                        ),
+                        isPrivacyMode
+                            ? Text(
+                                '••••••',
+                                style: AppTheme.getMonospaceStyle(
+                                  isLight: false,
+                                  fontSize: 18.sp,
+                                  fontWeight: FontWeight.w600,
+                                ).copyWith(
+                                  color: AppTheme.onPrimaryLight,
+                                ),
+                              )
+                            : CurrencyDisplayWidget(
+                                amount: totalOwed,
+                                currency: currency,
+                                style: AppTheme.getMonospaceStyle(
+                                  isLight: false,
+                                  fontSize: 18.sp,
+                                  fontWeight: FontWeight.w600,
+                                ).copyWith(
+                                  color: AppTheme.onPrimaryLight,
+                                ),
+                              ),
                       ],
                     ),
                   ),
@@ -142,18 +171,28 @@ class BalanceCardWidget extends StatelessWidget {
                           ),
                         ),
                         SizedBox(height: 0.5.h),
-                        Text(
-                          isPrivacyMode
-                              ? '••••••'
-                              : '\$${totalOwing.toStringAsFixed(2)}',
-                          style: AppTheme.getMonospaceStyle(
-                            isLight: false,
-                            fontSize: 18.sp,
-                            fontWeight: FontWeight.w600,
-                          ).copyWith(
-                            color: AppTheme.onPrimaryLight,
-                          ),
-                        ),
+                        isPrivacyMode
+                            ? Text(
+                                '••••••',
+                                style: AppTheme.getMonospaceStyle(
+                                  isLight: false,
+                                  fontSize: 18.sp,
+                                  fontWeight: FontWeight.w600,
+                                ).copyWith(
+                                  color: AppTheme.onPrimaryLight,
+                                ),
+                              )
+                            : CurrencyDisplayWidget(
+                                amount: totalOwing,
+                                currency: currency,
+                                style: AppTheme.getMonospaceStyle(
+                                  isLight: false,
+                                  fontSize: 18.sp,
+                                  fontWeight: FontWeight.w600,
+                                ).copyWith(
+                                  color: AppTheme.onPrimaryLight,
+                                ),
+                              ),
                       ],
                     ),
                   ),
@@ -197,18 +236,28 @@ class BalanceCardWidget extends StatelessWidget {
                                   .withValues(alpha: 0.8),
                             ),
                           ),
-                          Text(
-                            isPrivacyMode
-                                ? '••••••'
-                                : '${isPositive ? '+' : ''}\$${netBalance.abs().toStringAsFixed(2)}',
-                            style: AppTheme.getMonospaceStyle(
-                              isLight: false,
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.w600,
-                            ).copyWith(
-                              color: AppTheme.onPrimaryLight,
-                            ),
-                          ),
+                          isPrivacyMode
+                              ? Text(
+                                  '••••••',
+                                  style: AppTheme.getMonospaceStyle(
+                                    isLight: false,
+                                    fontSize: 16.sp,
+                                    fontWeight: FontWeight.w600,
+                                  ).copyWith(
+                                    color: AppTheme.onPrimaryLight,
+                                  ),
+                                )
+                              : CurrencyDisplayWidget(
+                                  amount: netBalance,
+                                  currency: currency,
+                                  style: AppTheme.getMonospaceStyle(
+                                    isLight: false,
+                                    fontSize: 16.sp,
+                                    fontWeight: FontWeight.w600,
+                                  ).copyWith(
+                                    color: AppTheme.onPrimaryLight,
+                                  ),
+                                ),
                         ],
                       ),
                     ),

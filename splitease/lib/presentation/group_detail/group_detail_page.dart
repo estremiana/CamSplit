@@ -5,6 +5,7 @@ import '../../core/app_export.dart';
 import '../../models/group_detail_model.dart';
 import '../../models/group_member.dart';
 import '../../services/group_detail_service.dart';
+import '../../services/currency_migration_service.dart';
 import '../../utils/snackbar_utils.dart';
 import '../../utils/loading_overlay.dart';
 import '../../utils/error_recovery.dart';
@@ -263,6 +264,9 @@ class _GroupDetailPageState extends State<GroupDetailPage> with RealTimeUpdateMi
   /// Optimistic update for expense creation
   void _optimisticExpenseUpdate(GroupExpense newExpense) {
     if (_groupDetail != null) {
+      // Store the original expense count before optimistic update
+      final originalExpenseCount = _groupDetail!.expenses.length;
+      
       setState(() {
         _isOptimisticUpdate = true;
         // Add the new expense to the beginning of the list
@@ -278,13 +282,18 @@ class _GroupDetailPageState extends State<GroupDetailPage> with RealTimeUpdateMi
       SnackBarUtils.showSuccess(context, 'Expense added successfully!');
       
       // Refresh data in background to get accurate calculations
-      _refreshDataInBackground();
+      _refreshDataInBackground(originalExpenseCount);
     }
   }
 
   /// Refresh data in background without showing loading state
-  Future<void> _refreshDataInBackground() async {
+  Future<void> _refreshDataInBackground([int? originalExpenseCount]) async {
     try {
+      // Wait for backend settlement recalculation to complete
+      // The backend has a 1000ms delay for expense creation
+      await Future.delayed(Duration(milliseconds: 1500));
+      
+      // First attempt to refresh
       final groupDetail = await GroupDetailService.refreshGroupDetails(widget.groupId);
       
       if (mounted) {
@@ -292,6 +301,21 @@ class _GroupDetailPageState extends State<GroupDetailPage> with RealTimeUpdateMi
           _groupDetail = groupDetail;
           _isOptimisticUpdate = false;
         });
+        
+        // Check if the new expense was added to the group
+        // If not, the backend might still be processing, so retry
+        if (originalExpenseCount != null && groupDetail.expenses.length <= originalExpenseCount) {
+          debugPrint('New expense not found in group yet, retrying in 1 second...');
+          await Future.delayed(Duration(milliseconds: 1000));
+          
+          final retryGroupDetail = await GroupDetailService.refreshGroupDetails(widget.groupId);
+          
+          if (mounted) {
+            setState(() {
+              _groupDetail = retryGroupDetail;
+            });
+          }
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -326,8 +350,19 @@ class _GroupDetailPageState extends State<GroupDetailPage> with RealTimeUpdateMi
       // Check if expense was created successfully
       if (result != null && result is Map<String, dynamic>) {
         if (result['success'] == true && result['expense'] != null) {
-          // Optimistic update with the new expense
-          _optimisticExpenseUpdate(result['expense']);
+          // Convert the expense map to GroupExpense object
+          try {
+            final expenseMap = result['expense'] as Map<String, dynamic>;
+            final newExpense = GroupExpense.fromJson(expenseMap);
+            // Optimistic update with the new expense
+            _optimisticExpenseUpdate(newExpense);
+          } catch (e) {
+            debugPrint('Failed to parse expense data: $e');
+            // Fallback: refresh data instead of optimistic update
+            // Wait a bit for backend processing to complete
+            await Future.delayed(Duration(milliseconds: 1500));
+            _refreshData();
+          }
         }
       }
     } catch (e) {
@@ -507,36 +542,36 @@ class _GroupDetailPageState extends State<GroupDetailPage> with RealTimeUpdateMi
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Optimistic update indicator
-            if (_isOptimisticUpdate)
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.symmetric(vertical: 1.h, horizontal: 3.w),
-                margin: EdgeInsets.only(bottom: 2.h),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.withOpacity(0.3)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.sync,
-                      size: 16,
-                      color: Colors.blue,
-                    ),
-                    SizedBox(width: 2.w),
-                    Expanded(
-                      child: Text(
-                        'Updating group data...',
-                        style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-                          color: Colors.blue,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+                         // Optimistic update indicator
+             if (_isOptimisticUpdate)
+               Container(
+                 width: double.infinity,
+                 padding: EdgeInsets.symmetric(vertical: 1.h, horizontal: 3.w),
+                 margin: EdgeInsets.only(bottom: 2.h),
+                 decoration: BoxDecoration(
+                   color: Colors.blue.withOpacity(0.1),
+                   borderRadius: BorderRadius.circular(8),
+                   border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                 ),
+                 child: Row(
+                   children: [
+                     Icon(
+                       Icons.sync,
+                       size: 16,
+                       color: Colors.blue,
+                     ),
+                     SizedBox(width: 2.w),
+                     Expanded(
+                       child: Text(
+                         'Updating balances and settlements...',
+                         style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+                           color: Colors.blue,
+                         ),
+                       ),
+                     ),
+                   ],
+                 ),
+               ),
             
             // Group Header Section
             GroupHeaderWidget(groupDetail: _groupDetail!),
@@ -545,7 +580,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> with RealTimeUpdateMi
             // Balance Summary Section
             BalanceSummaryWidget(
               balance: _groupDetail!.userBalance,
-              currency: _groupDetail!.currency,
+              currency: CurrencyMigrationService.parseFromBackend(_groupDetail!.currency),
             ),
             SizedBox(height: 3.h),
             

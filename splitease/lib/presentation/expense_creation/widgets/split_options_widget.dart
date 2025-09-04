@@ -2,8 +2,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
+import 'package:currency_picker/currency_picker.dart';
 
 import '../../../core/app_export.dart';
+import '../../../widgets/currency_display_widget.dart';
 
 class SplitOptionsWidget extends StatefulWidget {
   final String splitType;
@@ -15,7 +17,7 @@ class SplitOptionsWidget extends StatefulWidget {
   final Function(List<String>)? onMembersChanged;
   final double? totalAmount;
   final Function(Map<String, double>)? onCustomAmountsChanged;
-  final String currencySymbol;
+  final Currency currency;
   // Receipt mode parameters
   final bool isReceiptMode;
   final Map<String, double>? prefilledCustomAmounts;
@@ -33,7 +35,7 @@ class SplitOptionsWidget extends StatefulWidget {
     this.onMembersChanged,
     this.totalAmount,
     this.onCustomAmountsChanged,
-    required this.currencySymbol,
+    required this.currency,
     this.isReceiptMode = false,
     this.prefilledCustomAmounts,
     this.isReadOnly = false,
@@ -665,8 +667,9 @@ class _SplitOptionsWidgetState extends State<SplitOptionsWidget> {
                         if (isSelected)
                           Row(
                             children: [
-                              Text(
-                                '${widget.currencySymbol}${perPerson.toStringAsFixed(2)}',
+                              CurrencyDisplayWidget(
+                                amount: perPerson,
+                                currency: widget.currency,
                                 style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
                                   color: AppTheme.lightTheme.colorScheme.primary,
                                   fontWeight: FontWeight.w600,
@@ -820,9 +823,9 @@ class _SplitOptionsWidgetState extends State<SplitOptionsWidget> {
                                 style: AppTheme.lightTheme.textTheme.bodyMedium
                                     ?.copyWith(fontWeight: FontWeight.w500))),
                         SizedBox(width: 3.w),
-                        Text(
-                          // TODO: Replace '€' with currency symbol prop if available
-                          '${widget.currencySymbol}${amount.toStringAsFixed(2)}',
+                        CurrencyDisplayWidget(
+                          amount: amount,
+                          currency: widget.currency,
                           style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
                             color: AppTheme.lightTheme.colorScheme.primary,
                             fontWeight: FontWeight.w600,
@@ -981,7 +984,9 @@ class _SplitOptionsWidgetState extends State<SplitOptionsWidget> {
                                 ? AppTheme.lightTheme.colorScheme.primaryContainer
                                 : AppTheme.lightTheme.colorScheme.errorContainer,
                             borderRadius: BorderRadius.circular(8)),
-                        child: Text('${widget.currencySymbol}${_totalCustomAmount.toStringAsFixed(2)}',
+                        child: CurrencyDisplayWidget(
+                            amount: _totalCustomAmount,
+                            currency: widget.currency,
                             style: AppTheme.lightTheme.textTheme.bodySmall
                                 ?.copyWith(
                                     color: isValidTotal
@@ -1018,7 +1023,7 @@ class _SplitOptionsWidgetState extends State<SplitOptionsWidget> {
                                     width: 24,
                                     alignment: Alignment.center,
                                     child: Text(
-                                      widget.currencySymbol,
+                                      widget.currency.symbol,
                                       style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(color: AppTheme.lightTheme.colorScheme.secondary),
                                     ),
                                   ),

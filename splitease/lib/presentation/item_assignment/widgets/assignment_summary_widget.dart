@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
+import 'package:currency_picker/currency_picker.dart';
 
 import '../../../core/app_export.dart';
 import '../../../models/group.dart';
+import '../../../widgets/currency_display_widget.dart';
 import 'group_selection_widget.dart';
 
 class AssignmentSummaryWidget extends StatefulWidget {
@@ -23,6 +25,7 @@ class AssignmentSummaryWidget extends StatefulWidget {
   final Function(String groupId)? onGroupChanged;
   final bool hasExistingAssignments;
   final bool isLoadingGroups;
+  final Currency currency;
 
   const AssignmentSummaryWidget({
     super.key,
@@ -39,6 +42,7 @@ class AssignmentSummaryWidget extends StatefulWidget {
     this.onGroupChanged,
     this.hasExistingAssignments = false,
     this.isLoadingGroups = false,
+    required this.currency,
   });
 
   @override
@@ -335,7 +339,9 @@ class _AssignmentSummaryWidgetState extends State<AssignmentSummaryWidget> {
                                         .lightTheme.colorScheme.secondary)),
                       ])),
                   // Amount
-                  Text('\$${memberTotal.toStringAsFixed(2)}',
+                                          CurrencyDisplayWidget(
+                          amount: memberTotal,
+                          currency: widget.currency,
                       style: AppTheme.getMonospaceStyle(
                           isLight: true,
                           fontSize: 16,
@@ -357,7 +363,9 @@ class _AssignmentSummaryWidgetState extends State<AssignmentSummaryWidget> {
                     Text('Total Amount',
                         style: AppTheme.lightTheme.textTheme.titleMedium
                             ?.copyWith(fontWeight: FontWeight.w600)),
-                    Text('\$${totalAmount.toStringAsFixed(2)}',
+                                            CurrencyDisplayWidget(
+                          amount: totalAmount,
+                          currency: widget.currency,
                         style: AppTheme.getMonospaceStyle(
                             isLight: true,
                             fontSize: 18,

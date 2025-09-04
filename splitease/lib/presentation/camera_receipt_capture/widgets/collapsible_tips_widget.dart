@@ -94,35 +94,40 @@ class _CollapsibleTipsWidgetState extends State<CollapsibleTipsWidget>
       child: AnimatedBuilder(
         animation: _animationController,
         builder: (context, child) {
-          return SlideTransition(
-            position: _slideAnimation,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              height: widget.isExpanded ? null : 12.w,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.7),
-                  borderRadius: BorderRadius.circular(12),
+                      return SlideTransition(
+              position: _slideAnimation,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                height: widget.isExpanded ? null : 12.w,
+                constraints: BoxConstraints(
+                  maxHeight: widget.isExpanded ? 30.h : 12.w,
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Header with toggle button
-                    _buildHeader(),
-                    
-                    // Expandable content
-                    SizeTransition(
-                      sizeFactor: _heightAnimation,
-                      child: FadeTransition(
-                        opacity: _opacityAnimation,
-                        child: _buildTipsContent(),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.7),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Header with toggle button
+                      _buildHeader(),
+                      
+                      // Expandable content
+                      Expanded(
+                        child: SizeTransition(
+                          sizeFactor: _heightAnimation,
+                          child: FadeTransition(
+                            opacity: _opacityAnimation,
+                            child: _buildTipsContent(),
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
+            );
         },
       ),
     );
@@ -172,15 +177,18 @@ class _CollapsibleTipsWidgetState extends State<CollapsibleTipsWidget>
         right: 4.w,
         bottom: 4.w,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Contextual tip based on detection state
-          if (_hasValidDetection())
-            _buildContextualTip()
-          else
-            ...widget.tips.map((tip) => _buildTip(tip)).toList(),
-        ],
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Contextual tip based on detection state
+            if (_hasValidDetection())
+              _buildContextualTip()
+            else
+              ...widget.tips.map((tip) => _buildTip(tip)).toList(),
+          ],
+        ),
       ),
     );
   }

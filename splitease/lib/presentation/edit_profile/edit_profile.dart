@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
+import 'package:currency_picker/currency_picker.dart';
 
 import '../../core/app_export.dart';
+import '../../services/currency_service.dart';
 import './widgets/profile_form_widget.dart';
 import './widgets/profile_image_picker_widget.dart';
 
@@ -25,7 +27,7 @@ class _EditProfileState extends State<EditProfile> {
   bool _hasChanges = false;
   String? _selectedImagePath;
   String? _currentAvatarUrl;
-  String _selectedCurrency = 'USD';
+  Currency _selectedCurrency = SplitEaseCurrencyService.getDefaultCurrency();
   String _selectedTimezone = 'UTC-5 (EST)';
 
   @override
@@ -193,7 +195,7 @@ class _EditProfileState extends State<EditProfile> {
     });
   }
 
-  void _onCurrencyChanged(String currency) {
+  void _onCurrencyChanged(Currency currency) {
     setState(() {
       _selectedCurrency = currency;
       _hasChanges = true;
@@ -253,8 +255,20 @@ class _EditProfileState extends State<EditProfile> {
     try {
       // Prepare preferences update
       final preferences = <String, dynamic>{};
-      if (_selectedCurrency != (_currentUser?.preferences.currency ?? 'USD')) {
-        preferences['currency'] = _selectedCurrency;
+      if (_selectedCurrency.code != (_currentUser?.preferences.currency.code ?? 'EUR')) {
+        preferences['currency'] = {
+          'code': _selectedCurrency.code,
+          'name': _selectedCurrency.name,
+          'symbol': _selectedCurrency.symbol,
+          'flag': _selectedCurrency.flag,
+          'number': _selectedCurrency.number,
+          'decimalDigits': _selectedCurrency.decimalDigits,
+          'namePlural': _selectedCurrency.namePlural,
+          'symbolOnLeft': _selectedCurrency.symbolOnLeft,
+          'decimalSeparator': _selectedCurrency.decimalSeparator,
+          'thousandsSeparator': _selectedCurrency.thousandsSeparator,
+          'spaceBetweenAmountAndSymbol': _selectedCurrency.spaceBetweenAmountAndSymbol,
+        };
       }
       
       // Update user profile

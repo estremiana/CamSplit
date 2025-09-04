@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
 import 'api_service.dart';
+import 'currency_migration_service.dart';
 
 class UserService {
   static const String _userCacheKey = 'cached_user_data';
@@ -193,7 +194,7 @@ class UserService {
       memberSince: DateTime(2023, 1, 15),
       isEmailVerified: true,
       preferences: UserPreferences(
-        currency: 'USD',
+        currency: CurrencyMigrationService.parseFromBackend('USD'),
         language: 'en',
         notifications: true,
         emailNotifications: true,

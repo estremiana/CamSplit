@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
+import 'package:currency_picker/currency_picker.dart';
 
 import '../../../core/app_export.dart';
 import '../../../theme/app_theme.dart';
+import '../../../widgets/currency_display_widget.dart';
 import './member_avatar_widget.dart';
 
 class QuantityAssignmentWidget extends StatefulWidget {
@@ -13,6 +15,7 @@ class QuantityAssignmentWidget extends StatefulWidget {
   final Function(Map<String, dynamic>) onAssignmentRemoved;
   final bool isExpanded;
   final VoidCallback onToggleExpanded;
+  final Currency currency;
 
   const QuantityAssignmentWidget({
     super.key,
@@ -22,6 +25,7 @@ class QuantityAssignmentWidget extends StatefulWidget {
     required this.onAssignmentRemoved,
     required this.isExpanded,
     required this.onToggleExpanded,
+    required this.currency,
   });
 
   @override
@@ -157,8 +161,9 @@ class _QuantityAssignmentWidgetState extends State<QuantityAssignmentWidget> {
                           ),
                         ),
                         SizedBox(height: 0.5.h),
-                        Text(
-                          '\$${widget.item['unit_price'].toStringAsFixed(2)} each',
+                        CurrencyDisplayWidget(
+                          amount: widget.item['unit_price'] as double,
+                          currency: widget.currency,
                           style: AppTheme.getMonospaceStyle(
                             isLight: true,
                             fontSize: 14,
@@ -321,8 +326,9 @@ class _QuantityAssignmentWidgetState extends State<QuantityAssignmentWidget> {
                                       ],
                                     ),
                                   ),
-                                  Text(
-                                    '\$${assignment['totalPrice'].toStringAsFixed(2)}',
+                                  CurrencyDisplayWidget(
+                                    amount: assignment['totalPrice'] as double,
+                                    currency: widget.currency,
                                     style: AppTheme.getMonospaceStyle(
                                       isLight: true,
                                       fontSize: 14,
@@ -510,8 +516,9 @@ class _QuantityAssignmentWidgetState extends State<QuantityAssignmentWidget> {
                                             ?.copyWith(
                                                 fontWeight: FontWeight.w600),
                                       ),
-                                      Text(
-                                        '\$${((widget.item['unit_price'] as double) * _assignableQuantity).toStringAsFixed(2)}',
+                                      CurrencyDisplayWidget(
+                                        amount: (widget.item['unit_price'] as double) * _assignableQuantity,
+                                        currency: widget.currency,
                                         style: AppTheme.getMonospaceStyle(
                                           isLight: true,
                                           fontSize: 14,

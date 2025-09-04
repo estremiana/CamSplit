@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
+import 'package:currency_picker/currency_picker.dart';
 
 import '../../core/app_export.dart';
 import '../../models/receipt_mode_data.dart';
@@ -54,6 +55,21 @@ class _ItemAssignmentState extends State<ItemAssignment>
   // Track new participants added during assignment
   List<Map<String, dynamic>> _newParticipants = [];
 
+  // Currency for the selected group
+  Currency _currency = Currency(
+    code: 'USD',
+    name: 'US Dollar',
+    symbol: '\$',
+    flag: 'USD',
+    number: 840,
+    decimalDigits: 2,
+    namePlural: 'US Dollars',
+    symbolOnLeft: true,
+    decimalSeparator: '.',
+    thousandsSeparator: ',',
+    spaceBetweenAmountAndSymbol: false,
+  );
+
   @override
   void initState() {
     super.initState();
@@ -105,6 +121,9 @@ class _ItemAssignmentState extends State<ItemAssignment>
         // Pre-select the most recent group (first in sorted list)
         if (_availableGroups.isNotEmpty) {
           _selectedGroupId = _availableGroups.first.id.toString();
+          // Set initial currency for the first group
+          _currency = _availableGroups.first.currency;
+          print('DEBUG: Initial currency set to: ${_currency.code}');
           // Load members for the initially selected group
           _updateGroupMembers(_selectedGroupId!); // Don't await here, let it run asynchronously
         }
@@ -135,6 +154,16 @@ class _ItemAssignmentState extends State<ItemAssignment>
     
     // Update selected group and members
     _selectedGroupId = groupId;
+    
+    // Update currency for the selected group
+    final selectedGroup = _availableGroups.firstWhere(
+      (group) => group.id.toString() == groupId,
+      orElse: () => _availableGroups.first,
+    );
+    setState(() {
+      _currency = selectedGroup.currency;
+    });
+    print('DEBUG: Currency updated to: ${_currency.code}');
     
     // Clear all existing assignments when group changes
     _clearAllAssignments();
@@ -1131,7 +1160,8 @@ class _ItemAssignmentState extends State<ItemAssignment>
                         selectedGroupId: _selectedGroupId,
                         onGroupChanged: _onGroupChanged,
                         hasExistingAssignments: _hasExistingAssignments(),
-                        isLoadingGroups: _isLoading),
+                        isLoadingGroups: _isLoading,
+                        currency: _currency),
 
                     SizedBox(height: 3.h),
 
@@ -1175,6 +1205,7 @@ class _ItemAssignmentState extends State<ItemAssignment>
                                     isExpanded ? -1 : item['id'];
                               });
                             },
+                            currency: _currency,
                           );
                         }),
 
@@ -1235,6 +1266,7 @@ class _ItemAssignmentState extends State<ItemAssignment>
                                 member: member,
                                 assignedItems: memberItems,
                                 onItemDropped: _onItemDroppedToMember,
+                                currency: _currency,
                               );
                             },
                           ),

@@ -1,17 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:currency_picker/currency_picker.dart';
 import '../../../core/app_export.dart';
+import '../../../services/currency_service.dart';
+import '../../../widgets/currency_display_widget.dart';
 
 /// A widget that displays the user's net balance for a group prominently
 /// with color-coded styling and appropriate messaging.
 class BalanceSummaryWidget extends StatelessWidget {
   final double balance;
-  final String currency;
+  final Currency currency;
 
-  const BalanceSummaryWidget({
+  BalanceSummaryWidget({
     super.key,
     required this.balance,
-    this.currency = 'EUR',
-  });
+    Currency? currency,
+  }) : currency = currency ?? Currency(
+         code: 'EUR',
+         name: 'Euro',
+         symbol: '€',
+         flag: '🇪🇺',
+         number: 978,
+         decimalDigits: 2,
+         namePlural: 'Euros',
+         symbolOnLeft: true,
+         decimalSeparator: '.',
+         thousandsSeparator: ',',
+         spaceBetweenAmountAndSymbol: false,
+       );
 
   @override
   Widget build(BuildContext context) {
@@ -39,8 +54,9 @@ class BalanceSummaryWidget extends StatelessWidget {
                 ),
               ),
             ),
-            Text(
-              _getBalanceText(),
+            CurrencyDisplayWidget(
+              amount: balance,
+              currency: currency,
               style: theme.textTheme.bodyLarge?.copyWith(
                 color: _getBalanceColor(isLight),
                 fontWeight: FontWeight.w600,
@@ -52,12 +68,7 @@ class BalanceSummaryWidget extends StatelessWidget {
     );
   }
 
-  /// Returns the formatted balance text with currency symbol
-  String _getBalanceText() {
-    final absBalance = balance.abs();
-    final sign = balance < 0 ? '-' : '';
-    return '$sign${absBalance.toStringAsFixed(2)}$currency';
-  }
+
 
   /// Returns the appropriate status text based on balance
   String _getStatusText() {

@@ -11,6 +11,7 @@ import 'services/navigation_service.dart';
 import 'services/performance_monitor.dart';
 import 'services/haptic_feedback_service.dart';
 import 'services/animation_service.dart';
+import 'services/currency_service.dart';
 import 'presentation/join_group/join_group_screen.dart';
 import 'presentation/splash_screen/splash_screen.dart';
 import 'package:splitease/config/config_test.dart';
@@ -37,6 +38,11 @@ void main() async {
   print('🔧 Initializing navigation services...');
   await _initializeNavigationServices();
   print('✅ Navigation services initialized');
+  
+  // Initialize currency service
+  print('🔧 Initializing currency service...');
+  await SplitEaseCurrencyService.initialize();
+  print('✅ Currency service initialized');
   
   // 🚨 CRITICAL: Device orientation lock - DO NOT REMOVE
   print('🔧 Setting device orientation...');
@@ -97,6 +103,10 @@ class _MyAppState extends State<MyApp> {
     _initDeepLinkHandling();
     print('✅ Deep link handling initialized');
     
+    // Initialize locale-based currency defaults
+    _initializeLocaleBasedCurrency();
+    print('✅ Locale-based currency initialized');
+    
     // Fallback: Mark app as ready after 3 seconds if navigation observer doesn't trigger
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted && !_isAppReady) {
@@ -104,6 +114,30 @@ class _MyAppState extends State<MyApp> {
         setState(() {
           _isAppReady = true;
         });
+      }
+    });
+  }
+  
+  /// Initialize locale-based currency defaults
+  void _initializeLocaleBasedCurrency() {
+    // This will be called after the widget is built and context is available
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        try {
+          // Detect locale-based currency
+          final suggestedCurrency = SplitEaseCurrencyService.detectLocaleBasedCurrency(context);
+          final currentCurrency = SplitEaseCurrencyService.getUserPreferredCurrency();
+          
+          // Only set if user hasn't already set a preference
+          if (currentCurrency.code == 'EUR' && suggestedCurrency.code != 'EUR') {
+            print('🌍 Setting locale-based currency: ${suggestedCurrency.code} for locale: ${Localizations.localeOf(context)}');
+            SplitEaseCurrencyService.setUserPreferredCurrency(suggestedCurrency);
+          } else {
+            print('🌍 Using existing currency preference: ${currentCurrency.code}');
+          }
+        } catch (e) {
+          print('⚠️ Error initializing locale-based currency: $e');
+        }
       }
     });
   }

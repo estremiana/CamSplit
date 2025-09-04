@@ -27,20 +27,22 @@ class CameraControlsWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8.w),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          // Gallery Button
-          _buildGalleryButton(),
+    return RepaintBoundary(
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 8.w),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            // Gallery Button
+            _buildGalleryButton(),
 
-          // Capture Button
-          _buildCaptureButton(),
+            // Capture Button
+            _buildCaptureButton(),
 
-          // Flash Toggle or Camera Switch
-          _buildRightButton(),
-        ],
+            // Flash Toggle or Camera Switch
+            _buildRightButton(),
+          ],
+        ),
       ),
     );
   }

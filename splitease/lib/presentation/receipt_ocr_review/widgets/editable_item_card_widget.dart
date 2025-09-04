@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
+import 'package:currency_picker/currency_picker.dart';
 
 import '../../../core/app_export.dart';
 import '../../../theme/app_theme.dart';
+import '../../../widgets/currency_display_widget.dart';
 import './confidence_indicator_widget.dart';
 
 class EditableItemCardWidget extends StatefulWidget {
@@ -11,6 +13,7 @@ class EditableItemCardWidget extends StatefulWidget {
   final Function(Map<String, dynamic>) onItemChanged;
   final Function(int) onItemDeleted;
   final bool isHighlighted;
+  final Currency currency;
 
   const EditableItemCardWidget({
     super.key,
@@ -18,6 +21,7 @@ class EditableItemCardWidget extends StatefulWidget {
     required this.onItemChanged,
     required this.onItemDeleted,
     this.isHighlighted = false,
+    required this.currency,
   });
 
   @override
@@ -149,13 +153,35 @@ class _EditableItemCardWidgetState extends State<EditableItemCardWidget> {
                           ),
                           textInputAction: TextInputAction.next,
                         )
-                      : Text(
-                          '\$${widget.item['unit_price'].toStringAsFixed(2)} x ${widget.item['quantity']} = \$${widget.item['total_price'].toStringAsFixed(2)}',
-                          style: AppTheme.getMonospaceStyle(
-                            isLight: true,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
+                      :                         Row(
+                          children: [
+                            CurrencyDisplayWidget(
+                              amount: widget.item['unit_price'] as double,
+                              currency: widget.currency,
+                              style: AppTheme.getMonospaceStyle(
+                                isLight: true,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              ' x ${widget.item['quantity']} = ',
+                              style: AppTheme.getMonospaceStyle(
+                                isLight: true,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            CurrencyDisplayWidget(
+                              amount: widget.item['total_price'] as double,
+                              currency: widget.currency,
+                              style: AppTheme.getMonospaceStyle(
+                                isLight: true,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
                 ),
                 SizedBox(width: 2.w),

@@ -6,18 +6,16 @@ import 'package:sizer/sizer.dart';
 import 'package:image/image.dart' as img;
 
 import '../../../core/app_export.dart';
-import '../../../services/receipt_detection_service.dart';
+
 
 class ReceiptImageCropperWidget extends StatefulWidget {
   final File imageFile;
-  final DetectionResult? detectionResult;
   final Function(File croppedImage) onCropComplete;
   final VoidCallback onCancel;
 
   const ReceiptImageCropperWidget({
     super.key,
     required this.imageFile,
-    this.detectionResult,
     required this.onCropComplete,
     required this.onCancel,
   });
@@ -107,26 +105,14 @@ class _ReceiptImageCropperWidgetState extends State<ReceiptImageCropperWidget>
   }
 
   void _initializeCropRect() {
-    if (widget.detectionResult?.boundingBox != null && 
-        widget.detectionResult!.confidence >= 0.6) {
-      // Use detection result to set initial crop area
-      final boundingBox = widget.detectionResult!.boundingBox!;
-      _cropRect = Rect.fromLTWH(
-        boundingBox.left * _imageSize.width,
-        boundingBox.top * _imageSize.height,
-        boundingBox.width * _imageSize.width,
-        boundingBox.height * _imageSize.height,
-      );
-    } else {
-      // Default crop area (80% of image with center alignment)
-      final margin = 0.1;
-      _cropRect = Rect.fromLTWH(
-        _imageSize.width * margin,
-        _imageSize.height * margin,
-        _imageSize.width * (1 - 2 * margin),
-        _imageSize.height * (1 - 2 * margin),
-      );
-    }
+    // Default crop area (80% of image with center alignment)
+    final margin = 0.1;
+    _cropRect = Rect.fromLTWH(
+      _imageSize.width * margin,
+      _imageSize.height * margin,
+      _imageSize.width * (1 - 2 * margin),
+      _imageSize.height * (1 - 2 * margin),
+    );
   }
 
   @override
@@ -187,49 +173,12 @@ class _ReceiptImageCropperWidgetState extends State<ReceiptImageCropperWidget>
             ),
           ),
           const Spacer(),
-          if (widget.detectionResult?.isDetected == true)
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.h),
-              decoration: BoxDecoration(
-                color: _getDetectionColor().withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: _getDetectionColor().withValues(alpha: 0.5),
-                  width: 1,
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CustomIconWidget(
-                    iconName: 'auto_fix_high',
-                    color: _getDetectionColor(),
-                    size: 16,
-                  ),
-                  SizedBox(width: 1.w),
-                  Text(
-                    'Auto-detected',
-                    style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-                      color: _getDetectionColor(),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
         ],
       ),
     );
   }
 
-  Color _getDetectionColor() {
-    if (widget.detectionResult?.confidence == null) return Colors.grey;
-    
-    final confidence = widget.detectionResult!.confidence;
-    if (confidence >= 0.8) return Colors.green;
-    if (confidence >= 0.6) return Colors.orange;
-    return Colors.red;
-  }
+
 
   Widget _buildCropperArea() {
     if (_isLoading) {
@@ -260,16 +209,15 @@ class _ReceiptImageCropperWidgetState extends State<ReceiptImageCropperWidget>
             onPanStart: _onPanStart,
             onPanUpdate: _onPanUpdate,
             onPanEnd: _onPanEnd,
-            child: CustomPaint(
-              painter: ReceiptCropPainter(
-                imageFile: _imageFile,
-                cropRect: _cropRect,
-                imageSize: _imageSize,
-                displaySize: _displaySize,
-                detectionResult: widget.detectionResult,
+                          child: CustomPaint(
+                painter: ReceiptCropPainter(
+                  imageFile: _imageFile,
+                  cropRect: _cropRect,
+                  imageSize: _imageSize,
+                  displaySize: _displaySize,
+                ),
+                size: Size.infinite,
               ),
-              size: Size.infinite,
-            ),
           ),
         ),
       ),
@@ -493,14 +441,12 @@ class ReceiptCropPainter extends CustomPainter {
   final Rect cropRect;
   final Size imageSize;
   final Size displaySize;
-  final DetectionResult? detectionResult;
 
   ReceiptCropPainter({
     required this.imageFile,
     required this.cropRect,
     required this.imageSize,
     required this.displaySize,
-    this.detectionResult,
   });
 
   @override
@@ -567,10 +513,7 @@ class ReceiptCropPainter extends CustomPainter {
     // Draw grid lines
     _drawGridLines(canvas, displayCropRect);
 
-    // Draw detection indicator if available
-    if (detectionResult?.isDetected == true) {
-      _drawDetectionIndicator(canvas, displayCropRect);
-    }
+
   }
 
   void _drawCornerIndicators(Canvas canvas, Rect cropRect) {
@@ -661,52 +604,10 @@ class ReceiptCropPainter extends CustomPainter {
     );
   }
 
-  void _drawDetectionIndicator(Canvas canvas, Rect cropRect) {
-    final confidence = detectionResult!.confidence;
-    final color = confidence >= 0.8 ? Colors.green : 
-                  confidence >= 0.6 ? Colors.orange : Colors.red;
 
-    final indicatorPaint = Paint()
-      ..color = color.withValues(alpha: 0.8)
-      ..style = PaintingStyle.fill;
-
-    final indicatorRect = Rect.fromLTWH(
-      cropRect.left + 10,
-      cropRect.top + 10,
-      80,
-      30,
-    );
-
-    final roundedRect = RRect.fromRectAndRadius(
-      indicatorRect,
-      const Radius.circular(15),
-    );
-
-    canvas.drawRRect(roundedRect, indicatorPaint);
-
-    // Draw text
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: '${(confidence * 100).toInt()}%',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    );
-
-    textPainter.layout();
-    textPainter.paint(
-      canvas,
-      Offset(indicatorRect.left + 10, indicatorRect.top + 8),
-    );
-  }
 
   @override
   bool shouldRepaint(ReceiptCropPainter oldDelegate) {
-    return oldDelegate.cropRect != cropRect ||
-           oldDelegate.detectionResult != detectionResult;
+    return oldDelegate.cropRect != cropRect;
   }
 }

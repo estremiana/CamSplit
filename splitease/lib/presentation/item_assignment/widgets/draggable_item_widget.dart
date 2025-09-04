@@ -1,20 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
+import 'package:currency_picker/currency_picker.dart';
 
 import '../../../core/app_export.dart';
 import '../../../theme/app_theme.dart';
+import '../../../widgets/currency_display_widget.dart';
 
 class DraggableItemWidget extends StatelessWidget {
   final Map<String, dynamic> item;
   final Widget child;
   final bool isDragging;
+  final Currency currency;
 
   const DraggableItemWidget({
     super.key,
     required this.item,
     required this.child,
     this.isDragging = false,
+    required this.currency,
   });
 
   @override
@@ -66,13 +70,35 @@ class DraggableItemWidget extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       SizedBox(height: 0.5.h),
-                      Text(
-                        '\$${item['unit_price'].toStringAsFixed(2)} x ${item['quantity']} = \$${item['total_price'].toStringAsFixed(2)}',
-                        style: AppTheme.getMonospaceStyle(
-                          isLight: true,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      Row(
+                        children: [
+                          CurrencyDisplayWidget(
+                            amount: item['unit_price'] as double,
+                            currency: currency,
+                            style: AppTheme.getMonospaceStyle(
+                              isLight: true,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Text(
+                            ' x ${item['quantity']} = ',
+                            style: AppTheme.getMonospaceStyle(
+                              isLight: true,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          CurrencyDisplayWidget(
+                            amount: item['total_price'] as double,
+                            currency: currency,
+                            style: AppTheme.getMonospaceStyle(
+                              isLight: true,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

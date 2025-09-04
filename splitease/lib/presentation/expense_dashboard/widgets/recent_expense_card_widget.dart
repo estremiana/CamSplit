@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
+import 'package:currency_picker/currency_picker.dart';
 
 import '../../../core/app_export.dart';
+import '../../../services/currency_service.dart';
+import '../../../widgets/currency_display_widget.dart';
 
 class RecentExpenseCardWidget extends StatelessWidget {
   final Map<String, dynamic> expense;
@@ -12,8 +15,9 @@ class RecentExpenseCardWidget extends StatelessWidget {
   final VoidCallback onShare;
   final VoidCallback onDelete;
   final VoidCallback onTap;
+  final Currency currency;
 
-  const RecentExpenseCardWidget({
+  RecentExpenseCardWidget({
     super.key,
     required this.expense,
     required this.isPrivacyMode,
@@ -22,7 +26,20 @@ class RecentExpenseCardWidget extends StatelessWidget {
     required this.onShare,
     required this.onDelete,
     required this.onTap,
-  });
+    Currency? currency,
+  }) : currency = currency ?? Currency(
+         code: 'EUR',
+         name: 'Euro',
+         symbol: '€',
+         flag: '🇪🇺',
+         number: 978,
+         decimalDigits: 2,
+         namePlural: 'Euros',
+         symbolOnLeft: true,
+         decimalSeparator: '.',
+         thousandsSeparator: ',',
+         spaceBetweenAmountAndSymbol: false,
+       );
 
   @override
   Widget build(BuildContext context) {
@@ -145,30 +162,48 @@ class RecentExpenseCardWidget extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(
-                        isPrivacyMode
-                            ? '••••••'
-                            : '\$${amount.toStringAsFixed(2)}',
-                        style: AppTheme.getMonospaceStyle(
-                          isLight: true,
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      isPrivacyMode
+                          ? Text(
+                              '••••••',
+                              style: AppTheme.getMonospaceStyle(
+                                isLight: true,
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            )
+                          : CurrencyDisplayWidget(
+                              amount: amount,
+                              currency: currency,
+                              style: AppTheme.getMonospaceStyle(
+                                isLight: true,
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                       if (amountOwed > 0) ...[
                         SizedBox(height: 0.3.h),
-                        Text(
-                          isPrivacyMode
-                              ? '••••••'
-                              : '\$${amountOwed.toStringAsFixed(2)}',
-                          style: AppTheme.getMonospaceStyle(
-                            isLight: true,
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w500,
-                          ).copyWith(
-                            color: AppTheme.errorLight,
-                          ),
-                        ),
+                        isPrivacyMode
+                            ? Text(
+                                '••••••',
+                                style: AppTheme.getMonospaceStyle(
+                                  isLight: true,
+                                  fontSize: 12.sp,
+                                  fontWeight: FontWeight.w500,
+                                ).copyWith(
+                                  color: AppTheme.errorLight,
+                                ),
+                              )
+                            : CurrencyDisplayWidget(
+                                amount: amountOwed,
+                                currency: currency,
+                                style: AppTheme.getMonospaceStyle(
+                                  isLight: true,
+                                  fontSize: 12.sp,
+                                  fontWeight: FontWeight.w500,
+                                ).copyWith(
+                                  color: AppTheme.errorLight,
+                                ),
+                              ),
                       ],
                       SizedBox(height: 0.5.h),
                       Row(

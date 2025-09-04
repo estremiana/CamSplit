@@ -3,6 +3,7 @@ import '../models/participant_amount.dart';
 import '../models/expense.dart';
 import '../models/group_member.dart';
 import 'api_service.dart';
+import 'currency_migration_service.dart';
 
 /// Custom exception for network-related errors in service layer
 class NetworkException implements Exception {
@@ -189,9 +190,9 @@ class ExpenseDetailService {
     }
     
     // Currency validation
-    if (data.currency.trim().isEmpty) {
+    if (data.currency.code.trim().isEmpty) {
       errors.add('Currency is required');
-    } else if (data.currency.length != 3) {
+    } else if (data.currency.code.length != 3) {
       errors.add('Currency must be a valid 3-letter code');
     }
     
@@ -389,7 +390,7 @@ class ExpenseDetailService {
       id: expense.id,
       title: expense.title.isNotEmpty ? expense.title : 'Expense',
       amount: expense.totalAmount,
-      currency: expense.currency.isNotEmpty ? expense.currency : 'EUR',
+      currency: CurrencyMigrationService.parseFromBackend(expense.currency),
       date: expense.date ?? DateTime.now(),
       category: expense.category?.isNotEmpty == true ? expense.category! : 'Other',
       notes: expense.description ?? '',

@@ -7,6 +7,7 @@ import '../config/api_config.dart';
 import '../utils/real_time_updates.dart';
 import '../utils/error_recovery.dart';
 import 'api_service.dart';
+import 'currency_migration_service.dart';
 
 /// Service class for handling group detail operations
 /// This service provides comprehensive group detail functionality including:
@@ -435,7 +436,7 @@ class GroupDetailService {
       id: group.id,
       name: group.name,
       description: group.description ?? '',
-      currency: group.currency,
+      currency: CurrencyMigrationService.prepareForBackend(group.currency, format: 'code'),
       members: group.members,
       expenses: expenses,
       settlements: settlements,

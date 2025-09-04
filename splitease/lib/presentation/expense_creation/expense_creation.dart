@@ -8,6 +8,7 @@ import '../../models/receipt_mode_config.dart';
 import '../../models/group.dart';
 import '../../services/group_service.dart';
 import '../../services/api_service.dart';
+import '../../services/currency_migration_service.dart';
 import './widgets/expense_details_widget.dart';
 import './widgets/receipt_image_widget.dart';
 import './widgets/split_options_widget.dart';
@@ -224,6 +225,12 @@ class _ExpenseCreationState extends State<ExpenseCreation>
               debugPrint('Selected requested group: $_selectedGroup (ID: ${requestedGroup.id})');
               // Load members for the selected group
               _loadGroupMembers(requestedGroup.id.toString());
+              
+              // Set currency to group's currency
+              setState(() {
+                _currency = requestedGroup.currency;
+              });
+              debugPrint('Currency set to requested group: ${requestedGroup.currency.code}');
               _pendingGroupId = null; // Clear the pending groupId
             } else if (_selectedGroup.isEmpty) {
               // Set default selected group if available and not already set
@@ -231,6 +238,12 @@ class _ExpenseCreationState extends State<ExpenseCreation>
               debugPrint('Setting default group: $_selectedGroup (ID: ${groups.first.id})');
               // Load members for the default group
               _loadGroupMembers(groups.first.id.toString());
+              
+              // Set currency to group's currency
+              setState(() {
+                _currency = groups.first.currency;
+              });
+              debugPrint('Currency set to group default: ${groups.first.currency.code}');
             } else {
               debugPrint('Selected group already set: $_selectedGroup');
             }
@@ -913,13 +926,15 @@ class _ExpenseCreationState extends State<ExpenseCreation>
             'expense': {
               'id': response['data']['id'],
               'title': expenseData['title'],
-              'amount': expenseData['total_amount'],
+              'total_amount': expenseData['total_amount'],
               'currency': expenseData['currency'],
-              'date': DateTime.parse(expenseData['date'] as String),
-              'payerName': _groupMembers.firstWhere(
+              'date': expenseData['date'],
+              'payer_name': _groupMembers.firstWhere(
                 (m) => m['id'].toString() == _selectedPayerId.toString(),
                 orElse: () => <String, Object>{'name': 'Unknown'},
               )['name'],
+              'payer_id': int.tryParse(_selectedPayerId.toString()) ?? 0,
+              'created_at': DateTime.now().toIso8601String(),
             },
             'groupId': groupId,
           });
@@ -1309,7 +1324,7 @@ class _ExpenseCreationState extends State<ExpenseCreation>
         orElse: () => Group(
           id: 0,
           name: '',
-          currency: 'USD',
+          currency: CurrencyMigrationService.parseFromBackend('USD'),
           description: '',
           createdBy: 0,
           members: [],
@@ -1430,10 +1445,89 @@ class _ExpenseCreationState extends State<ExpenseCreation>
 
   void _onCurrencyChanged(Currency? value) {
     if (value != null) {
-      setState(() {
-        _currency = value;
-      });
+      try {
+        // Validate currency before setting
+        _validateCurrency(value);
+        
+        setState(() {
+          _currency = value;
+        });
+        
+        // Provide immediate visual feedback for currency change
+        _showCurrencyChangeFeedback(value);
+      } catch (e) {
+        _showCurrencyError('Invalid currency selected: $e');
+      }
     }
+  }
+  
+  /// Validate currency object
+  void _validateCurrency(Currency currency) {
+    if (currency.code.isEmpty) {
+      throw ArgumentError('Currency code cannot be empty');
+    }
+    
+    if (currency.code.length != 3) {
+      throw ArgumentError('Currency code must be exactly 3 characters');
+    }
+    
+    if (!RegExp(r'^[A-Z]{3}$').hasMatch(currency.code)) {
+      throw ArgumentError('Currency code must contain only uppercase letters');
+    }
+  }
+  
+  /// Show currency error message
+  void _showCurrencyError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              Icons.error,
+              color: Colors.white,
+              size: 20,
+            ),
+            SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: AppTheme.lightTheme.colorScheme.error,
+        duration: Duration(seconds: 4),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+    );
+  }
+
+  /// Show visual feedback when currency changes
+  void _showCurrencyChangeFeedback(Currency newCurrency) {
+    // Show a brief snackbar with the currency change
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              Icons.currency_exchange,
+              color: Colors.white,
+              size: 20,
+            ),
+            SizedBox(width: 8),
+            Text('Currency changed to ${newCurrency.code}'),
+          ],
+        ),
+        backgroundColor: AppTheme.lightTheme.primaryColor,
+        duration: Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+    );
+    
+    // Trigger haptic feedback for currency change
+    HapticFeedback.lightImpact();
   }
 
   @override
@@ -1537,12 +1631,18 @@ class _ExpenseCreationState extends State<ExpenseCreation>
                                   
                                   // Don't trigger validation immediately to prevent premature validation errors
                                   
-                                  // Load members for the selected group
+                                  // Load members for the selected group and update currency
                                   try {
                                     final selectedGroup = _realGroups.firstWhere(
                                       (group) => group.name == value,
                                     );
                                     _loadGroupMembers(selectedGroup.id.toString());
+                                    
+                                    // Cascade group currency to expense
+                                    setState(() {
+                                      _currency = selectedGroup.currency;
+                                    });
+                                    debugPrint('Currency cascaded from group: ${selectedGroup.currency.code}');
                                   } catch (e) {
                                     debugPrint('Error finding selected group: $e');
                                     // Handle case where selected group is not found
@@ -1594,7 +1694,7 @@ class _ExpenseCreationState extends State<ExpenseCreation>
                               : null,
                           groupMembers: _groupMembers,
                           totalAmount: parsedTotal,
-                          currencySymbol: _currency.symbol,
+                          currency: _currency,
                           isReceiptMode: _isReceiptMode,
                           prefilledCustomAmounts: _isReceiptMode ? _prefilledCustomAmounts : null,
                           selectedMembers: _splitType == 'equal' ? _selectedMembers : null,

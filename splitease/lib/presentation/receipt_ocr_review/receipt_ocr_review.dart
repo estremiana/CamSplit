@@ -2,10 +2,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
+import 'package:currency_picker/currency_picker.dart';
 import 'dart:math';
 
 import '../../core/app_export.dart';
 import '../../services/api_service.dart';
+import '../../services/currency_service.dart';
+import '../../widgets/currency_display_widget.dart';
 import './widgets/editable_item_card_widget.dart';
 import './widgets/progress_indicator_widget.dart';
 import './widgets/receipt_zoom_widget.dart';
@@ -28,6 +31,21 @@ class _ReceiptOcrReviewState extends State<ReceiptOcrReview> {
 
   // OCR extracted items
   List<Map<String, dynamic>> _extractedItems = [];
+
+  // Currency for the receipt (default to USD)
+  Currency _currency = Currency(
+    code: 'USD',
+    name: 'US Dollar',
+    symbol: '\$',
+    flag: 'USD',
+    number: 840,
+    decimalDigits: 2,
+    namePlural: 'US Dollars',
+    symbolOnLeft: true,
+    decimalSeparator: '.',
+    thousandsSeparator: ',',
+    spaceBetweenAmountAndSymbol: false,
+  );
 
   final List<String> _categories = [
     'Main Course',
@@ -58,6 +76,16 @@ class _ReceiptOcrReviewState extends State<ReceiptOcrReview> {
       if (args is Map && args['ocrResult'] != null) {
         final ocrResult = args['ocrResult'];
         final selectedGroup = args['selectedGroup'];
+        
+        // Set currency from selected group if available
+        if (selectedGroup != null && selectedGroup['currency'] != null) {
+          try {
+            _currency = SplitEaseCurrencyService.getCurrencyByCode(selectedGroup['currency']);
+            print('DEBUG: Currency set from selected group: ${_currency.code}');
+          } catch (e) {
+            print('DEBUG: Failed to set currency from group, using default: $e');
+          }
+        }
         
         // Handle the new backend response structure
         final data = ocrResult['data'] ?? ocrResult; // Backend returns data field
@@ -427,6 +455,7 @@ class _ReceiptOcrReviewState extends State<ReceiptOcrReview> {
                             "https://images.pexels.com/photos/4386321/pexels-photo-4386321.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
                         items: _extractedItems,
                         onItemTapped: _onItemTapped,
+                        currency: _currency,
                       ),
 
                       SizedBox(height: 3.h),
@@ -468,6 +497,7 @@ class _ReceiptOcrReviewState extends State<ReceiptOcrReview> {
                             onItemChanged: _onItemChanged,
                             onItemDeleted: _onItemDeleted,
                             isHighlighted: _highlightedItemId == item['id'],
+                            currency: _currency,
                           );
                         },
                       ),
@@ -543,8 +573,9 @@ class _ReceiptOcrReviewState extends State<ReceiptOcrReview> {
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                Text(
-                                  '\$${_calculateTotal().toStringAsFixed(2)}',
+                                CurrencyDisplayWidget(
+                                  amount: _calculateTotal(),
+                                  currency: _currency,
                                   style: AppTheme.getMonospaceStyle(
                                     isLight: true,
                                     fontSize: 18,

@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
 
 import '../../../core/app_export.dart';
-import '../../../services/receipt_detection_service.dart';
+
 import 'receipt_image_cropper_widget.dart';
 
 class ReceiptPreviewWidget extends StatefulWidget {
@@ -12,7 +12,7 @@ class ReceiptPreviewWidget extends StatefulWidget {
   final VoidCallback onRetake;
   final VoidCallback onUse;
   final bool isProcessing;
-  final DetectionResult? detectionResult;
+
 
   const ReceiptPreviewWidget({
     super.key,
@@ -20,7 +20,6 @@ class ReceiptPreviewWidget extends StatefulWidget {
     required this.onRetake,
     required this.onUse,
     required this.isProcessing,
-    this.detectionResult,
   });
 
   @override
@@ -77,36 +76,7 @@ class _ReceiptPreviewWidgetState extends State<ReceiptPreviewWidget> {
               color: Colors.white,
             ),
           ),
-          const Spacer(),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.h),
-            decoration: BoxDecoration(
-              color: AppTheme.successLight.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: AppTheme.successLight.withValues(alpha: 0.5),
-                width: 1,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CustomIconWidget(
-                  iconName: 'check_circle',
-                  color: AppTheme.successLight,
-                  size: 16,
-                ),
-                SizedBox(width: 1.w),
-                Text(
-                  'Captured',
-                  style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-                    color: AppTheme.successLight,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
+                     const Spacer(),
         ],
       ),
     );
@@ -137,135 +107,35 @@ class _ReceiptPreviewWidgetState extends State<ReceiptPreviewWidget> {
               fit: BoxFit.contain,
             ),
 
-            // Processing Overlay
-            if (widget.isProcessing)
-              Container(
-                color: Colors.black.withValues(alpha: 0.7),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 20.w,
-                        height: 20.w,
-                        decoration: BoxDecoration(
-                          color: AppTheme.lightTheme.cardColor,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Center(
-                          child: CircularProgressIndicator(),
-                        ),
-                      ),
-                      SizedBox(height: 3.h),
-                      Text(
-                        'Analyzing Receipt...',
-                        style:
-                            AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                        ),
-                      ),
-                      SizedBox(height: 1.h),
-                      Text(
-                        'Extracting items and amounts',
-                        style:
-                            AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.8),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+                         // Processing Overlay
+             if (widget.isProcessing)
+               Container(
+                 color: Colors.black.withValues(alpha: 0.7),
+                 child: Center(
+                   child: Column(
+                     mainAxisAlignment: MainAxisAlignment.center,
+                     children: [
+                       const CircularProgressIndicator(color: Colors.white),
+                       SizedBox(height: 3.h),
+                       Text(
+                         'Processing...',
+                         style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
+                           color: Colors.white,
+                         ),
+                       ),
+                     ],
+                   ),
+                 ),
+               ),
 
-            // Detection Status Indicator (if available)
-            if (!widget.isProcessing && widget.detectionResult != null)
-              _buildDetectionStatusIndicator(),
+
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDetectionStatusIndicator() {
-    final detectionResult = widget.detectionResult!;
-    
-    return Positioned(
-      top: 2.h,
-      right: 2.w,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.h),
-        decoration: BoxDecoration(
-          color: _getDetectionColor(detectionResult).withValues(alpha: 0.9),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CustomIconWidget(
-              iconName: _getDetectionIcon(detectionResult),
-              color: Colors.white,
-              size: 16,
-            ),
-            SizedBox(width: 1.w),
-            Text(
-              _getDetectionText(detectionResult),
-              style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            if (detectionResult.confidence > 0.0) ...[
-              SizedBox(width: 1.w),
-              Text(
-                '${(detectionResult.confidence * 100).toInt()}%',
-                style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.8),
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
 
-  Color _getDetectionColor(DetectionResult result) {
-    if (result.isDetected) {
-      final confidence = result.confidence;
-      if (confidence >= 0.8) return Colors.green;
-      if (confidence >= 0.6) return Colors.orange;
-      return Colors.red;
-    }
-    return Colors.grey;
-  }
-
-  String _getDetectionIcon(DetectionResult result) {
-    if (result.isDetected) {
-      final confidence = result.confidence;
-      if (confidence >= 0.8) return 'check_circle';
-      if (confidence >= 0.6) return 'warning';
-      return 'error';
-    }
-    return 'search';
-  }
-
-  String _getDetectionText(DetectionResult result) {
-    if (result.isDetected) {
-      final confidence = result.confidence;
-      if (confidence >= 0.8) return 'Detected';
-      if (confidence >= 0.6) return 'Possible';
-      return 'Low Confidence';
-    }
-    return 'Not Detected';
-  }
 
   Widget _buildActionButtons() {
     return Container(
@@ -455,7 +325,6 @@ class _ReceiptPreviewWidgetState extends State<ReceiptPreviewWidget> {
         MaterialPageRoute(
           builder: (context) => ReceiptImageCropperWidget(
             imageFile: _currentImageFile!,
-            detectionResult: widget.detectionResult,
             onCropComplete: (File croppedFile) {
               Navigator.pop(context, croppedFile);
             },

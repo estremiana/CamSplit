@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'package:currency_picker/currency_picker.dart';
 import '../models/group.dart';
 import '../models/group_member.dart';
 import '../config/api_config.dart';
 import '../models/mock_group_data.dart';
 import 'api_service.dart';
+import 'currency_service.dart';
 
 /// Service class for handling group-related operations
 /// This class provides an abstraction layer for group data access
@@ -125,10 +127,20 @@ class GroupService {
     }
   }
   
-  /// Create a new group with specified name and member emails
-  static Future<Group> createGroup(String groupName, List<String> memberEmails) async {
+  /// Create a new group with specified name, currency, description, and member emails
+  static Future<Group> createGroup(String groupName, List<String> memberEmails, {
+    Currency? currency,
+    String? description,
+  }) async {
     try {
-      final response = await _apiService.createGroup(groupName, 'USD', '');
+      final selectedCurrency = currency ?? SplitEaseCurrencyService.getDefaultCurrency();
+      final groupDescription = description ?? '';
+      
+      final response = await _apiService.createGroup(
+        groupName, 
+        selectedCurrency.code, 
+        groupDescription,
+      );
       
       if (response['success']) {
         final newGroup = Group.fromJson(response['data']);
@@ -158,6 +170,29 @@ class GroupService {
       }
     } catch (e) {
       throw GroupServiceException('Failed to update group: $e');
+    }
+  }
+  
+  /// Update group currency
+  static Future<Group> updateGroupCurrency(String groupId, Currency currency) async {
+    try {
+      final response = await _apiService.updateGroup(groupId, {
+        'currency': currency.code,
+      });
+      
+      if (response['success']) {
+        final updatedGroup = Group.fromJson(response['data']);
+        _invalidateCache(); // Clear cache to force refresh
+        
+        // Store the updated currency in the currency service
+        await SplitEaseCurrencyService.setGroupCurrency(updatedGroup.id, currency);
+        
+        return updatedGroup;
+      } else {
+        throw GroupServiceException(response['message'] ?? 'Failed to update group currency');
+      }
+    } catch (e) {
+      throw GroupServiceException('Failed to update group currency: $e');
     }
   }
   
