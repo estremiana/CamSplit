@@ -10,7 +10,7 @@ import 'receipt_image_cropper_widget.dart';
 class ReceiptPreviewWidget extends StatefulWidget {
   final String imagePath;
   final VoidCallback onRetake;
-  final VoidCallback onUse;
+  final Function(File imageFile) onUse;
   final bool isProcessing;
 
 
@@ -356,6 +356,8 @@ class _ReceiptPreviewWidgetState extends State<ReceiptPreviewWidget> {
 
   void _handleUsePhoto() {
     HapticFeedback.mediumImpact();
-    widget.onUse();
+    if (_currentImageFile != null) {
+      widget.onUse(_currentImageFile!);
+    }
   }
 }

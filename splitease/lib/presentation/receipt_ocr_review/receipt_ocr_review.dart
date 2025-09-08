@@ -332,13 +332,22 @@ class _ReceiptOcrReviewState extends State<ReceiptOcrReview> {
       _isLoading = true;
     });
 
+    // Get image path from route arguments
+    final args = ModalRoute.of(context)?.settings.arguments;
+    final imagePath = (args is Map && args['imagePath'] != null) 
+        ? args['imagePath'] as String 
+        : null;
+
     // Simulate processing delay
     Future.delayed(const Duration(seconds: 1), () {
       if (mounted) {
         Navigator.pushNamed(
           context,
           AppRoutes.itemAssignment,
-          arguments: _extractedItems,
+          arguments: {
+            'items': _extractedItems,
+            'imagePath': imagePath,
+          },
         );
         setState(() {
           _isLoading = false;
@@ -451,11 +460,10 @@ class _ReceiptOcrReviewState extends State<ReceiptOcrReview> {
                     children: [
                       // Receipt image with zoom
                       ReceiptZoomWidget(
-                        imageUrl:
-                            "https://images.pexels.com/photos/4386321/pexels-photo-4386321.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-                        items: _extractedItems,
-                        onItemTapped: _onItemTapped,
-                        currency: _currency,
+                        imageUrl: (ModalRoute.of(context)?.settings.arguments is Map
+                                && (ModalRoute.of(context)?.settings.arguments as Map)['imagePath'] != null)
+                            ? (ModalRoute.of(context)?.settings.arguments as Map)['imagePath'] as String
+                            : "",
                       ),
 
                       SizedBox(height: 3.h),

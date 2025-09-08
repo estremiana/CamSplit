@@ -86,9 +86,25 @@ class _ItemAssignmentState extends State<ItemAssignment>
   void _loadData() {
     // Get data from previous screen (OCR results)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final args = ModalRoute.of(context)?.settings.arguments
-          as List<Map<String, dynamic>>?;
-      if (args != null) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is Map) {
+        final items = args['items'] as List<Map<String, dynamic>>?;
+        if (items != null) {
+          setState(() {
+            _items = items.map((item) {
+              final updatedItem = Map<String, dynamic>.from(item);
+              updatedItem['quantity'] = 1;
+              updatedItem['assignedMembers'] = <String>[];
+              // Add quantity assignment support
+              updatedItem['originalQuantity'] = item['quantity'] ?? 1;
+              updatedItem['remainingQuantity'] = item['quantity'] ?? 1;
+              updatedItem['quantityAssignments'] = <Map<String, dynamic>>[];
+              return updatedItem;
+            }).toList();
+          });
+        }
+      } else if (args is List<Map<String, dynamic>>) {
+        // Fallback for old format
         setState(() {
           _items = args.map((item) {
             final updatedItem = Map<String, dynamic>.from(item);
@@ -744,6 +760,12 @@ class _ItemAssignmentState extends State<ItemAssignment>
       !_newParticipants.any((newParticipant) => newParticipant['id'] == member['id'])
     ).toList();
 
+    // Get image path from route arguments
+    final args = ModalRoute.of(context)?.settings.arguments;
+    final imagePath = (args is Map && args['imagePath'] != null) 
+        ? args['imagePath'] as String 
+        : null;
+
     // Create and return structured receipt mode data
     return ReceiptModeData(
       total: totalAmount,
@@ -756,6 +778,7 @@ class _ItemAssignmentState extends State<ItemAssignment>
       selectedGroupId: selectedGroup.id.toString(),
       selectedGroupName: selectedGroup.name,
       newParticipants: _newParticipants.isNotEmpty ? _newParticipants : null,
+      imagePath: imagePath,
     );
   }
 

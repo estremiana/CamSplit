@@ -143,7 +143,20 @@ class _CameraReceiptCaptureState extends State<CameraReceiptCapture> with Ticker
     HapticFeedback.lightImpact();
     
     try {
+      // Show loading while switching to avoid rendering disposed preview
+      if (mounted) {
+        setState(() {
+          _isCameraInitialized = false;
+        });
+      }
       await _cameraService.switchCamera();
+      // Rebuild with the new controller instance
+      if (mounted) {
+        final controller = _cameraService.controller;
+        setState(() {
+          _isCameraInitialized = controller?.value.isInitialized ?? false;
+        });
+      }
     } catch (e) {
       // Silently handle camera switch errors
     }
@@ -211,7 +224,7 @@ class _CameraReceiptCaptureState extends State<CameraReceiptCapture> with Ticker
     });
   }
 
-  void _usePhoto() async {
+  void _usePhoto([File? imageOverride]) async {
     if (_isProcessing) return;
 
     HapticFeedback.mediumImpact();
@@ -220,8 +233,8 @@ class _CameraReceiptCaptureState extends State<CameraReceiptCapture> with Ticker
     });
 
     try {
-      if (_capturedImagePath != null) {
-        final File imageFile = File(_capturedImagePath!);
+      if (_capturedImagePath != null || imageOverride != null) {
+        final File imageFile = imageOverride ?? File(_capturedImagePath!);
         
         // Process the receipt image using OCR
         final ocrResponse = await _apiService.processReceipt(imageFile);
@@ -236,6 +249,7 @@ class _CameraReceiptCaptureState extends State<CameraReceiptCapture> with Ticker
             AppRoutes.receiptOcrReview,
             arguments: {
               'ocrResult': ocrResponse,
+              'imagePath': imageFile.path,
             },
           );
         }
@@ -266,6 +280,8 @@ class _CameraReceiptCaptureState extends State<CameraReceiptCapture> with Ticker
   void dispose() {
     _fadeController.dispose();
     _slideController.dispose();
+    // Dispose camera controller to free up image buffers
+    _cameraService.dispose();
     super.dispose();
   }
 
@@ -382,11 +398,30 @@ class _CameraReceiptCaptureState extends State<CameraReceiptCapture> with Ticker
       );
     }
     
-    // Return camera preview directly from the service
-    return SizedBox(
-      width: 100.w,
-      height: 100.h,
-      child: _cameraService.buildCameraPreview(),
+    // Build a non-stretched preview that covers the screen while preserving aspect ratio
+    final controller = _cameraService.controller!;
+    final bool isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+    // controller.value.aspectRatio is landscape-based; invert in portrait
+    final double cameraAspectRatio = controller.value.aspectRatio;
+    final double previewAspectRatio = isPortrait ? (1 / cameraAspectRatio) : cameraAspectRatio;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double screenWidth = constraints.maxWidth;
+        final double calculatedHeight = screenWidth / previewAspectRatio;
+        return ClipRect(
+          child: OverflowBox(
+            alignment: Alignment.center,
+            child: FittedBox(
+              fit: BoxFit.cover,
+              child: SizedBox(
+                width: screenWidth,
+                height: calculatedHeight,
+                child: _cameraService.buildCameraPreview(),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 

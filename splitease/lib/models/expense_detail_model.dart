@@ -181,7 +181,12 @@ class ExpenseDetailModel {
     // For custom split, sum should approximately equal total amount
     if (splitType == 'custom') {
       final sum = participantAmounts.fold<double>(0, (sum, p) => sum + p.amount);
-      return (sum - amount).abs() < 0.01; // Allow for small rounding differences
+      // Round to 2 decimal places to avoid floating-point precision issues
+      final roundedSum = double.parse(sum.toStringAsFixed(2));
+      final roundedAmount = double.parse(amount.toStringAsFixed(2));
+      final difference = (roundedSum - roundedAmount).abs();
+
+      return difference < 0.011; // Allow for small rounding differences
     }
 
     return true;

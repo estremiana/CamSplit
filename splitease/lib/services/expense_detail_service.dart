@@ -374,7 +374,6 @@ class ExpenseDetailService {
       final primaryPayer = expense.payers.first;
       payerId = primaryPayer.groupMemberId;
       payerName = primaryPayer.displayName; // Use the actual payer name from the model
-      print('Converted expense payer - groupMemberId: ${primaryPayer.groupMemberId}, displayName: ${primaryPayer.displayName}');
     }
     
     // Get receipt image URL if available

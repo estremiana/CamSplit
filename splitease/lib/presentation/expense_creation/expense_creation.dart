@@ -1530,6 +1530,56 @@ class _ExpenseCreationState extends State<ExpenseCreation>
     HapticFeedback.lightImpact();
   }
 
+  /// Navigate to camera to capture receipt image
+  void _navigateToCamera() async {
+    try {
+      final result = await Navigator.pushNamed(
+        context,
+        '/camera-receipt-capture',
+      );
+      
+      if (result != null && result is Map<String, dynamic>) {
+        // Handle the result from camera capture
+        if (result['success'] == true && result['imagePath'] != null) {
+          setState(() {
+            // Update receipt data with the captured image
+            _receiptData = ReceiptModeData(
+              total: _receiptData?.total ?? 0.0,
+              participantAmounts: _receiptData?.participantAmounts ?? [],
+              mode: _receiptData?.mode ?? 'receipt',
+              isEqualSplit: _receiptData?.isEqualSplit ?? false,
+              items: _receiptData?.items ?? [],
+              groupMembers: _receiptData?.groupMembers ?? [],
+              quantityAssignments: _receiptData?.quantityAssignments,
+              selectedGroupId: _receiptData?.selectedGroupId ?? _realGroups.first.id.toString(),
+              selectedGroupName: _receiptData?.selectedGroupName,
+              newParticipants: _receiptData?.newParticipants,
+              imagePath: result['imagePath'],
+            );
+          });
+          
+          // Show success feedback
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Receipt image added successfully'),
+              backgroundColor: AppTheme.lightTheme.primaryColor,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error navigating to camera: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to open camera'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     double parsedTotal = double.tryParse(_totalController.text.replaceAll(',', '.')) ?? 0.0;
@@ -1605,8 +1655,8 @@ class _ExpenseCreationState extends State<ExpenseCreation>
                       children: [
                         // Receipt Image
                         ReceiptImageWidget(
-                          imageUrl:
-                              "https://images.unsplash.com/photo-1554224155-6726b3ff858f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
+                          imageUrl: _receiptData?.imagePath,
+                          onAddImage: _navigateToCamera,
                         ),
 
                         SizedBox(height: 3.h),

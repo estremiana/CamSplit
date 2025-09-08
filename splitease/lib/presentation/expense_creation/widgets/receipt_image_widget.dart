@@ -4,11 +4,13 @@ import 'package:sizer/sizer.dart';
 import '../../../core/app_export.dart';
 
 class ReceiptImageWidget extends StatelessWidget {
-  final String imageUrl;
+  final String? imageUrl;
+  final VoidCallback? onAddImage;
 
   const ReceiptImageWidget({
     super.key,
-    required this.imageUrl,
+    this.imageUrl,
+    this.onAddImage,
   });
 
   void _showFullImage(BuildContext context) {
@@ -48,6 +50,70 @@ class ReceiptImageWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // If no image URL is provided, show small camera button
+    if (imageUrl == null || imageUrl!.isEmpty) {
+      return GestureDetector(
+        onTap: onAddImage,
+        child: Container(
+          width: double.infinity,
+          height: 12.h, // Much smaller height for empty state
+          constraints: BoxConstraints(
+            maxHeight: 12.h,
+            minHeight: 10.h,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppTheme.lightTheme.dividerColor,
+              width: 1,
+            ),
+            color: Colors.grey[50],
+          ),
+          child: Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: EdgeInsets.all(2.w), // Smaller padding
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryLight.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(50),
+                  ),
+                  child: CustomIconWidget(
+                    iconName: 'photo_camera',
+                    color: AppTheme.primaryLight,
+                    size: 24, // Smaller icon
+                  ),
+                ),
+                SizedBox(width: 3.w),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Add Receipt Photo',
+                      style: AppTheme.lightTheme.textTheme.titleSmall?.copyWith(
+                        color: AppTheme.primaryLight,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      'Tap to capture or select from gallery',
+                      style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+                        color: Colors.grey[600],
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // If image URL is provided, show the image with zoom functionality
     return GestureDetector(
       onTap: () => _showFullImage(context),
       child: Container(
@@ -69,7 +135,7 @@ class ReceiptImageWidget extends StatelessWidget {
           child: Stack(
             children: [
               CustomImageWidget(
-                imageUrl: imageUrl,
+                imageUrl: imageUrl!,
                 width: double.infinity,
                 height: 25.h,
                 fit: BoxFit.cover,

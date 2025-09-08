@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
 
 import '../../core/app_export.dart';
@@ -30,7 +31,7 @@ class GroupDetailPage extends StatefulWidget {
   State<GroupDetailPage> createState() => _GroupDetailPageState();
 }
 
-class _GroupDetailPageState extends State<GroupDetailPage> with RealTimeUpdateMixin {
+class _GroupDetailPageState extends State<GroupDetailPage> with RealTimeUpdateMixin, TickerProviderStateMixin {
   bool _isLoading = true;
   bool _isRefreshing = false;
   bool _isOptimisticUpdate = false;
@@ -47,9 +48,26 @@ class _GroupDetailPageState extends State<GroupDetailPage> with RealTimeUpdateMi
   bool _isNewGroup = false;
   bool _hasShownWelcomeMessage = false;
 
+  // FAB menu state
+  late AnimationController _fabController;
+  late Animation<double> _fabRotation;
+  late Animation<double> _fabTranslation;
+  bool _fabMenuOpen = false;
+
   @override
   void initState() {
     super.initState();
+    // Initialize FAB controller
+    _fabController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+    _fabRotation = Tween<double>(begin: 0, end: 0.25).animate(
+      CurvedAnimation(parent: _fabController, curve: Curves.easeInOut),
+    );
+    _fabTranslation = Tween<double>(begin: 0, end: 70).animate(
+      CurvedAnimation(parent: _fabController, curve: Curves.easeInOut),
+    );
     // Initialize real-time updates
     initializeRealTimeUpdates(widget.groupId);
     _loadGroupData();
@@ -81,6 +99,12 @@ class _GroupDetailPageState extends State<GroupDetailPage> with RealTimeUpdateMi
         _refreshData();
       });
     }
+  }
+
+  @override
+  void dispose() {
+    _fabController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadGroupData({bool showLoading = true}) async {
@@ -243,6 +267,12 @@ class _GroupDetailPageState extends State<GroupDetailPage> with RealTimeUpdateMi
 
   /// Handle back navigation with state preservation
   Future<bool> _onWillPop() async {
+    // Close FAB menu if open
+    if (_fabMenuOpen) {
+      _closeFabMenu();
+      return false;
+    }
+    
     // If this is a new group, navigate back to groups page with refresh flag
     if (_isNewGroup) {
       Navigator.pop(context);
@@ -370,6 +400,44 @@ class _GroupDetailPageState extends State<GroupDetailPage> with RealTimeUpdateMi
     }
   }
 
+  // FAB menu control methods
+  void _toggleFabMenu() {
+    setState(() {
+      _fabMenuOpen = !_fabMenuOpen;
+      if (_fabMenuOpen) {
+        _fabController.forward();
+      } else {
+        _fabController.reverse();
+      }
+    });
+  }
+
+  void _closeFabMenu() {
+    setState(() {
+      _fabMenuOpen = false;
+      _fabController.reverse();
+    });
+  }
+
+  void _openCameraCapture() {
+    HapticFeedback.mediumImpact();
+    Navigator.pushNamed(
+      context, 
+      AppRoutes.cameraReceiptCapture,
+      arguments: {
+        'groupId': widget.groupId,
+        'source': 'group_detail',
+      },
+    );
+    _closeFabMenu();
+  }
+
+  void _openExpenseCreation() {
+    HapticFeedback.mediumImpact();
+    _onAddExpense();
+    _closeFabMenu();
+  }
+
   void _onExpenseItemTap(GroupExpense expense) {
     Navigator.pushNamed(
       context,
@@ -453,21 +521,175 @@ class _GroupDetailPageState extends State<GroupDetailPage> with RealTimeUpdateMi
             ),
           ],
         ),
-        body: _isLoading
-            ? _buildLoadingState()
-            : _groupDetail == null
-                ? _buildErrorState()
-                : _buildContent(),
-        floatingActionButton: FloatingActionButton(
-          onPressed: _onAddExpense,
-          backgroundColor: AppTheme.lightTheme.floatingActionButtonTheme.backgroundColor,
-          child: CustomIconWidget(
-            iconName: 'add',
-            color: AppTheme.lightTheme.floatingActionButtonTheme.foregroundColor,
-            size: 24,
+        body: Stack(
+          children: [
+            _isLoading
+                ? _buildLoadingState()
+                : _groupDetail == null
+                    ? _buildErrorState()
+                    : _buildContent(),
+            // Modal barrier for closing FAB menu on outside tap
+            if (_fabMenuOpen)
+              Positioned.fill(
+                child: GestureDetector(
+                  onTap: _closeFabMenu,
+                  behavior: HitTestBehavior.opaque,
+                  child: Container(),
+                ),
+              ),
+          ],
+        ),
+        floatingActionButton: _buildFabMenu(),
+      ),
+    );
+  }
+
+  Widget _buildFabMenu() {
+    return Stack(
+      alignment: Alignment.bottomRight,
+      children: [
+        // Camera FAB (secondary)
+        AnimatedBuilder(
+          animation: _fabController,
+          builder: (context, child) {
+            return Positioned(
+              right: 0,
+              bottom: 0 + _fabTranslation.value,
+              child: IgnorePointer(
+                ignoring: !_fabMenuOpen && _fabController.value == 0,
+                child: Opacity(
+                  opacity: _fabController.value,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Label
+                      AnimatedOpacity(
+                        opacity: _fabMenuOpen ? 1 : 0,
+                        duration: const Duration(milliseconds: 200),
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 12.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.05),
+                                      blurRadius: 4,
+                                    ),
+                                  ],
+                                ),
+                                child: Text(
+                                  'Scan receipt',
+                                  style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                                    color: AppTheme.lightTheme.primaryColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      FloatingActionButton(
+                        heroTag: 'fab_camera',
+                        backgroundColor: AppTheme.lightTheme.primaryColor,
+                        foregroundColor: AppTheme.onPrimaryLight,
+                        elevation: 3.0,
+                        onPressed: _fabMenuOpen ? _openCameraCapture : null,
+                        child: CustomIconWidget(
+                          iconName: 'camera_alt',
+                          color: AppTheme.onPrimaryLight,
+                          size: 28,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+        // Main FAB (plus)
+        Positioned(
+          right: 0,
+          bottom: 0,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Only show label when menu is open
+              if (_fabMenuOpen)
+                AnimatedOpacity(
+                  opacity: 1,
+                  duration: const Duration(milliseconds: 200),
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 4,
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            'Create new expense',
+                            style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                              color: AppTheme.lightTheme.primaryColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              GestureDetector(
+                onTap: () {
+                  if (_fabMenuOpen) {
+                    _openExpenseCreation();
+                  } else {
+                    _toggleFabMenu();
+                  }
+                },
+                child: AnimatedBuilder(
+                  animation: _fabController,
+                  builder: (context, child) {
+                    return Transform.rotate(
+                      angle: _fabRotation.value * 2 * 3.1415926535,
+                      child: FloatingActionButton(
+                        heroTag: 'fab_plus',
+                        backgroundColor: AppTheme.lightTheme.floatingActionButtonTheme.backgroundColor,
+                        foregroundColor: AppTheme.lightTheme.floatingActionButtonTheme.foregroundColor,
+                        elevation: 3.0,
+                        onPressed: null, // Handled by GestureDetector
+                        child: CustomIconWidget(
+                          iconName: 'add',
+                          color: AppTheme.lightTheme.floatingActionButtonTheme.foregroundColor,
+                          size: 24,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         ),
-      ),
+      ],
     );
   }
 

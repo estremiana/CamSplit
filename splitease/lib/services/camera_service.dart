@@ -328,13 +328,18 @@ class CameraService {
     }
     
     try {
-      // Dispose current controller
-      await _controller!.dispose();
-      
-      // Switch to next camera
+      // Get current camera index before disposing
       final currentIndex = _cameras!.indexWhere((camera) => camera.name == _controller!.description.name);
       final nextIndex = (currentIndex + 1) % _cameras!.length;
       
+      // Dispose current controller and wait for it to complete
+      await _controller!.dispose();
+      _controller = null;
+      
+      // Small delay to ensure disposal is complete
+      await Future.delayed(const Duration(milliseconds: 100));
+      
+      // Create new controller
       _controller = CameraController(
         _cameras![nextIndex],
         _currentResolution,
@@ -345,6 +350,10 @@ class CameraService {
       await _controller!.initialize();
       await _controller!.setFlashMode(_currentFlashMode);
     } catch (e) {
+      // Clean up on error
+      _controller?.dispose();
+      _controller = null;
+      _isInitialized = false;
       throw _errorHandler.handleError(e, ErrorType.camera);
     }
   }
@@ -488,5 +497,6 @@ class CameraService {
     _initializationRetryCount = 0;
     _cameras = null;
     _errorMessage = null;
+    _hasPermission = false;
   }
 } 

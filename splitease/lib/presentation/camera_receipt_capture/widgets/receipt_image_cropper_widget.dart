@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
@@ -29,9 +30,13 @@ class _ReceiptImageCropperWidgetState extends State<ReceiptImageCropperWidget>
   late File _imageFile;
   late Size _imageSize;
   late Size _displaySize;
+  ui.Image? _uiImage;
   Rect _cropRect = Rect.zero;
   bool _isLoading = true;
   bool _isCropping = false;
+  static const double _minCropSize = 80.0;
+  static const double _handleTouchRadius = 28.0;
+  _ActiveHandle _activeHandle = _ActiveHandle.none;
   
   // Gesture handling
   Offset? _dragStart;
@@ -88,8 +93,10 @@ class _ReceiptImageCropperWidgetState extends State<ReceiptImageCropperWidget>
       final img.Image? image = img.decodeImage(bytes);
       
       if (image != null) {
+        final uiImage = await decodeImageFromList(bytes);
         setState(() {
           _imageSize = Size(image.width.toDouble(), image.height.toDouble());
+          _uiImage = uiImage;
           _isLoading = false;
         });
         
@@ -105,14 +112,8 @@ class _ReceiptImageCropperWidgetState extends State<ReceiptImageCropperWidget>
   }
 
   void _initializeCropRect() {
-    // Default crop area (80% of image with center alignment)
-    final margin = 0.1;
-    _cropRect = Rect.fromLTWH(
-      _imageSize.width * margin,
-      _imageSize.height * margin,
-      _imageSize.width * (1 - 2 * margin),
-      _imageSize.height * (1 - 2 * margin),
-    );
+    // Initialize to full image area
+    _cropRect = Rect.fromLTWH(0, 0, _imageSize.width, _imageSize.height);
   }
 
   @override
@@ -209,15 +210,22 @@ class _ReceiptImageCropperWidgetState extends State<ReceiptImageCropperWidget>
             onPanStart: _onPanStart,
             onPanUpdate: _onPanUpdate,
             onPanEnd: _onPanEnd,
-                          child: CustomPaint(
-                painter: ReceiptCropPainter(
-                  imageFile: _imageFile,
-                  cropRect: _cropRect,
-                  imageSize: _imageSize,
-                  displaySize: _displaySize,
-                ),
-                size: Size.infinite,
-              ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final Size displaySize = Size(constraints.maxWidth, constraints.maxHeight);
+                // Keep latest display size for gesture mapping
+                _displaySize = displaySize;
+                return CustomPaint(
+                  painter: ReceiptCropPainter(
+                    image: _uiImage,
+                    cropRect: _cropRect,
+                    imageSize: _imageSize,
+                    displaySize: displaySize,
+                  ),
+                  size: Size.infinite,
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -227,30 +235,213 @@ class _ReceiptImageCropperWidgetState extends State<ReceiptImageCropperWidget>
   void _onPanStart(DragStartDetails details) {
     _dragStart = details.localPosition;
     _dragStartRect = _cropRect;
+    _activeHandle = _detectActiveHandle(details.localPosition);
   }
 
   void _onPanUpdate(DragUpdateDetails details) {
     if (_dragStart == null || _dragStartRect == null) return;
 
-    final delta = details.localPosition - _dragStart!;
-    final newRect = _dragStartRect!.translate(delta.dx, delta.dy);
-    
-    // Constrain to image bounds
-    final constrainedRect = Rect.fromLTWH(
-      newRect.left.clamp(0, _imageSize.width - newRect.width),
-      newRect.top.clamp(0, _imageSize.height - newRect.height),
-      newRect.width,
-      newRect.height,
+    // Map gesture delta from display space to image space
+    final mapping = _computeDisplayMapping(_displaySize);
+    final Offset deltaDisplay = details.localPosition - _dragStart!;
+    final Offset deltaImage = Offset(deltaDisplay.dx * mapping.scaleX, deltaDisplay.dy * mapping.scaleY);
+
+    Rect updated = _dragStartRect!;
+    switch (_activeHandle) {
+      case _ActiveHandle.move:
+        updated = updated.translate(deltaImage.dx, deltaImage.dy);
+        break;
+      case _ActiveHandle.topLeft:
+        updated = Rect.fromLTRB(
+          (updated.left + deltaImage.dx),
+          (updated.top + deltaImage.dy),
+          updated.right,
+          updated.bottom,
+        );
+        break;
+      case _ActiveHandle.topRight:
+        updated = Rect.fromLTRB(
+          updated.left,
+          (updated.top + deltaImage.dy),
+          (updated.right + deltaImage.dx),
+          updated.bottom,
+        );
+        break;
+      case _ActiveHandle.bottomLeft:
+        updated = Rect.fromLTRB(
+          (updated.left + deltaImage.dx),
+          updated.top,
+          updated.right,
+          (updated.bottom + deltaImage.dy),
+        );
+        break;
+      case _ActiveHandle.bottomRight:
+        updated = Rect.fromLTRB(
+          updated.left,
+          updated.top,
+          (updated.right + deltaImage.dx),
+          (updated.bottom + deltaImage.dy),
+        );
+        break;
+      case _ActiveHandle.none:
+        updated = updated.translate(deltaImage.dx, deltaImage.dy);
+        break;
+    }
+
+    // Normalize rect to ensure left<right, top<bottom
+    updated = Rect.fromLTRB(
+      updated.left,
+      updated.top,
+      updated.right,
+      updated.bottom,
     );
 
+    // Enforce minimum size by clamping the dragged edges only
+    switch (_activeHandle) {
+      case _ActiveHandle.topLeft:
+        if (updated.width < _minCropSize) {
+          updated = Rect.fromLTRB(updated.right - _minCropSize, updated.top, updated.right, updated.bottom);
+        }
+        if (updated.height < _minCropSize) {
+          updated = Rect.fromLTRB(updated.left, updated.bottom - _minCropSize, updated.right, updated.bottom);
+        }
+        break;
+      case _ActiveHandle.topRight:
+        if (updated.width < _minCropSize) {
+          updated = Rect.fromLTRB(updated.left, updated.top, updated.left + _minCropSize, updated.bottom);
+        }
+        if (updated.height < _minCropSize) {
+          updated = Rect.fromLTRB(updated.left, updated.bottom - _minCropSize, updated.right, updated.bottom);
+        }
+        break;
+      case _ActiveHandle.bottomLeft:
+        if (updated.width < _minCropSize) {
+          updated = Rect.fromLTRB(updated.right - _minCropSize, updated.top, updated.right, updated.bottom);
+        }
+        if (updated.height < _minCropSize) {
+          updated = Rect.fromLTRB(updated.left, updated.top, updated.right, updated.top + _minCropSize);
+        }
+        break;
+      case _ActiveHandle.bottomRight:
+        if (updated.width < _minCropSize) {
+          updated = Rect.fromLTRB(updated.left, updated.top, updated.left + _minCropSize, updated.bottom);
+        }
+        if (updated.height < _minCropSize) {
+          updated = Rect.fromLTRB(updated.left, updated.top, updated.right, updated.top + _minCropSize);
+        }
+        break;
+      case _ActiveHandle.move:
+      case _ActiveHandle.none:
+        // handled below
+        break;
+    }
+
+    // Constrain within image bounds by clamping the dragged edges only
+    switch (_activeHandle) {
+      case _ActiveHandle.move:
+      case _ActiveHandle.none: {
+        final double left = updated.left.clamp(0, _imageSize.width - updated.width);
+        final double top = updated.top.clamp(0, _imageSize.height - updated.height);
+        updated = Rect.fromLTWH(left, top, updated.width, updated.height);
+        break;
+      }
+      case _ActiveHandle.topLeft: {
+        final double left = updated.left.clamp(0, updated.right - _minCropSize);
+        final double top = updated.top.clamp(0, updated.bottom - _minCropSize);
+        updated = Rect.fromLTRB(left, top, updated.right, updated.bottom);
+        break;
+      }
+      case _ActiveHandle.topRight: {
+        final double right = updated.right.clamp(updated.left + _minCropSize, _imageSize.width);
+        final double top = updated.top.clamp(0, updated.bottom - _minCropSize);
+        updated = Rect.fromLTRB(updated.left, top, right, updated.bottom);
+        break;
+      }
+      case _ActiveHandle.bottomLeft: {
+        final double left = updated.left.clamp(0, updated.right - _minCropSize);
+        final double bottom = updated.bottom.clamp(updated.top + _minCropSize, _imageSize.height);
+        updated = Rect.fromLTRB(left, updated.top, updated.right, bottom);
+        break;
+      }
+      case _ActiveHandle.bottomRight: {
+        final double right = updated.right.clamp(updated.left + _minCropSize, _imageSize.width);
+        final double bottom = updated.bottom.clamp(updated.top + _minCropSize, _imageSize.height);
+        updated = Rect.fromLTRB(updated.left, updated.top, right, bottom);
+        break;
+      }
+    }
     setState(() {
-      _cropRect = constrainedRect;
+      _cropRect = updated;
     });
   }
 
   void _onPanEnd(DragEndDetails details) {
     _dragStart = null;
     _dragStartRect = null;
+    _activeHandle = _ActiveHandle.none;
+  }
+
+  _DisplayMapping _computeDisplayMapping(Size canvasSize) {
+    // Compute displayRect as in painter (contain)
+    final double imageAspect = _imageSize.width / _imageSize.height;
+    final double canvasAspect = canvasSize.width / canvasSize.height;
+    Rect displayRect;
+    if (canvasAspect > imageAspect) {
+      final double drawWidth = canvasSize.height * imageAspect;
+      displayRect = Rect.fromLTWH(
+        (canvasSize.width - drawWidth) / 2,
+        0,
+        drawWidth,
+        canvasSize.height,
+      );
+    } else {
+      final double drawHeight = canvasSize.width / imageAspect;
+      displayRect = Rect.fromLTWH(
+        0,
+        (canvasSize.height - drawHeight) / 2,
+        canvasSize.width,
+        drawHeight,
+      );
+    }
+    final double scaleX = _imageSize.width / displayRect.width;
+    final double scaleY = _imageSize.height / displayRect.height;
+    return _DisplayMapping(displayRect: displayRect, scaleX: scaleX, scaleY: scaleY);
+  }
+
+  _ActiveHandle _detectActiveHandle(Offset localPos) {
+    final mapping = _computeDisplayMapping(_displaySize);
+    // Map crop corners to display space
+    final double scaleDisplayX = mapping.displayRect.width / _imageSize.width;
+    final double scaleDisplayY = mapping.displayRect.height / _imageSize.height;
+    final Offset topLeft = Offset(
+      mapping.displayRect.left + _cropRect.left * scaleDisplayX,
+      mapping.displayRect.top + _cropRect.top * scaleDisplayY,
+    );
+    final Offset topRight = Offset(
+      mapping.displayRect.left + _cropRect.right * scaleDisplayX,
+      mapping.displayRect.top + _cropRect.top * scaleDisplayY,
+    );
+    final Offset bottomLeft = Offset(
+      mapping.displayRect.left + _cropRect.left * scaleDisplayX,
+      mapping.displayRect.top + _cropRect.bottom * scaleDisplayY,
+    );
+    final Offset bottomRight = Offset(
+      mapping.displayRect.left + _cropRect.right * scaleDisplayX,
+      mapping.displayRect.top + _cropRect.bottom * scaleDisplayY,
+    );
+
+    double d(Offset a) => (a - localPos).distance;
+    final distances = {
+      _ActiveHandle.topLeft: d(topLeft),
+      _ActiveHandle.topRight: d(topRight),
+      _ActiveHandle.bottomLeft: d(bottomLeft),
+      _ActiveHandle.bottomRight: d(bottomRight),
+    };
+    final entry = distances.entries.reduce((a, b) => a.value < b.value ? a : b);
+    if (entry.value <= _handleTouchRadius) {
+      return entry.key;
+    }
+    return _ActiveHandle.move;
   }
 
   Widget _buildControls() {
@@ -437,13 +628,13 @@ class _ReceiptImageCropperWidgetState extends State<ReceiptImageCropperWidget>
 }
 
 class ReceiptCropPainter extends CustomPainter {
-  final File imageFile;
+  final ui.Image? image;
   final Rect cropRect;
   final Size imageSize;
   final Size displaySize;
 
   ReceiptCropPainter({
-    required this.imageFile,
+    required this.image,
     required this.cropRect,
     required this.imageSize,
     required this.displaySize,
@@ -451,29 +642,47 @@ class ReceiptCropPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Calculate display dimensions
-    final aspectRatio = imageSize.width / imageSize.height;
-    final displayWidth = size.width;
-    final displayHeight = displayWidth / aspectRatio;
-    
-    final displayRect = Rect.fromLTWH(
-      (size.width - displayWidth) / 2,
-      (size.height - displayHeight) / 2,
-      displayWidth,
-      displayHeight,
-    );
-
-    // Draw background
+    // Background
     final backgroundPaint = Paint()
-      ..color = Colors.black.withValues(alpha: 0.8)
+      ..color = Colors.black
       ..style = PaintingStyle.fill;
     canvas.drawRect(Offset.zero & size, backgroundPaint);
 
-    // Draw image placeholder
-    final imagePaint = Paint()
-      ..color = Colors.grey[800]!
-      ..style = PaintingStyle.fill;
-    canvas.drawRect(displayRect, imagePaint);
+    // If image is not ready, nothing to draw yet
+    if (image == null) {
+      return;
+    }
+
+    // Compute destination rect preserving aspect ratio (contain)
+    final double imageAspect = imageSize.width / imageSize.height;
+    final double canvasAspect = size.width / size.height;
+    Rect displayRect;
+    if (canvasAspect > imageAspect) {
+      final double drawWidth = size.height * imageAspect;
+      displayRect = Rect.fromLTWH(
+        (size.width - drawWidth) / 2,
+        0,
+        drawWidth,
+        size.height,
+      );
+    } else {
+      final double drawHeight = size.width / imageAspect;
+      displayRect = Rect.fromLTWH(
+        0,
+        (size.height - drawHeight) / 2,
+        size.width,
+        drawHeight,
+      );
+    }
+
+    // Draw the image scaled into displayRect
+    paintImage(
+      canvas: canvas,
+      rect: displayRect,
+      image: image!,
+      fit: BoxFit.contain,
+      filterQuality: FilterQuality.medium,
+    );
 
     // Draw crop overlay
     _drawCropOverlay(canvas, displayRect, size);
@@ -491,14 +700,18 @@ class ReceiptCropPainter extends CustomPainter {
       cropRect.height * scaleY,
     );
 
-    // Draw semi-transparent overlay
+    // Draw semi-transparent overlay outside crop rect
     final overlayPaint = Paint()
-      ..color = Colors.black.withValues(alpha: 0.6)
+      ..color = Colors.black.withValues(alpha: 0.5)
       ..style = PaintingStyle.fill;
-    canvas.drawRect(Offset.zero & size, overlayPaint);
-
-    // Clear crop area
-    canvas.drawRect(displayCropRect, Paint()..blendMode = BlendMode.clear);
+    // Top
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, displayCropRect.top), overlayPaint);
+    // Bottom
+    canvas.drawRect(Rect.fromLTWH(0, displayCropRect.bottom, size.width, size.height - displayCropRect.bottom), overlayPaint);
+    // Left
+    canvas.drawRect(Rect.fromLTWH(0, displayCropRect.top, displayCropRect.left, displayCropRect.height), overlayPaint);
+    // Right
+    canvas.drawRect(Rect.fromLTWH(displayCropRect.right, displayCropRect.top, size.width - displayCropRect.right, displayCropRect.height), overlayPaint);
 
     // Draw crop border
     final borderPaint = Paint()
@@ -571,6 +784,16 @@ class ReceiptCropPainter extends CustomPainter {
       Offset(cropRect.right, cropRect.bottom),
       cornerPaint,
     );
+
+    // Add filled circles as touch handles at corners
+    final handlePaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+    const double handleRadius = 6.0;
+    canvas.drawCircle(Offset(cropRect.left, cropRect.top), handleRadius, handlePaint);
+    canvas.drawCircle(Offset(cropRect.right, cropRect.top), handleRadius, handlePaint);
+    canvas.drawCircle(Offset(cropRect.left, cropRect.bottom), handleRadius, handlePaint);
+    canvas.drawCircle(Offset(cropRect.right, cropRect.bottom), handleRadius, handlePaint);
   }
 
   void _drawGridLines(Canvas canvas, Rect cropRect) {
@@ -608,6 +831,16 @@ class ReceiptCropPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(ReceiptCropPainter oldDelegate) {
-    return oldDelegate.cropRect != cropRect;
+    return oldDelegate.cropRect != cropRect || oldDelegate.image != image || oldDelegate.displaySize != displaySize;
   }
 }
+
+class _DisplayMapping {
+  final Rect displayRect;
+  final double scaleX;
+  final double scaleY;
+  _DisplayMapping({required this.displayRect, required this.scaleX, required this.scaleY});
+}
+
+enum _ActiveHandle { none, move, topLeft, topRight, bottomLeft, bottomRight }
+
