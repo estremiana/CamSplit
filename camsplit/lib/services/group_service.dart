@@ -6,6 +6,7 @@ import '../config/api_config.dart';
 import '../models/mock_group_data.dart';
 import 'api_service.dart';
 import 'currency_service.dart';
+import 'user_stats_service.dart';
 
 /// Service class for handling group-related operations
 /// This class provides an abstraction layer for group data access
@@ -145,6 +146,13 @@ class GroupService {
       if (response['success']) {
         final newGroup = Group.fromJson(response['data']);
         _invalidateCache(); // Clear cache to force refresh
+        
+        // Optimistic update: Increment groups count
+        UserStatsService.incrementGroupsCount();
+        
+        // Background refresh of stats
+        UserStatsService.refreshStatsInBackground();
+        
         return newGroup;
       } else {
         throw GroupServiceException(response['message'] ?? 'Failed to create group');
@@ -219,6 +227,13 @@ class GroupService {
       
       if (response['success']) {
         _invalidateCache(); // Clear cache to force refresh
+        
+        // Optimistic update: Decrement groups count
+        UserStatsService.decrementGroupsCount();
+        
+        // Background refresh of stats
+        UserStatsService.refreshStatsInBackground();
+        
         return;
       } else {
         throw GroupServiceException(response['message'] ?? 'Failed to delete group with cascade');
@@ -235,6 +250,13 @@ class GroupService {
       
       if (response['success']) {
         _invalidateCache(); // Clear cache to force refresh
+        
+        // Optimistic update: Decrement groups count
+        UserStatsService.decrementGroupsCount();
+        
+        // Background refresh of stats
+        UserStatsService.refreshStatsInBackground();
+        
         return {
           'action': response['data']['action'],
           'message': response['message']

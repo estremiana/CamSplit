@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 
 import '../../../core/app_export.dart';
+import '../../../widgets/robust_image_widget.dart';
 
 class ReceiptImageWidget extends StatelessWidget {
   final String? imageUrl;
@@ -22,7 +23,7 @@ class ReceiptImageWidget extends StatelessWidget {
           children: [
             Center(
               child: InteractiveViewer(
-                child: CustomImageWidget(
+                child: RobustImageWidget(
                   imageUrl: imageUrl,
                   width: 90.w,
                   height: 80.h,
@@ -50,6 +51,13 @@ class ReceiptImageWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Debug logging for image URL issues
+    if (imageUrl != null && imageUrl!.isNotEmpty) {
+      debugPrint('ReceiptImageWidget: Displaying image with URL: $imageUrl');
+    } else {
+      debugPrint('ReceiptImageWidget: No image URL provided or empty');
+    }
+    
     // If no image URL is provided, show small camera button
     if (imageUrl == null || imageUrl!.isEmpty) {
       return GestureDetector(
@@ -134,11 +142,13 @@ class ReceiptImageWidget extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           child: Stack(
             children: [
-              CustomImageWidget(
+              RobustImageWidget(
                 imageUrl: imageUrl!,
                 width: double.infinity,
                 height: 25.h,
                 fit: BoxFit.cover,
+                maxRetries: 3,
+                retryDelay: Duration(seconds: 2),
                 errorWidget: Container(
                   width: double.infinity,
                   height: 25.h,
@@ -157,6 +167,14 @@ class ReceiptImageWidget extends StatelessWidget {
                           'Receipt Image',
                           style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
                             color: Colors.grey[600],
+                          ),
+                        ),
+                        SizedBox(height: 0.5.h),
+                        Text(
+                          'Failed to load image',
+                          style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+                            color: Colors.grey[500],
+                            fontSize: 10,
                           ),
                         ),
                       ],

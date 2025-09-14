@@ -5,7 +5,10 @@ import 'package:sizer/sizer.dart';
 
 import '../../../core/app_export.dart';
 import '../../../services/profile_image_service.dart';
-import '../../../widgets/image_cropper_widget.dart';
+import '../../camera_capture/flexible_camera_capture.dart';
+import '../../camera_capture/config/camera_capture_config.dart';
+import '../../camera_capture/config/camera_capture_mode.dart';
+import '../../camera_capture/config/camera_capture_theme.dart';
 
 class ProfileImagePickerWidget extends StatefulWidget {
   final String? currentImageUrl;
@@ -166,72 +169,59 @@ class _ProfileImagePickerWidgetState extends State<ProfileImagePickerWidget> {
 
   void _showImagePickerOptions(BuildContext context) {
     HapticFeedback.selectionClick();
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16.0)),
-      ),
-      builder: (context) => Container(
-        padding: EdgeInsets.all(4.w),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 10.w,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppTheme.borderLight,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            SizedBox(height: 2.h),
-            Text(
-              'Change Profile Photo',
-              style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            SizedBox(height: 2.h),
-            ListTile(
-              leading: Container(
-                padding: EdgeInsets.all(2.w),
+    
+    // Check if user has existing photo to show remove option
+    final bool hasExistingPhoto = widget.currentImageUrl != null || 
+                                 widget.selectedImagePath != null || 
+                                 _tempImagePath != null;
+    
+    if (hasExistingPhoto) {
+      // Show options for existing photo (camera or remove)
+      showModalBottomSheet(
+        context: context,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16.0)),
+        ),
+        builder: (context) => Container(
+          padding: EdgeInsets.all(4.w),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 10.w,
+                height: 4,
                 decoration: BoxDecoration(
-                  color:
-                      AppTheme.lightTheme.primaryColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
-                child: CustomIconWidget(
-                  iconName: 'camera_alt',
-                  color: AppTheme.lightTheme.primaryColor,
-                  size: 24,
+                  color: AppTheme.borderLight,
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              title: const Text('Take Photo'),
-              onTap: () {
-                Navigator.pop(context);
-                _takePhoto();
-              },
-            ),
-            ListTile(
-              leading: Container(
-                padding: EdgeInsets.all(2.w),
-                decoration: BoxDecoration(
-                  color: AppTheme.successLight.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
-                child: CustomIconWidget(
-                  iconName: 'photo_library',
-                  color: AppTheme.successLight,
-                  size: 24,
+              SizedBox(height: 2.h),
+              Text(
+                'Change Profile Photo',
+                style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              title: const Text('Choose from Gallery'),
-              onTap: () {
-                Navigator.pop(context);
-                _pickFromGallery();
-              },
-            ),
-            if (widget.currentImageUrl != null || widget.selectedImagePath != null || _tempImagePath != null)
+              SizedBox(height: 2.h),
+              ListTile(
+                leading: Container(
+                  padding: EdgeInsets.all(2.w),
+                  decoration: BoxDecoration(
+                    color: AppTheme.lightTheme.primaryColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  child: CustomIconWidget(
+                    iconName: 'camera_alt',
+                    color: AppTheme.lightTheme.primaryColor,
+                    size: 24,
+                  ),
+                ),
+                title: const Text('Take Photo'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _openCamera();
+                },
+              ),
               ListTile(
                 leading: Container(
                   padding: EdgeInsets.all(2.w),
@@ -251,66 +241,81 @@ class _ProfileImagePickerWidgetState extends State<ProfileImagePickerWidget> {
                   _removePhoto();
                 },
               ),
-            SizedBox(height: 1.h),
-          ],
+              SizedBox(height: 1.h),
+            ],
+          ),
         ),
-      ),
-    );
-  }
-
-  Future<void> _takePhoto() async {
-    try {
-      HapticFeedback.selectionClick();
-      final File? photo = await _profileImageService.takePhoto();
-      
-      if (photo != null) {
-        await _processSelectedImage(photo);
-      }
-    } catch (e) {
-      _showErrorSnackBar('Failed to take photo: $e');
+      );
+    } else {
+      // No existing photo, go directly to camera
+      _openCamera();
     }
   }
 
-  Future<void> _pickFromGallery() async {
+  void _openCamera() async {
     try {
       HapticFeedback.selectionClick();
-      final File? image = await _profileImageService.pickFromGallery();
       
-      if (image != null) {
-        await _processSelectedImage(image);
+      // Create camera configuration for profile photo
+      final config = CameraCaptureConfig(
+        title: 'Profile Photo',
+        subtitle: 'Take a photo or choose from gallery',
+        mode: CameraCaptureMode.general,
+        enableCrop: true,
+        enableGallery: true,
+        enableFlash: true,
+        enableCameraSwitch: true,
+        showInstructions: true,
+        theme: CameraCaptureTheme.general.copyWith(
+          primaryColor: AppTheme.lightTheme.primaryColor,
+          backgroundColor: Colors.black,
+          textColor: Colors.white,
+          instructionText: 'Position your face within the frame and capture',
+        ),
+        onImageCaptured: _handleImageCaptured,
+        onCancel: () {
+          Navigator.pop(context);
+        },
+        onError: (error) {
+          _showErrorSnackBar('Camera error: $error');
+        },
+      );
+      
+      // Navigate to the new camera widget
+      await Navigator.push<File>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => FlexibleCameraCapture(config: config),
+        ),
+      );
+    } catch (e) {
+      _showErrorSnackBar('Failed to open camera: $e');
+    }
+  }
+
+  Future<void> _handleImageCaptured(File imageFile) async {
+    try {
+      // Process the captured image through cropping
+      await _processSelectedImage(imageFile);
+      
+      // Close the camera screen
+      if (mounted) {
+        Navigator.pop(context);
       }
     } catch (e) {
-      _showErrorSnackBar('Failed to pick image: $e');
+      _showErrorSnackBar('Failed to process image: $e');
     }
   }
 
   Future<void> _processSelectedImage(File imageFile) async {
     try {
-      // Show cropping interface
-      final File? croppedImage = await Navigator.push<File>(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ImageCropperWidget(
-            imageFile: imageFile,
-            aspectRatio: 1.0, // Square for profile pictures
-            onCropComplete: (File croppedFile) {
-              Navigator.pop(context, croppedFile);
-            },
-            onCancel: () {
-              Navigator.pop(context);
-            },
-          ),
-        ),
-      );
+      // Set the temporary image path for preview
+      setState(() {
+        _tempImagePath = imageFile.path;
+      });
 
-      if (croppedImage != null) {
-        setState(() {
-          _tempImagePath = croppedImage.path;
-        });
-
-        // Upload the cropped image
-        await _uploadImage(croppedImage);
-      }
+      // Upload the image directly without cropping
+      await _uploadImage(imageFile);
     } catch (e) {
       _showErrorSnackBar('Failed to process image: $e');
     }

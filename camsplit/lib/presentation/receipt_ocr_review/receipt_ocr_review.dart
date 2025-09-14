@@ -332,11 +332,19 @@ class _ReceiptOcrReviewState extends State<ReceiptOcrReview> {
       _isLoading = true;
     });
 
-    // Get image path from route arguments
+    // Get image path and image URL from route arguments
     final args = ModalRoute.of(context)?.settings.arguments;
     final imagePath = (args is Map && args['imagePath'] != null) 
         ? args['imagePath'] as String 
         : null;
+    
+    // Extract image URL from OCR result
+    String? imageUrl;
+    if (args is Map && args['ocrResult'] != null) {
+      final ocrResult = args['ocrResult'];
+      final data = ocrResult['data'] ?? ocrResult;
+      imageUrl = data['image_url'];
+    }
 
     // Simulate processing delay
     Future.delayed(const Duration(seconds: 1), () {
@@ -347,6 +355,7 @@ class _ReceiptOcrReviewState extends State<ReceiptOcrReview> {
           arguments: {
             'items': _extractedItems,
             'imagePath': imagePath,
+            'imageUrl': imageUrl,
           },
         );
         setState(() {

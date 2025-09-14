@@ -8,6 +8,7 @@ import '../utils/real_time_updates.dart';
 import '../utils/error_recovery.dart';
 import 'api_service.dart';
 import 'currency_migration_service.dart';
+import 'user_stats_service.dart';
 
 /// Service class for handling group detail operations
 /// This service provides comprehensive group detail functionality including:
@@ -270,6 +271,12 @@ class GroupDetailService {
       if (response['success']) {
         // Invalidate cache
         _invalidateDetailCache(groupId);
+        
+        // Optimistic update: Decrement groups count
+        UserStatsService.decrementGroupsCount();
+        
+        // Background refresh of stats
+        UserStatsService.refreshStatsInBackground();
         
         return {
           'success': true,

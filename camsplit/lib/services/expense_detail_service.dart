@@ -378,8 +378,23 @@ class ExpenseDetailService {
     
     // Get receipt image URL if available
     String? receiptImageUrl;
+    print('ExpenseDetailService: Processing expense with ${expense.receiptImages.length} receipt images');
+    for (int i = 0; i < expense.receiptImages.length; i++) {
+      final receiptImage = expense.receiptImages[i];
+      print('ExpenseDetailService: Receipt image $i - URL: ${receiptImage.imageUrl}, Valid: ${receiptImage.isValid()}');
+    }
+    
     if (expense.receiptImages.isNotEmpty) {
-      receiptImageUrl = expense.receiptImages.first.imageUrl;
+      // Find the first valid receipt image
+      for (final receiptImage in expense.receiptImages) {
+        if (receiptImage.imageUrl.isNotEmpty && receiptImage.isValid()) {
+          receiptImageUrl = receiptImage.imageUrl;
+          print('ExpenseDetailService: Selected receipt image URL: $receiptImageUrl');
+          break;
+        }
+      }
+    } else {
+      print('ExpenseDetailService: No receipt images found in expense');
     }
     
     // Use the actual split type from the expense
@@ -446,6 +461,7 @@ class ExpenseDetailService {
     try {
       // Get the basic expense details
       final expenseDetail = await getExpenseById(expenseId);
+      print('ExpenseDetailService.getExpenseWithMemberDetails: Basic expense detail has receiptImageUrl: ${expenseDetail.receiptImageUrl}');
       
       // Get group details to enhance member names
       final groupResponse = await _apiService.getGroupWithMembers(groupId.toString());
@@ -473,16 +489,20 @@ class ExpenseDetailService {
         }
         
         // Return enhanced expense detail with actual group name
-        return expenseDetail.copyWith(
+        final enhancedExpenseDetail = expenseDetail.copyWith(
           participantAmounts: enhancedParticipantAmounts,
           payerName: enhancedPayerName,
           groupName: groupName, // Use the actual group name
         );
+        print('ExpenseDetailService.getExpenseWithMemberDetails: Enhanced expense detail has receiptImageUrl: ${enhancedExpenseDetail.receiptImageUrl}');
+        return enhancedExpenseDetail;
       }
       
+      print('ExpenseDetailService.getExpenseWithMemberDetails: Group details failed, returning basic expense detail');
       return expenseDetail;
     } catch (e) {
       // If group details fail, return the basic expense detail
+      print('ExpenseDetailService.getExpenseWithMemberDetails: Exception occurred: $e');
       return await getExpenseById(expenseId);
     }
   }

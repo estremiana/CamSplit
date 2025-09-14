@@ -13,6 +13,8 @@ Thumbs.db
 node_modules/
 backend/node_modules/
 frontend/node_modules/
+package-lock.json
+backend/package-lock.json
 
 # Environment and credentials
 *.env
@@ -20,6 +22,7 @@ frontend/node_modules/
 backend/.env
 database/.env
 backend/google-credentials.json
+splitease/env.json
 
 # Logs and temp
 *.log
@@ -27,6 +30,7 @@ backend/logs/
 
 # Flutter/Dart
 pubspec.lock
+splitease/pubspec.lock
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
