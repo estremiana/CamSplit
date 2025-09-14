@@ -87,9 +87,10 @@ class _AssignmentInstructionsWidgetState
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppTheme.lightTheme.colorScheme.primaryContainer,
                     AppTheme.lightTheme.colorScheme.primaryContainer
-                        .withValues(alpha: 0.8),
+                        .withValues(alpha: 0.4),
+                    AppTheme.lightTheme.colorScheme.primaryContainer
+                        .withValues(alpha: 0.2),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -161,24 +162,10 @@ class _AssignmentInstructionsWidgetState
                   ),
                   SizedBox(height: 1.5.h),
                   _buildInstructionStep(
-                    icon: Icons.drag_indicator,
-                    title: 'Drag & Drop',
+                    icon: Icons.numbers,
+                    title: 'Quantity Assignment',
                     description:
-                        'Long press and drag items to member zones for quick assignment',
-                  ),
-                  SizedBox(height: 1.5.h),
-                  _buildInstructionStep(
-                    icon: Icons.search,
-                    title: 'Quick Search',
-                    description:
-                        'Use search to quickly find and assign members',
-                  ),
-                  SizedBox(height: 1.5.h),
-                  _buildInstructionStep(
-                    icon: Icons.select_all,
-                    title: 'Bulk Actions',
-                    description:
-                        'Use bulk mode to assign multiple items at once',
+                        'Assign specific quantities to members for shared items',
                   ),
 
                   SizedBox(height: 2.h),

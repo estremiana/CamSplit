@@ -1121,6 +1121,16 @@ class ApiService {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('user_id');
   }
+
+  /// Get user profile by ID
+  Future<Map<String, dynamic>> getUserById(String userId) async {
+    try {
+      final response = await _dio.get('${ApiConfig.baseUrl}/users/$userId/profile');
+      return response.data;
+    } on DioException catch (e) {
+      throw Exception('Failed to get user profile: ${e.message}');
+    }
+  }
   
   // ==================== ERROR HANDLING ====================
   

@@ -65,6 +65,23 @@ class UserService {
     _cachedUser = user;
     return user;
   }
+
+  /// Get user by ID
+  static Future<UserModel?> getUserById(String userId) async {
+    try {
+      final apiService = ApiService.instance;
+      final response = await apiService.getUserById(userId);
+      
+      if (response['success'] == true) {
+        return UserModel.fromJson(response['data']);
+      } else {
+        return null;
+      }
+    } catch (e) {
+      print('Failed to get user by ID $userId: $e');
+      return null;
+    }
+  }
   
   /// Update user data and refresh cache
   static Future<UserModel> updateUser(Map<String, dynamic> updates) async {

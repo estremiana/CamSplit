@@ -162,7 +162,7 @@ class _MemberSearchWidgetState extends State<MemberSearchWidget> {
                           member: member,
                           isSelected: false,
                           onTap: () => _onMemberTapped(member),
-                          size: 6.0,
+                          size: 5.0,
                         ),
                         title: Text(
                           member['name'],

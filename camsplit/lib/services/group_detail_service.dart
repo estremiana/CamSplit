@@ -3,11 +3,13 @@ import '../models/group_detail_model.dart';
 import '../models/group_member.dart';
 import '../models/group.dart';
 import '../models/settlement.dart';
+import '../models/user_model.dart';
 import '../config/api_config.dart';
 import '../utils/real_time_updates.dart';
 import '../utils/error_recovery.dart';
 import 'api_service.dart';
 import 'currency_migration_service.dart';
+import 'user_service.dart';
 import 'user_stats_service.dart';
 
 /// Service class for handling group detail operations
@@ -337,6 +339,18 @@ class GroupDetailService {
   /// This is needed because the backend returns Group objects
   /// but the frontend expects GroupDetailModel objects
   static Future<GroupDetailModel> _convertGroupToDetailModel(Group group) async {
+    // Get current user data to populate avatars
+    UserModel? currentUser;
+    try {
+      currentUser = await UserService.getCurrentUser();
+      print('GroupDetailService: Current user avatar: ${currentUser.avatar}');
+      print('GroupDetailService: Current user ID: ${currentUser.id}');
+    } catch (e) {
+      print('GroupDetailService: Failed to get current user: $e');
+    }
+    
+    // Enhance group members with current user avatar
+    final enhancedMembers = _enhanceMembersWithCurrentUserAvatar(group.members, currentUser);
         // Fetch group expenses
     List<GroupExpense> expenses = [];
     try {
@@ -444,7 +458,7 @@ class GroupDetailService {
       name: group.name,
       description: group.description ?? '',
       currency: CurrencyMigrationService.prepareForBackend(group.currency, format: 'code'),
-      members: group.members,
+      members: enhancedMembers,
       expenses: expenses,
       settlements: settlements,
       userBalance: userBalance,
@@ -537,6 +551,25 @@ class GroupDetailService {
     }
     
     throw GroupDetailServiceException('Failed to load group details after $maxRetries attempts');
+  }
+
+  /// Enhance group members with current user's avatar
+  static List<GroupMember> _enhanceMembersWithCurrentUserAvatar(List<GroupMember> members, UserModel? currentUser) {
+    if (currentUser == null) return members;
+    
+    // Get current user ID
+    final currentUserId = int.tryParse(currentUser.id);
+    if (currentUserId == null) return members;
+    
+    // Update members to include current user's avatar
+    return members.map((member) {
+      // If this member is the current user and doesn't have an avatar, use current user's avatar
+      if (member.userId == currentUserId && (member.avatarUrl == null || member.avatarUrl!.isEmpty)) {
+        print('GroupDetailService: Enhancing member ${member.nickname} with current user avatar: ${currentUser.avatar}');
+        return member.copyWith(avatarUrl: currentUser.avatar);
+      }
+      return member;
+    }).toList();
   }
 
   // Utility methods

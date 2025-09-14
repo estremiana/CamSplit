@@ -494,21 +494,9 @@ class _ProfileSettingsState extends State<ProfileSettings> with AutomaticKeepAli
       // Map UI setting keys to backend preference keys
       switch (key) {
         case 'currency':
-          // Convert Currency object to JSON for backend
+          // Backend expects only the currency code, not the full object
           if (value is Currency) {
-            preferences['currency'] = {
-              'code': value.code,
-              'name': value.name,
-              'symbol': value.symbol,
-              'flag': value.flag,
-              'number': value.number,
-              'decimalDigits': value.decimalDigits,
-              'namePlural': value.namePlural,
-              'symbolOnLeft': value.symbolOnLeft,
-              'decimalSeparator': value.decimalSeparator,
-              'thousandsSeparator': value.thousandsSeparator,
-              'spaceBetweenAmountAndSymbol': value.spaceBetweenAmountAndSymbol,
-            };
+            preferences['currency'] = value.code;
           } else {
             preferences['currency'] = value;
           }

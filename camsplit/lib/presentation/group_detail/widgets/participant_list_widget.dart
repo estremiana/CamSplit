@@ -183,6 +183,11 @@ class _ParticipantListWidgetState extends State<ParticipantListWidget> {
   }
 
   Widget _buildMemberAvatar(GroupMember member) {
+    // Debug logging
+    print('ParticipantListWidget: Building avatar for member ${member.nickname}');
+    print('ParticipantListWidget: Avatar URL: ${member.avatarUrl}');
+    print('ParticipantListWidget: User ID: ${member.userId}');
+    
     return Container(
       width: 10.w,
       height: 10.w,
@@ -190,24 +195,15 @@ class _ParticipantListWidgetState extends State<ParticipantListWidget> {
         shape: BoxShape.circle,
         color: AppTheme.lightTheme.colorScheme.primaryContainer,
       ),
-      child: false // GroupMember doesn't have avatar field, so always show initials
-          ? ClipOval(
-              child: CustomImageWidget(
-                imageUrl: '', // GroupMember doesn't have avatar field
-                width: 10.w,
-                height: 10.w,
-                fit: BoxFit.cover,
-              ),
-            )
-          : Center(
-              child: Text(
-                member.initials,
-                style: AppTheme.lightTheme.textTheme.labelMedium?.copyWith(
-                  color: AppTheme.lightTheme.colorScheme.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
+      child: ClipOval(
+        child: CustomImageWidget(
+          imageUrl: member.avatarUrl,
+          width: 10.w,
+          height: 10.w,
+          userName: member.nickname,
+          fit: BoxFit.cover,
+        ),
+      ),
     );
   }
 

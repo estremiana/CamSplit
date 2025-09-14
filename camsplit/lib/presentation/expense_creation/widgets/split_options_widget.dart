@@ -917,7 +917,7 @@ class _SplitOptionsWidgetState extends State<SplitOptionsWidget> {
                         ),
                       ]));
                 }).toList())),
-            if (_totalPercentage != 100.0)
+            if (_totalPercentage != 100.0 && !widget.isReadOnly && !widget.isReceiptMode)
               Semantics(
                 label: 'Validation error',
                 hint: 'Total percentage must equal 100 percent',
@@ -972,27 +972,40 @@ class _SplitOptionsWidgetState extends State<SplitOptionsWidget> {
                       style: AppTheme.lightTheme.textTheme.titleSmall
                           ?.copyWith(fontWeight: FontWeight.w600)),
                   Spacer(),
-                  Semantics(
-                    label: 'Total custom amount',
-                    value: '${_totalCustomAmount.toStringAsFixed(2)} dollars',
-                    hint: isValidTotal ? 'Valid total' : 'Must equal ${totalAmount.toStringAsFixed(2)} dollars',
-                    child: Container(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 2.w, vertical: 0.5.h),
-                        decoration: BoxDecoration(
-                            color: isValidTotal
-                                ? AppTheme.lightTheme.colorScheme.primaryContainer
-                                : AppTheme.lightTheme.colorScheme.errorContainer,
-                            borderRadius: BorderRadius.circular(8)),
-                        child: CurrencyDisplayWidget(
-                            amount: _totalCustomAmount,
-                            currency: widget.currency,
-                            style: AppTheme.lightTheme.textTheme.bodySmall
-                                ?.copyWith(
-                                    color: isValidTotal
-                                        ? AppTheme.lightTheme.colorScheme.primary
-                                        : AppTheme.lightTheme.colorScheme.error,
-                                    fontWeight: FontWeight.w600))),
+                  Row(
+                    children: [
+                      if (widget.isReceiptMode || widget.isReadOnly)
+                        Container(
+                          margin: EdgeInsets.only(right: 1.w),
+                          child: Icon(
+                            Icons.lock_outline,
+                            size: 16,
+                            color: AppTheme.lightTheme.colorScheme.secondary.withOpacity(0.7),
+                          ),
+                        ),
+                      Semantics(
+                        label: 'Total custom amount',
+                        value: '${_totalCustomAmount.toStringAsFixed(2)} dollars',
+                        hint: isValidTotal ? 'Valid total' : 'Must equal ${totalAmount.toStringAsFixed(2)} dollars',
+                        child: Container(
+                            padding:
+                                EdgeInsets.symmetric(horizontal: 2.w, vertical: 0.5.h),
+                            decoration: BoxDecoration(
+                                color: isValidTotal
+                                    ? AppTheme.lightTheme.colorScheme.primaryContainer
+                                    : AppTheme.lightTheme.colorScheme.errorContainer,
+                                borderRadius: BorderRadius.circular(8)),
+                            child: CurrencyDisplayWidget(
+                                amount: _totalCustomAmount,
+                                currency: widget.currency,
+                                style: AppTheme.lightTheme.textTheme.bodySmall
+                                    ?.copyWith(
+                                        color: isValidTotal
+                                            ? AppTheme.lightTheme.colorScheme.primary
+                                            : AppTheme.lightTheme.colorScheme.error,
+                                        fontWeight: FontWeight.w600))),
+                      ),
+                    ],
                   ),
                 ])),
             Padding(
@@ -1024,7 +1037,10 @@ class _SplitOptionsWidgetState extends State<SplitOptionsWidget> {
                                     alignment: Alignment.center,
                                     child: Text(
                                       widget.currency.symbol,
-                                      style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(color: AppTheme.lightTheme.colorScheme.secondary),
+                                      style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+                                        color: AppTheme.lightTheme.colorScheme.secondary,
+                                        fontSize: 13, // Match the input text size
+                                      ),
                                     ),
                                   ),
                                   Expanded(
@@ -1045,13 +1061,9 @@ class _SplitOptionsWidgetState extends State<SplitOptionsWidget> {
                                           borderRadius: BorderRadius.circular(8),
                                           borderSide: BorderSide(color: AppTheme.lightTheme.colorScheme.primary)),
                                         hintText: '0.00',
-                                        suffixIcon: (widget.isReceiptMode || widget.isReadOnly)
-                                            ? Icon(
-                                                Icons.lock_outline,
-                                                color: AppTheme.lightTheme.colorScheme.secondary.withOpacity(0.6),
-                                                size: 16,
-                                              )
-                                            : null,
+                                      ),
+                                      style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+                                        fontSize: 13, // Slightly smaller text for better fit
                                       ),
                                       validator: (value) {
                                         if (value == null || value.trim().isEmpty) {
@@ -1089,7 +1101,7 @@ class _SplitOptionsWidgetState extends State<SplitOptionsWidget> {
                         ),
                       ]));
                 }).toList())),
-            if (!isValidTotal)
+            if (!isValidTotal && !widget.isReadOnly && !widget.isReceiptMode)
               Semantics(
                 label: 'Validation error',
                 hint: 'Total must equal ${totalAmount.toStringAsFixed(2)} dollars',

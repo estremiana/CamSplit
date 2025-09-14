@@ -64,22 +64,13 @@ class GroupActionsWidget extends StatelessWidget {
           ),
           SizedBox(height: 2.h),
           
-          // Generate Invite Link Action
-          _buildActionTile(
-            context: context,
-            icon: 'link',
-            title: 'Generate Invite Link',
-            color: AppTheme.lightTheme.colorScheme.secondary,
-            onTap: () => _handleGenerateInviteLink(context),
-          ),
-          
-          // Share Group Action
+          // Share Group Action (formerly Generate Invite Link)
           _buildActionTile(
             context: context,
             icon: 'share',
             title: 'Share Group',
-            color: AppTheme.lightTheme.colorScheme.primary,
-            onTap: () => _handleShareGroup(context),
+            color: AppTheme.lightTheme.colorScheme.secondary,
+            onTap: () => _handleGenerateInviteLink(context),
           ),
           
           // Exit Group Action
@@ -258,35 +249,7 @@ class GroupActionsWidget extends StatelessWidget {
     );
   }
 
-  /// Handle share group functionality with platform-specific sharing
-  void _handleShareGroup(BuildContext context) {
-    Navigator.pop(context);
-    
-    try {
-      final shareText = _buildShareText();
-      Share.share(
-        shareText,
-        subject: 'Join my CamSplit group: ${groupDetail.name}',
-      );
-    } catch (e) {
-      _showErrorSnackBar(context, 'Failed to share group. Please try again.');
-    }
-  }
 
-  /// Build the text content for sharing
-  String _buildShareText() {
-    final memberCount = groupDetail.memberCount;
-    final memberText = memberCount == 1 ? 'member' : 'members';
-    
-    return '''
-Join my CamSplit group "${groupDetail.name}"!
-
-${groupDetail.description.isNotEmpty ? '${groupDetail.description}\n\n' : ''}Current members: $memberCount $memberText
-
-Download CamSplit to manage shared expenses easily:
-[App Store/Play Store Link]
-''';
-  }
 
   /// Handle exit group functionality with confirmation dialog
   void _handleExitGroup(BuildContext context) {

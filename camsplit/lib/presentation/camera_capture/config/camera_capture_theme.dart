@@ -50,7 +50,7 @@ class CameraCaptureTheme {
     usePhotoButtonText: 'Use Photo',
     processingText: 'Processing...',
     instructionText: 'Position the receipt within the frame and capture',
-    primaryColor: Color(0xFF4CAF50),
+    primaryColor: Color(0xFF2563EB), // Using app's primary blue color
   );
   
   static const CameraCaptureTheme document = CameraCaptureTheme(

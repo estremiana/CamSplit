@@ -4,7 +4,6 @@ import 'package:sizer/sizer.dart';
 
 import '../../core/app_export.dart';
 import '../../theme/app_theme.dart';
-import './widgets/biometric_prompt_widget.dart';
 import './widgets/login_form_widget.dart';
 import './widgets/social_login_widget.dart';
 
@@ -24,7 +23,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _isPasswordVisible = false;
   bool _isLoading = false;
-  bool _showBiometricPrompt = false;
   String? _errorMessage;
 
   // API service instance
@@ -64,16 +62,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
       setState(() {
         _isLoading = false;
-        _showBiometricPrompt = true;
       });
 
-      // Show biometric prompt for 2 seconds then navigate
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) {
-          // Use the new slideable navigation system
-          Navigator.pushReplacementNamed(context, '/main-navigation');
-        }
-      });
+      // Navigate directly to main screen
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/main-navigation');
+      }
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -186,7 +180,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   SizedBox(height: 1.h),
 
                   Text(
-                    'Split expenses, share memories',
+                    'Split expenses, not friendships',
                     style:
                         AppTheme.lightTheme.textTheme.bodyLarge?.copyWith(
                       color:
@@ -279,15 +273,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
 
-            // Biometric Prompt Overlay
-            if (_showBiometricPrompt)
-              BiometricPromptWidget(
-                onComplete: () {
-                  setState(() {
-                    _showBiometricPrompt = false;
-                  });
-                },
-              ),
+
           ],
         ),
       ),

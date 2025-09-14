@@ -107,26 +107,7 @@ class _ReceiptPreviewWidgetState extends State<ReceiptPreviewWidget> {
               fit: BoxFit.contain,
             ),
 
-                         // Processing Overlay
-             if (widget.isProcessing)
-               Container(
-                 color: Colors.black.withValues(alpha: 0.7),
-                 child: Center(
-                   child: Column(
-                     mainAxisAlignment: MainAxisAlignment.center,
-                     children: [
-                       const CircularProgressIndicator(color: Colors.white),
-                       SizedBox(height: 3.h),
-                       Text(
-                         'Processing...',
-                         style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
-                           color: Colors.white,
-                         ),
-                       ),
-                     ],
-                   ),
-                 ),
-               ),
+                         // Processing Overlay - Removed to avoid duplicate processing text
 
 
           ],
@@ -275,12 +256,6 @@ class _ReceiptPreviewWidgetState extends State<ReceiptPreviewWidget> {
                           ),
                         ),
                         SizedBox(width: 2.w),
-                        Text(
-                          'Processing...',
-                          style: AppTheme.lightTheme.textTheme.titleSmall?.copyWith(
-                            color: Colors.white,
-                          ),
-                        ),
                       ] else ...[
                         CustomIconWidget(
                           iconName: 'check',
@@ -288,13 +263,13 @@ class _ReceiptPreviewWidgetState extends State<ReceiptPreviewWidget> {
                           size: 20,
                         ),
                         SizedBox(width: 2.w),
-                        Text(
-                          'Use Photo',
-                          style: AppTheme.lightTheme.textTheme.titleSmall?.copyWith(
-                            color: Colors.white,
-                          ),
-                        ),
                       ],
+                      Text(
+                        'Use Photo',
+                        style: AppTheme.lightTheme.textTheme.titleSmall?.copyWith(
+                          color: Colors.white,
+                        ),
+                      ),
                     ],
                   ),
                 ),

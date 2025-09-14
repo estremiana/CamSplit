@@ -100,7 +100,7 @@ class _QuantityAssignmentWidgetState extends State<QuantityAssignmentWidget> {
         'itemName': widget.item['name'],
         'quantity': _assignableQuantity,
         'unitPrice': widget.item['unit_price'],
-        'totalPrice': (widget.item['unit_price'] as double) * _assignableQuantity,
+        'totalPrice': ((widget.item['unit_price'] as num?)?.toDouble() ?? 0.0) * _assignableQuantity,
         'memberIds': _selectedMemberIds.toList(),
         'memberNames': selectedMembers.map((m) => m['name']).toList(),
         'assignmentId': DateTime.now().millisecondsSinceEpoch.toString(),
@@ -131,6 +131,43 @@ class _QuantityAssignmentWidgetState extends State<QuantityAssignmentWidget> {
         [];
   }
 
+  Widget _buildMemberItem(Map<String, dynamic> member, double itemWidth) {
+    final isSelected = _selectedMemberIds.contains(member['id'].toString());
+    
+    return GestureDetector(
+      onTap: () => _toggleMemberSelection(member['id'].toString()),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          MemberAvatarWidget(
+            member: member,
+            isSelected: isSelected,
+            onTap: () => _toggleMemberSelection(member['id'].toString()),
+            size: 6.0,
+          ),
+          SizedBox(height: 0.8.h),
+          SizedBox(
+            width: itemWidth,
+            child: Text(
+              member['name'],
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+                color: isSelected
+                    ? AppTheme.lightTheme.colorScheme.primary
+                    : AppTheme.lightTheme.colorScheme.onSurface,
+                fontWeight: isSelected
+                    ? FontWeight.w600
+                    : FontWeight.w400,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final assignments = _currentAssignments;
@@ -142,11 +179,15 @@ class _QuantityAssignmentWidgetState extends State<QuantityAssignmentWidget> {
       child: Column(
         children: [
           // Header - Always visible
-          GestureDetector(
-            onTap: widget.onToggleExpanded,
-            child: Container(
-              padding: EdgeInsets.all(3.w),
-              child: Row(
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: widget.onToggleExpanded,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              child: Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(3.w),
+                child: Row(
                 children: [
                   // Item info
                   Expanded(
@@ -162,7 +203,7 @@ class _QuantityAssignmentWidgetState extends State<QuantityAssignmentWidget> {
                         ),
                         SizedBox(height: 0.5.h),
                         CurrencyDisplayWidget(
-                          amount: widget.item['unit_price'] as double,
+                          amount: (widget.item['unit_price'] as num?)?.toDouble() ?? 0.0,
                           currency: widget.currency,
                           style: AppTheme.getMonospaceStyle(
                             isLight: true,
@@ -285,7 +326,7 @@ class _QuantityAssignmentWidgetState extends State<QuantityAssignmentWidget> {
                                     )
                                   else
                                     CircleAvatar(
-                                      radius: 3.w,
+                                      radius: 2.5.w,
                                       backgroundColor: AppTheme.lightTheme.colorScheme.primaryContainer,
                                       child: ClipOval(
                                         child: CustomImageWidget(
@@ -293,8 +334,8 @@ class _QuantityAssignmentWidgetState extends State<QuantityAssignmentWidget> {
                                               assignment['memberIds'].contains(
                                                   m['id']
                                                       .toString()))['avatar'],
-                                          width: 6.w,
-                                          height: 6.w,
+                                          width: 5.w,
+                                          height: 5.w,
                                           fit: BoxFit.cover,
                                           userName: widget.members.firstWhere((m) =>
                                               assignment['memberIds'].contains(
@@ -327,7 +368,7 @@ class _QuantityAssignmentWidgetState extends State<QuantityAssignmentWidget> {
                                     ),
                                   ),
                                   CurrencyDisplayWidget(
-                                    amount: assignment['totalPrice'] as double,
+                                    amount: (assignment['totalPrice'] as num?)?.toDouble() ?? 0.0,
                                     currency: widget.currency,
                                     style: AppTheme.getMonospaceStyle(
                                       isLight: true,
@@ -447,44 +488,34 @@ class _QuantityAssignmentWidgetState extends State<QuantityAssignmentWidget> {
                                 ?.copyWith(fontWeight: FontWeight.w500),
                           ),
                           SizedBox(height: 1.h),
-                          Wrap(
-                            spacing: 2.w,
-                            runSpacing: 1.h,
-                            children: widget.members.map((member) {
-                              final isSelected = _selectedMemberIds
-                                  .contains(member['id'].toString());
-                              return GestureDetector(
-                                onTap: () => _toggleMemberSelection(
-                                    member['id'].toString()),
-                                child: Column(
-                                  children: [
-                                    MemberAvatarWidget(
-                                      member: member,
-                                      isSelected: isSelected,
-                                      onTap: () => _toggleMemberSelection(
-                                          member['id'].toString()),
-                                      size: 10.0,
-                                    ),
-                                    SizedBox(height: 0.5.h),
-                                    Text(
-                                      member['name'],
-                                      style: AppTheme
-                                          .lightTheme.textTheme.bodySmall
-                                          ?.copyWith(
-                                        color: isSelected
-                                            ? AppTheme
-                                                .lightTheme.colorScheme.primary
-                                            : AppTheme.lightTheme.colorScheme
-                                                .onSurface,
-                                        fontWeight: isSelected
-                                            ? FontWeight.w600
-                                            : FontWeight.w400,
+                          // Grid layout for member selection
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              const int itemsPerRow = 4;
+                              final double itemWidth = (constraints.maxWidth - (3 * 3.w)) / itemsPerRow;
+                              
+                              return Column(
+                                children: [
+                                  for (int i = 0; i < widget.members.length; i += itemsPerRow)
+                                    Padding(
+                                      padding: EdgeInsets.only(bottom: 2.h),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                        children: [
+                                          for (int j = i; j < i + itemsPerRow && j < widget.members.length; j++)
+                                            SizedBox(
+                                              width: itemWidth,
+                                              child: _buildMemberItem(widget.members[j], itemWidth),
+                                            ),
+                                          // Fill remaining space if last row is incomplete
+                                          for (int k = 0; k < itemsPerRow - (widget.members.length - i).clamp(0, itemsPerRow); k++)
+                                            SizedBox(width: itemWidth),
+                                        ],
                                       ),
                                     ),
-                                  ],
-                                ),
+                                ],
                               );
-                            }).toList(),
+                            },
                           ),
 
                           SizedBox(height: 2.h),
@@ -517,7 +548,7 @@ class _QuantityAssignmentWidgetState extends State<QuantityAssignmentWidget> {
                                                 fontWeight: FontWeight.w600),
                                       ),
                                       CurrencyDisplayWidget(
-                                        amount: (widget.item['unit_price'] as double) * _assignableQuantity,
+                                        amount: ((widget.item['unit_price'] as num?)?.toDouble() ?? 0.0) * _assignableQuantity,
                                         currency: widget.currency,
                                         style: AppTheme.getMonospaceStyle(
                                           isLight: true,

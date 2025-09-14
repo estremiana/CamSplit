@@ -299,7 +299,7 @@ class _ExpenseDetailPageState extends State<ExpenseDetailPage> {
           return <String, dynamic>{
             'id': member.id,
             'name': member.nickname,
-            'avatar': '', // GroupMember doesn't have avatar, using empty string
+            'avatar': member.avatarUrl ?? '', // Use actual avatar URL from GroupMember
             'initials': _getInitials(member.nickname), // Add initials for avatar fallback
             'email': member.email ?? '',
             'isCurrentUser': false, // We'll determine this later if needed

@@ -22,7 +22,7 @@ void main() {
 
       // Verify that the registration screen is displayed
       expect(find.text('Create Account'), findsNWidgets(2)); // Header and button
-      expect(find.text('Join CamSplit to split expenses and share memories'), findsOneWidget);
+      expect(find.text('Join CamSplit to split expenses and not friendships'), findsOneWidget);
       expect(find.text('First Name'), findsOneWidget);
       expect(find.text('Last Name'), findsOneWidget);
       expect(find.text('Email'), findsOneWidget);

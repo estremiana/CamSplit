@@ -132,7 +132,7 @@ class _EditableItemCardWidgetState extends State<EditableItemCardWidget> {
                 if (!_isEditing) ...[
                   SizedBox(width: 2.w),
                   ConfidenceIndicatorWidget(
-                    confidence: widget.item['confidence']?.toDouble() ?? 0.0,
+                    confidence: (widget.item['confidence'] as num?)?.toDouble() ?? 0.0,
                   ),
                 ],
               ],
@@ -146,9 +146,9 @@ class _EditableItemCardWidgetState extends State<EditableItemCardWidget> {
                           controller: _unitPriceController,
                           keyboardType:
                               TextInputType.numberWithOptions(decimal: true),
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             labelText: 'Unit Price',
-                            prefixText: '\$',
+                            prefixText: widget.currency.symbol,
                             isDense: true,
                           ),
                           textInputAction: TextInputAction.next,
@@ -156,7 +156,7 @@ class _EditableItemCardWidgetState extends State<EditableItemCardWidget> {
                       :                         Row(
                           children: [
                             CurrencyDisplayWidget(
-                              amount: widget.item['unit_price'] as double,
+                              amount: (widget.item['unit_price'] as num).toDouble(),
                               currency: widget.currency,
                               style: AppTheme.getMonospaceStyle(
                                 isLight: true,
@@ -173,7 +173,7 @@ class _EditableItemCardWidgetState extends State<EditableItemCardWidget> {
                               ),
                             ),
                             CurrencyDisplayWidget(
-                              amount: widget.item['total_price'] as double,
+                              amount: (widget.item['total_price'] as num).toDouble(),
                               currency: widget.currency,
                               style: AppTheme.getMonospaceStyle(
                                 isLight: true,

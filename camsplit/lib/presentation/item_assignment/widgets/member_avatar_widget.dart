@@ -15,7 +15,7 @@ class MemberAvatarWidget extends StatelessWidget {
     required this.member,
     required this.isSelected,
     required this.onTap,
-    this.size = 12.0,
+    this.size = 8.0,
   });
 
   @override

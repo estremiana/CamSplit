@@ -83,7 +83,7 @@ class _AssignmentSummaryWidgetState extends State<AssignmentSummaryWidget> {
       // Calculate totals based on quantity assignments
       for (var assignment in widget.quantityAssignments!) {
         final memberIds = assignment['memberIds'] as List<dynamic>? ?? [];
-        final totalPrice = assignment['totalPrice'] as double? ?? 0.0;
+        final totalPrice = (assignment['totalPrice'] as num?)?.toDouble() ?? 0.0;
         final sharedAmount =
             memberIds.isNotEmpty ? totalPrice / memberIds.length : 0.0;
 
@@ -100,7 +100,7 @@ class _AssignmentSummaryWidgetState extends State<AssignmentSummaryWidget> {
             item['assignedMembers'] as List<String>? ?? [];
         if (assignedMembers.isNotEmpty) {
           final itemTotal =
-              (item['total_price'] as double);
+              (item['total_price'] as num?)?.toDouble() ?? 0.0;
           final perMember = itemTotal / assignedMembers.length;
 
           for (var memberId in assignedMembers) {
@@ -125,7 +125,7 @@ class _AssignmentSummaryWidgetState extends State<AssignmentSummaryWidget> {
     final totalAmount = widget.items.fold(
         0.0,
         (sum, item) =>
-            sum + (item['total_price'] as double));
+            sum + ((item['total_price'] as num?)?.toDouble() ?? 0.0));
     final perMember = widget.members.isNotEmpty ? totalAmount / widget.members.length : 0.0;
 
     for (var member in widget.members) {
@@ -165,7 +165,7 @@ class _AssignmentSummaryWidgetState extends State<AssignmentSummaryWidget> {
       return widget.items.fold(
           0.0,
           (sum, item) =>
-              sum + (item['total_price'] as double? ?? 0.0));
+              sum + ((item['total_price'] as num?)?.toDouble() ?? 0.0));
     } else {
       // Non-equal split mode: Show the sum of current assignments (starts at 0)
       if (widget.quantityAssignments != null && widget.quantityAssignments!.isNotEmpty) {
@@ -173,14 +173,14 @@ class _AssignmentSummaryWidgetState extends State<AssignmentSummaryWidget> {
         return widget.quantityAssignments!.fold(
             0.0,
             (sum, assignment) =>
-                sum + (assignment['totalPrice'] as double? ?? 0.0));
+                sum + ((assignment['totalPrice'] as num?)?.toDouble() ?? 0.0));
       } else {
         // Calculate total from individual item assignments
         double assignedTotal = 0.0;
         for (var item in widget.items) {
           final assignedMembers = item['assignedMembers'] as List<String>? ?? [];
           if (assignedMembers.isNotEmpty) {
-            assignedTotal += (item['total_price'] as double? ?? 0.0);
+            assignedTotal += ((item['total_price'] as num?)?.toDouble() ?? 0.0);
           }
         }
         return assignedTotal;
@@ -312,15 +312,15 @@ class _AssignmentSummaryWidgetState extends State<AssignmentSummaryWidget> {
                 child: Row(children: [
                   // Member avatar
                   CircleAvatar(
-                      radius: 4.w,
+                      radius: 4.5.w,
                       backgroundColor:
                           AppTheme.lightTheme.colorScheme.primaryContainer,
                       child: ClipOval(
                           child: CustomImageWidget(
                               imageUrl: member['avatar'],
                               fit: BoxFit.cover,
-                              width: 8.w,
-                              height: 8.w,
+                              width: 9.w,
+                              height: 9.w,
                               userName: member['name'],
                           ))),
                   SizedBox(width: 3.w),

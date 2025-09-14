@@ -367,7 +367,7 @@ class ExpenseUpdateRequest {
     }
 
     // Check that total paid matches expense amount
-    final totalPaid = payers.fold<double>(0, (sum, p) => sum + (p['amount_paid'] as double));
+    final totalPaid = payers.fold<double>(0, (sum, p) => sum + ((p['amount_paid'] as num?)?.toDouble() ?? 0.0));
     return (totalPaid - amount).abs() < 0.01;
   }
 

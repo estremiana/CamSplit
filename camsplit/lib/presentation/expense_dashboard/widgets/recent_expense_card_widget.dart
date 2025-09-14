@@ -27,19 +27,7 @@ class RecentExpenseCardWidget extends StatelessWidget {
     required this.onDelete,
     required this.onTap,
     Currency? currency,
-  }) : currency = currency ?? Currency(
-         code: 'EUR',
-         name: 'Euro',
-         symbol: '€',
-         flag: '🇪🇺',
-         number: 978,
-         decimalDigits: 2,
-         namePlural: 'Euros',
-         symbolOnLeft: true,
-         decimalSeparator: '.',
-         thousandsSeparator: ',',
-         spaceBetweenAmountAndSymbol: false,
-       );
+  }) : currency = currency ?? CamSplitCurrencyService.getDefaultCurrency();
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +38,7 @@ class RecentExpenseCardWidget extends StatelessWidget {
     final paidBy = expense["paidBy"] as String;
     final date = expense["date"] as DateTime;
     final splitWith = expense["splitWith"] as List;
-    final amountOwed = expense["amountOwed"] as double? ?? 0.0;
+    final amountOwed = (expense["amountOwed"] as num?)?.toDouble() ?? 0.0;
 
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),

@@ -3,6 +3,7 @@ import 'package:sizer/sizer.dart';
 import 'package:currency_picker/currency_picker.dart';
 
 import '../../../core/app_export.dart';
+import '../../../services/currency_service.dart';
 import '../../../widgets/currency_display_widget.dart';
 
 class QuickStatsWidget extends StatelessWidget {
@@ -19,19 +20,7 @@ class QuickStatsWidget extends StatelessWidget {
     required this.activeGroups,
     required this.isPrivacyMode,
     Currency? currency,
-  }) : currency = currency ?? const Currency(
-         code: 'EUR',
-         name: 'Euro',
-         symbol: '€',
-         flag: '🇪🇺',
-         number: 978,
-         decimalDigits: 2,
-         namePlural: 'Euros',
-         symbolOnLeft: true,
-         decimalSeparator: '.',
-         thousandsSeparator: ',',
-         spaceBetweenAmountAndSymbol: false,
-       );
+  }) : currency = currency ?? CamSplitCurrencyService.getDefaultCurrency();
 
   @override
   Widget build(BuildContext context) {

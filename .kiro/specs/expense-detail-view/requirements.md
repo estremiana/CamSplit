@@ -23,7 +23,7 @@ This feature enables users to view and edit existing expenses from the recent ex
 
 #### Acceptance Criteria
 
-1. WHEN the expense detail screen is displayed THEN the system SHALL show an "Edit" button in the top right position (where the draft button currently appears in create expense)
+1. WHEN the expense detail screen is displayed THEN the system SHALL show an "Edit" button in the top right position
 2. WHEN a user clicks the "Edit" button THEN the system SHALL enable editing mode for all expense fields except the group field
 3. WHEN editing mode is active THEN the group field SHALL remain locked and uneditable
 4. WHEN editing mode is active THEN all other expense fields SHALL become editable with the same validation rules as create expense

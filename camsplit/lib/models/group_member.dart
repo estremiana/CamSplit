@@ -6,6 +6,7 @@ class GroupMember {
   final String? email;
   final String role;
   final bool isRegisteredUser;
+  final String? avatarUrl; // Profile image URL
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -17,6 +18,7 @@ class GroupMember {
     this.email,
     required this.role,
     required this.isRegisteredUser,
+    this.avatarUrl,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -30,6 +32,7 @@ class GroupMember {
       email: json['email'],
       role: json['role'] ?? 'member',
       isRegisteredUser: json['is_registered_user'] ?? false,
+      avatarUrl: json['avatar_url'] ?? json['avatar'],
       createdAt: DateTime.parse(json['joined_at'] ?? json['created_at']),
       updatedAt: DateTime.parse(json['joined_at'] ?? json['updated_at']),
     );
@@ -44,6 +47,7 @@ class GroupMember {
       'email': email,
       'role': role,
       'is_registered_user': isRegisteredUser,
+      'avatar_url': avatarUrl,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -96,6 +100,7 @@ class GroupMember {
     String? email,
     String? role,
     bool? isRegisteredUser,
+    String? avatarUrl,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -107,6 +112,7 @@ class GroupMember {
       email: email ?? this.email,
       role: role ?? this.role,
       isRegisteredUser: isRegisteredUser ?? this.isRegisteredUser,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

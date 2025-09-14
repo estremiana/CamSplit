@@ -103,7 +103,7 @@ class _SplashScreenState extends State<SplashScreen>
         setState(() {
           _initializationStatus = step['status'] as String;
         });
-        await Future.delayed(Duration(milliseconds: step['duration'] as int));
+        await Future.delayed(Duration(milliseconds: (step['duration'] as num?)?.toInt() ?? 0));
       }
     }
   }

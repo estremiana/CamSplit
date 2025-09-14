@@ -34,7 +34,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   bool _isConfirmPasswordVisible = false;
   bool _isLoading = false;
   String? _errorMessage;
-  bool _showBiometricPrompt = false;
 
   @override
   void dispose() {
@@ -93,16 +92,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
       setState(() {
         _isLoading = false;
-        _showBiometricPrompt = true;
       });
 
-      // Show biometric prompt for 2 seconds then navigate
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) {
-          // Use the new slideable navigation system
-          Navigator.pushReplacementNamed(context, '/main-navigation');
-        }
-      });
+      // Navigate directly to main screen
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/main-navigation');
+      }
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -140,9 +135,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.lightTheme.colorScheme.surface,
-      body: Stack(
+    return WillPopScope(
+      onWillPop: () async {
+        _navigateToLogin();
+        return false; // Prevent default back behavior
+      },
+      child: Scaffold(
+        backgroundColor: AppTheme.lightTheme.colorScheme.surface,
+        body: Stack(
         children: [
           SafeArea(
             child: SingleChildScrollView(
@@ -176,7 +176,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   SizedBox(height: 1.h),
 
                   Text(
-                    'Join CamSplit to split expenses and share memories',
+                    'Join CamSplit to split expenses and not friendships',
                     style: AppTheme.lightTheme.textTheme.bodyLarge?.copyWith(
                       color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
                     ),
@@ -276,77 +276,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             ),
           ),
 
-          // Biometric Prompt Overlay
-          if (_showBiometricPrompt)
-            BiometricPromptWidget(
-              onComplete: () {
-                setState(() {
-                  _showBiometricPrompt = false;
-                });
-              },
-            ),
+
         ],
+      ),
       ),
     );
   }
 }
 
-// Biometric Prompt Widget (reused from login screen)
-class BiometricPromptWidget extends StatelessWidget {
-  final VoidCallback onComplete;
-
-  const BiometricPromptWidget({
-    super.key,
-    required this.onComplete,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: Colors.black54,
-      child: Center(
-        child: Container(
-          margin: EdgeInsets.symmetric(horizontal: 8.w),
-          padding: EdgeInsets.all(6.w),
-          decoration: BoxDecoration(
-            color: AppTheme.lightTheme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.fingerprint,
-                size: 48.sp,
-                color: AppTheme.lightTheme.primaryColor,
-              ),
-              SizedBox(height: 2.h),
-              Text(
-                'Registration Successful!',
-                style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 1.h),
-              Text(
-                'Welcome to CamSplit',
-                style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-} 
+ 

@@ -2,10 +2,12 @@ import 'dart:convert';
 import 'package:currency_picker/currency_picker.dart';
 import '../models/group.dart';
 import '../models/group_member.dart';
+import '../models/user_model.dart';
 import '../config/api_config.dart';
 import '../models/mock_group_data.dart';
 import 'api_service.dart';
 import 'currency_service.dart';
+import 'user_service.dart';
 import 'user_stats_service.dart';
 
 /// Service class for handling group-related operations
@@ -39,16 +41,49 @@ class GroupService {
           return [];
         }
         
-        List<Group> groups = groupsData.map((json) {
+        List<Group> groups = [];
+        for (final json in groupsData) {
           try {
-            return Group.fromJson(json);
+            final group = Group.fromJson(json);
+            
+            // Fetch user balance for this group
+            try {
+              final balanceResponse = await _apiService.getUserBalanceForGroup(group.id.toString());
+              if (balanceResponse['success'] && balanceResponse['data'] != null) {
+                final balanceData = balanceResponse['data'];
+                final balanceString = balanceData['balance']?.toString() ?? '0.0';
+                final userBalance = double.tryParse(balanceString) ?? 0.0;
+                
+                // Create a new group with balance data
+                final groupWithBalance = Group(
+                  id: group.id,
+                  name: group.name,
+                  currency: group.currency,
+                  description: group.description,
+                  createdBy: group.createdBy,
+                  members: group.members,
+                  memberCountFromApi: group.memberCountFromApi,
+                  lastUsed: group.lastUsed,
+                  createdAt: group.createdAt,
+                  updatedAt: group.updatedAt,
+                  userBalance: userBalance,
+                );
+                groups.add(groupWithBalance);
+              } else {
+                // If balance fetch fails, add group without balance
+                groups.add(group);
+              }
+            } catch (balanceError) {
+              print('Failed to fetch balance for group ${group.id}: $balanceError');
+              // Add group without balance if balance fetch fails
+              groups.add(group);
+            }
           } catch (e) {
             print('Error parsing group JSON: $e');
             print('JSON data: $json');
-            // Return a default group or skip this one
-            return null;
+            // Skip this group
           }
-        }).whereType<Group>().toList();
+        }
         
         // Update cache
         _updateCache(groups);
@@ -71,6 +106,104 @@ class GroupService {
       
       return mockGroups;
     }
+  }
+
+  /// Get all groups with member data for the current user
+  /// This method fetches member data for each group to display avatars
+  static Future<List<Group>> getAllGroupsWithMembers({bool forceRefresh = false}) async {
+    try {
+      final groups = await getAllGroups(forceRefresh: forceRefresh);
+      
+      // Get current user data to populate avatars
+      UserModel? currentUser;
+      try {
+        currentUser = await UserService.getCurrentUser();
+        print('Current user avatar: ${currentUser.avatar}');
+        print('Current user ID: ${currentUser.id}');
+      } catch (e) {
+        print('Failed to get current user: $e');
+      }
+      
+      // If groups already have members, enhance them with current user avatar
+      if (groups.isNotEmpty && groups.first.members.isNotEmpty) {
+        return _enhanceGroupsWithCurrentUserAvatar(groups, currentUser);
+      }
+      
+      // Otherwise, fetch member data for each group
+      List<Group> groupsWithMembers = [];
+      for (final group in groups) {
+        try {
+          final groupWithMembers = await getGroupWithMembers(group.id.toString());
+          if (groupWithMembers != null) {
+            // Create a new group with the original balance but updated members
+            final updatedGroup = Group(
+              id: group.id,
+              name: group.name,
+              currency: group.currency,
+              description: group.description,
+              createdBy: group.createdBy,
+              members: groupWithMembers.members,
+              memberCountFromApi: groupWithMembers.memberCountFromApi,
+              lastUsed: group.lastUsed,
+              createdAt: group.createdAt,
+              updatedAt: group.updatedAt,
+              userBalance: group.userBalance,
+            );
+            groupsWithMembers.add(updatedGroup);
+          } else {
+            // If we can't get members, use the original group
+            groupsWithMembers.add(group);
+          }
+        } catch (e) {
+          print('Failed to fetch members for group ${group.id}: $e');
+          // Use the original group if member fetch fails
+          groupsWithMembers.add(group);
+        }
+      }
+      
+      // Enhance all groups with current user avatar
+      return _enhanceGroupsWithCurrentUserAvatar(groupsWithMembers, currentUser);
+    } catch (e) {
+      print('Failed to load groups with members: $e');
+      // Fallback to regular groups
+      return await getAllGroups(forceRefresh: forceRefresh);
+    }
+  }
+
+  /// Enhance groups with current user's avatar for their GroupMember objects
+  static List<Group> _enhanceGroupsWithCurrentUserAvatar(List<Group> groups, UserModel? currentUser) {
+    if (currentUser == null) return groups;
+    
+    return groups.map((group) {
+      // Get current user ID
+      final currentUserId = int.tryParse(currentUser.id);
+      if (currentUserId == null) return group;
+      
+      // Update members to include current user's avatar
+      final enhancedMembers = group.members.map((member) {
+        // If this member is the current user and doesn't have an avatar, use current user's avatar
+        if (member.userId == currentUserId && (member.avatarUrl == null || member.avatarUrl!.isEmpty)) {
+          print('Enhancing member ${member.nickname} with current user avatar: ${currentUser.avatar}');
+          return member.copyWith(avatarUrl: currentUser.avatar);
+        }
+        return member;
+      }).toList();
+      
+      // Return updated group
+      return Group(
+        id: group.id,
+        name: group.name,
+        currency: group.currency,
+        description: group.description,
+        createdBy: group.createdBy,
+        members: enhancedMembers,
+        memberCountFromApi: group.memberCountFromApi,
+        lastUsed: group.lastUsed,
+        createdAt: group.createdAt,
+        updatedAt: group.updatedAt,
+        userBalance: group.userBalance,
+      );
+    }).toList();
   }
   
   /// Get a specific group by ID

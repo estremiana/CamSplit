@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:sizer/sizer.dart';
 
 import '../../../core/app_export.dart';
@@ -80,10 +81,14 @@ class SocialLoginWidget extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                CustomIconWidget(
-                  iconName: 'apple',
-                  color: Colors.white,
-                  size: 20,
+                SvgPicture.asset(
+                  'assets/images/apple_logo.svg',
+                  width: 20,
+                  height: 20,
+                  colorFilter: const ColorFilter.mode(
+                    Colors.white,
+                    BlendMode.srcIn,
+                  ),
                 ),
                 SizedBox(width: 3.w),
                 Text(

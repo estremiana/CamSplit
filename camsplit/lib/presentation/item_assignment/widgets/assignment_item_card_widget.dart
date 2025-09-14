@@ -72,7 +72,7 @@ class _AssignmentItemCardWidgetState extends State<AssignmentItemCardWidget> {
 
   double _calculateMemberShare() {
     if (_assignedMembers.isEmpty) return 0.0;
-    final totalPrice = (widget.item['unit_price'] as double) * _quantity;
+    final totalPrice = ((widget.item['unit_price'] as num?)?.toDouble() ?? 0.0) * _quantity;
     return totalPrice / _assignedMembers.length;
   }
 
@@ -122,7 +122,7 @@ class _AssignmentItemCardWidgetState extends State<AssignmentItemCardWidget> {
                               ),
                             ),
                             CurrencyDisplayWidget(
-                              amount: (widget.item['unit_price'] as double) * _quantity,
+                              amount: ((widget.item['unit_price'] as num?)?.toDouble() ?? 0.0) * _quantity,
                               currency: widget.currency,
                               style: AppTheme.getMonospaceStyle(
                                 isLight: true,
@@ -288,7 +288,7 @@ class _AssignmentItemCardWidgetState extends State<AssignmentItemCardWidget> {
                                   isSelected: isSelected,
                                   onTap: () => _toggleMemberAssignment(
                                       member['id'].toString()),
-                                  size: 10.0,
+                                  size: 7.0,
                                 ),
                                 SizedBox(height: 0.5.h),
                                 Text(
@@ -364,7 +364,7 @@ class _AssignmentItemCardWidgetState extends State<AssignmentItemCardWidget> {
                                       ),
                                     ),
                                     CurrencyDisplayWidget(
-                                      amount: (widget.item['unit_price'] as double) * _quantity,
+                                      amount: ((widget.item['unit_price'] as num?)?.toDouble() ?? 0.0) * _quantity,
                                       currency: widget.currency,
                                       style: AppTheme.getMonospaceStyle(
                                         isLight: true,

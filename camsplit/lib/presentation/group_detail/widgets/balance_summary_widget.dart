@@ -14,19 +14,7 @@ class BalanceSummaryWidget extends StatelessWidget {
     super.key,
     required this.balance,
     Currency? currency,
-  }) : currency = currency ?? Currency(
-         code: 'EUR',
-         name: 'Euro',
-         symbol: '€',
-         flag: '🇪🇺',
-         number: 978,
-         decimalDigits: 2,
-         namePlural: 'Euros',
-         symbolOnLeft: true,
-         decimalSeparator: '.',
-         thousandsSeparator: ',',
-         spaceBetweenAmountAndSymbol: false,
-       );
+  }) : currency = currency ?? CamSplitCurrencyService.getDefaultCurrency();
 
   @override
   Widget build(BuildContext context) {

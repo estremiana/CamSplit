@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:sizer/sizer.dart';
 import '../../../theme/app_theme.dart';
 
@@ -19,25 +20,15 @@ class SocialRegistrationWidget extends StatelessWidget {
           children: [
             Expanded(
               child: _SocialButton(
-                icon: 'assets/icons/google_icon.png',
-                label: 'Google',
+                provider: 'Google',
                 onPressed: () => onSocialRegistration('Google'),
               ),
             ),
-            SizedBox(width: 3.w),
+            SizedBox(width: 4.w),
             Expanded(
               child: _SocialButton(
-                icon: 'assets/icons/apple_icon.png',
-                label: 'Apple',
+                provider: 'Apple',
                 onPressed: () => onSocialRegistration('Apple'),
-              ),
-            ),
-            SizedBox(width: 3.w),
-            Expanded(
-              child: _SocialButton(
-                icon: 'assets/icons/facebook_icon.png',
-                label: 'Facebook',
-                onPressed: () => onSocialRegistration('Facebook'),
               ),
             ),
           ],
@@ -48,47 +39,39 @@ class SocialRegistrationWidget extends StatelessWidget {
 }
 
 class _SocialButton extends StatelessWidget {
-  final String icon;
-  final String label;
+  final String provider;
   final VoidCallback onPressed;
 
   const _SocialButton({
-    required this.icon,
-    required this.label,
+    required this.provider,
     required this.onPressed,
   });
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 5.h,
+      height: 6.h,
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
-          backgroundColor: AppTheme.lightTheme.colorScheme.surface,
-          foregroundColor: AppTheme.lightTheme.colorScheme.onSurface,
+          backgroundColor: provider == 'Apple' ? Colors.black : Colors.white,
           side: BorderSide(
             color: AppTheme.lightTheme.colorScheme.outline,
             width: 1,
           ),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Icon placeholder (you can replace with actual icons)
-            Icon(
-              _getIconForLabel(label),
-              size: 20.sp,
-              color: AppTheme.lightTheme.colorScheme.onSurface,
-            ),
+            _buildIcon(),
             SizedBox(width: 2.w),
             Text(
-              label,
-              style: TextStyle(
-                fontSize: 14.sp,
+              provider,
+              style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
+                color: provider == 'Apple' ? Colors.white : AppTheme.lightTheme.colorScheme.onSurface,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -98,16 +81,37 @@ class _SocialButton extends StatelessWidget {
     );
   }
 
-  IconData _getIconForLabel(String label) {
-    switch (label.toLowerCase()) {
-      case 'google':
-        return Icons.g_mobiledata; // Placeholder for Google icon
-      case 'apple':
-        return Icons.apple; // Placeholder for Apple icon
-      case 'facebook':
-        return Icons.facebook; // Placeholder for Facebook icon
+  Widget _buildIcon() {
+    switch (provider) {
+      case 'Google':
+        return Container(
+          width: 20,
+          height: 20,
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: NetworkImage(
+                'https://developers.google.com/identity/images/g-logo.png',
+              ),
+              fit: BoxFit.contain,
+            ),
+          ),
+        );
+      case 'Apple':
+        return SvgPicture.asset(
+          'assets/images/apple_logo.svg',
+          width: 20,
+          height: 20,
+          colorFilter: const ColorFilter.mode(
+            Colors.white,
+            BlendMode.srcIn,
+          ),
+        );
       default:
-        return Icons.account_circle;
+        return Icon(
+          Icons.account_circle,
+          size: 20,
+          color: AppTheme.lightTheme.colorScheme.onSurface,
+        );
     }
   }
 } 

@@ -31,6 +31,7 @@ router.get('/payment-summary', UserController.getUserPaymentSummary);
 router.get('/search', UserController.searchUsers);
 router.get('/exists', UserController.checkUserExists);
 router.get('/stats', UserController.getUserStats);
+router.get('/:userId/profile', UserController.getUserById);
 
 // Account management
 router.delete('/account', UserController.deleteAccount);

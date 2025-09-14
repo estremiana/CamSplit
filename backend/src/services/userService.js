@@ -60,6 +60,28 @@ class UserService {
     }
   }
 
+  // Get user by ID (for fetching other users' public info)
+  static async getUserById(userId) {
+    try {
+      const user = await User.findById(userId);
+      
+      if (!user) {
+        throw new Error('User not found');
+      }
+      
+      // Return only public information for other users
+      return {
+        id: user.id,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        avatar: user.avatar,
+        name: `${user.first_name} ${user.last_name}`.trim()
+      };
+    } catch (error) {
+      throw new Error(`Failed to get user: ${error.message}`);
+    }
+  }
+
   // Update user profile
   static async updateProfile(userId, updateData) {
     try {

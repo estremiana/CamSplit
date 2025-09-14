@@ -10,6 +10,7 @@ import '../../models/group.dart';
 import '../../services/group_service.dart';
 import '../../services/api_service.dart';
 import '../../services/currency_migration_service.dart';
+import '../../services/currency_service.dart';
 import '../../services/user_stats_service.dart';
 import '../camera_capture/expense_photo_capture.dart';
 import './widgets/expense_details_widget.dart';
@@ -42,23 +43,10 @@ class _ExpenseCreationState extends State<ExpenseCreation>
   final TextEditingController _notesController = TextEditingController();
   final TextEditingController _totalController = TextEditingController();
   final TextEditingController _titleController = TextEditingController();
-  Currency _currency = Currency(
-    code: 'EUR',
-    name: 'Euro',
-    symbol: '€',
-    flag: 'EUR',
-    number: 978,
-    decimalDigits: 2,
-    namePlural: 'Euros',
-    symbolOnLeft: false,
-    decimalSeparator: ',',
-    thousandsSeparator: '.',
-    spaceBetweenAmountAndSymbol: true,
-  );
+  Currency _currency = CamSplitCurrencyService.getDefaultCurrency();
 
   // State variables
   bool _isLoading = false;
-  bool _isDraft = false;
   String _selectedGroup = ''; // Initialize as empty string
   String _selectedCategory = 'Food & Dining';
   DateTime _selectedDate = DateTime.now();
@@ -1489,14 +1477,7 @@ class _ExpenseCreationState extends State<ExpenseCreation>
     });
   }
 
-  void _saveDraft() {
-    setState(() {
-      _isDraft = true;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Draft saved')),
-    );
-  }
+
 
   void _onCurrencyChanged(Currency? value) {
     if (value != null) {
@@ -1707,16 +1688,7 @@ class _ExpenseCreationState extends State<ExpenseCreation>
                         ),
                       ],
                     ),
-                    TextButton(
-                      onPressed: _saveDraft,
-                      child: Text(
-                        'Draft',
-                        style:
-                            AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
-                          color: AppTheme.lightTheme.colorScheme.primary,
-                        ),
-                      ),
-                    ),
+
                   ],
                 ),
               ),

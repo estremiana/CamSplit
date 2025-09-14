@@ -90,7 +90,7 @@ class CameraCaptureModes {
         usePhotoButtonText: 'Use Photo',
         processingText: 'Processing...',
         instructionText: 'Position the receipt within the frame or select from gallery',
-        primaryColor: Color(0xFF4CAF50),
+        primaryColor: Color(0xFF2563EB), // Using app's primary blue color
         backgroundColor: Colors.black,
         textColor: Colors.white,
         overlayColor: Color(0x80000000),

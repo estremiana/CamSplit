@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 
-import '../camera_capture/flexible_camera_capture.dart';
+import 'flexible_camera_capture.dart';
 import 'config/camera_capture_modes.dart';
 
 /// Helper class for expense photo capture workflow

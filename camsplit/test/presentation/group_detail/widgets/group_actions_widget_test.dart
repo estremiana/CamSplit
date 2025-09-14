@@ -106,7 +106,7 @@ void main() {
       expect(find.byType(Container), findsWidgets);
     });
 
-    testWidgets('should display share group action', (WidgetTester tester) async {
+    testWidgets('should display share group action (formerly generate invite link)', (WidgetTester tester) async {
       await tester.pumpWidget(createTestWidget(mockGroupDetail));
 
       // Verify share action is displayed
@@ -212,15 +212,15 @@ void main() {
       expect(find.textContaining('Are you sure you want to permanently delete'), findsNothing);
     });
 
-    testWidgets('should handle share group action tap', (WidgetTester tester) async {
+    testWidgets('should handle share group action tap (invite link generation)', (WidgetTester tester) async {
       await tester.pumpWidget(createTestWidget(mockGroupDetail));
 
       // Tap share group action
       await tester.tap(find.text('Share Group'));
       await tester.pumpAndSettle();
 
-      // Note: We can't easily test the actual sharing functionality in unit tests
-      // as it depends on platform-specific implementations. The test verifies
+      // Note: We can't easily test the actual invite link generation in unit tests
+      // as it depends on API calls and network functionality. The test verifies
       // that the tap is handled without errors.
     });
 

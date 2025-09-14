@@ -14,6 +14,7 @@ class Group {
   final DateTime lastUsed;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final double? userBalance; // User's balance in this group (positive = owed to user, negative = user owes)
 
   Group({
     required this.id,
@@ -26,6 +27,7 @@ class Group {
     required this.lastUsed,
     required this.createdAt,
     required this.updatedAt,
+    this.userBalance,
   });
 
   factory Group.fromJson(Map<String, dynamic> json) {
@@ -63,6 +65,7 @@ class Group {
       lastUsed: DateTime.tryParse(json['last_used']?.toString() ?? json['updated_at']?.toString() ?? '') ?? DateTime.now(),
       createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '') ?? DateTime.now(),
       updatedAt: DateTime.tryParse(json['updated_at']?.toString() ?? '') ?? DateTime.now(),
+      userBalance: double.tryParse(json['user_balance']?.toString() ?? ''),
     );
   }
 
@@ -78,6 +81,7 @@ class Group {
       'last_used': lastUsed.toIso8601String(),
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
+      'user_balance': userBalance,
     };
   }
 

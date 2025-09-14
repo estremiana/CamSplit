@@ -32,20 +32,8 @@ class _ReceiptOcrReviewState extends State<ReceiptOcrReview> {
   // OCR extracted items
   List<Map<String, dynamic>> _extractedItems = [];
 
-  // Currency for the receipt (default to USD)
-  Currency _currency = Currency(
-    code: 'USD',
-    name: 'US Dollar',
-    symbol: '\$',
-    flag: 'USD',
-    number: 840,
-    decimalDigits: 2,
-    namePlural: 'US Dollars',
-    symbolOnLeft: true,
-    decimalSeparator: '.',
-    thousandsSeparator: ',',
-    spaceBetweenAmountAndSymbol: false,
-  );
+  // Currency for the receipt (default to user's preferred currency)
+  Currency _currency = CamSplitCurrencyService.getDefaultCurrency();
 
   final List<String> _categories = [
     'Main Course',
@@ -366,7 +354,7 @@ class _ReceiptOcrReviewState extends State<ReceiptOcrReview> {
   }
 
   double _calculateTotal() {
-    return _extractedItems.fold(0.0, (sum, item) => sum + item['total_price']);
+    return _extractedItems.fold(0.0, (sum, item) => sum + (item['total_price'] as num).toDouble());
   }
 
   @override

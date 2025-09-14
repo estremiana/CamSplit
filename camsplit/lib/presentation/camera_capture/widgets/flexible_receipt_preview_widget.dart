@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
 
-import '../../../core/app_export.dart';
+import '../../../../core/app_export.dart';
 import '../config/camera_capture_config.dart';
 import '../../camera_receipt_capture/widgets/receipt_image_cropper_widget.dart';
 
@@ -110,28 +110,7 @@ class _FlexibleReceiptPreviewWidgetState extends State<FlexibleReceiptPreviewWid
               fit: BoxFit.contain,
             ),
 
-            // Processing Overlay
-            if (widget.isProcessing)
-              Container(
-                color: Colors.black.withValues(alpha: 0.7),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(color: widget.config.theme.primaryColor),
-                      SizedBox(height: 3.h),
-                      Text(
-                        widget.config.theme.processingText,
-                        style: widget.config.theme.titleStyle?.copyWith(
-                          color: widget.config.theme.textColor,
-                        ) ?? AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
-                          color: widget.config.theme.textColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+            // Processing Overlay - Removed to avoid duplicate processing text
           ],
         ),
       ),
@@ -286,14 +265,6 @@ class _FlexibleReceiptPreviewWidgetState extends State<FlexibleReceiptPreviewWid
                           ),
                         ),
                         SizedBox(width: 2.w),
-                        Text(
-                          widget.config.theme.processingText,
-                          style: widget.config.theme.buttonStyle?.copyWith(
-                            color: Colors.white,
-                          ) ?? AppTheme.lightTheme.textTheme.titleSmall?.copyWith(
-                            color: Colors.white,
-                          ),
-                        ),
                       ] else ...[
                         CustomIconWidget(
                           iconName: 'check',
@@ -301,15 +272,15 @@ class _FlexibleReceiptPreviewWidgetState extends State<FlexibleReceiptPreviewWid
                           size: 20,
                         ),
                         SizedBox(width: 2.w),
-                        Text(
-                          widget.config.theme.usePhotoButtonText,
-                          style: widget.config.theme.buttonStyle?.copyWith(
-                            color: Colors.white,
-                          ) ?? AppTheme.lightTheme.textTheme.titleSmall?.copyWith(
-                            color: Colors.white,
-                          ),
-                        ),
                       ],
+                      Text(
+                        widget.config.theme.usePhotoButtonText,
+                        style: widget.config.theme.buttonStyle?.copyWith(
+                          color: Colors.white,
+                        ) ?? AppTheme.lightTheme.textTheme.titleSmall?.copyWith(
+                          color: Colors.white,
+                        ),
+                      ),
                     ],
                   ),
                 ),

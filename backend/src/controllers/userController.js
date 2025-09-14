@@ -91,6 +91,24 @@ class UserController {
     }
   }
 
+  // Get user by ID (public info only)
+  static async getUserById(req, res) {
+    try {
+      const { userId } = req.params;
+      const user = await UserService.getUserById(userId);
+
+      res.status(200).json({
+        success: true,
+        data: user
+      });
+    } catch (error) {
+      res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
   // Update user profile
   static async updateProfile(req, res) {
     try {

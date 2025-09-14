@@ -256,19 +256,8 @@ class _EditProfileState extends State<EditProfile> {
       // Prepare preferences update
       final preferences = <String, dynamic>{};
       if (_selectedCurrency.code != (_currentUser?.preferences.currency.code ?? 'EUR')) {
-        preferences['currency'] = {
-          'code': _selectedCurrency.code,
-          'name': _selectedCurrency.name,
-          'symbol': _selectedCurrency.symbol,
-          'flag': _selectedCurrency.flag,
-          'number': _selectedCurrency.number,
-          'decimalDigits': _selectedCurrency.decimalDigits,
-          'namePlural': _selectedCurrency.namePlural,
-          'symbolOnLeft': _selectedCurrency.symbolOnLeft,
-          'decimalSeparator': _selectedCurrency.decimalSeparator,
-          'thousandsSeparator': _selectedCurrency.thousandsSeparator,
-          'spaceBetweenAmountAndSymbol': _selectedCurrency.spaceBetweenAmountAndSymbol,
-        };
+        // Backend expects only the currency code, not the full object
+        preferences['currency'] = _selectedCurrency.code;
       }
       
       // Update user profile

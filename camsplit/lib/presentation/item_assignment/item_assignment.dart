@@ -2,19 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
 import 'package:currency_picker/currency_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/app_export.dart';
 import '../../models/receipt_mode_data.dart';
 import '../../models/participant_amount.dart';
 import '../../models/group.dart';
 import '../../services/group_service.dart';
+import '../../services/currency_service.dart';
 import '../receipt_ocr_review/widgets/progress_indicator_widget.dart';
 import './widgets/assignment_instructions_widget.dart';
 import './widgets/assignment_summary_widget.dart';
-import './widgets/bulk_assignment_widget.dart';
 import './widgets/enhanced_empty_state_widget.dart';
-import './widgets/member_drop_zone_widget.dart';
-import './widgets/member_search_widget.dart';
+
 import './widgets/quantity_assignment_widget.dart';
 
 class ItemAssignment extends StatefulWidget {
@@ -27,12 +27,8 @@ class ItemAssignment extends StatefulWidget {
 class _ItemAssignmentState extends State<ItemAssignment>
     with TickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
-  final Set<int> _selectedItems = {};
-
   bool _isLoading = false;
   bool _isEqualSplit = false;
-  bool _isBulkMode = false;
-  bool _isDragMode = false;
   bool _showInstructions = true;
   int _expandedItemId = -1;
   int _expandedQuantityItemId = -1;
@@ -56,25 +52,14 @@ class _ItemAssignmentState extends State<ItemAssignment>
   List<Map<String, dynamic>> _newParticipants = [];
 
   // Currency for the selected group
-  Currency _currency = Currency(
-    code: 'USD',
-    name: 'US Dollar',
-    symbol: '\$',
-    flag: 'USD',
-    number: 840,
-    decimalDigits: 2,
-    namePlural: 'US Dollars',
-    symbolOnLeft: true,
-    decimalSeparator: '.',
-    thousandsSeparator: ',',
-    spaceBetweenAmountAndSymbol: false,
-  );
+  Currency _currency = CamSplitCurrencyService.getDefaultCurrency();
 
   @override
   void initState() {
     super.initState();
     _loadData();
     _loadGroupData(); // This is now async but we don't need to await it in initState
+    _checkInstructionsStatus();
   }
 
   @override
@@ -119,6 +104,20 @@ class _ItemAssignmentState extends State<ItemAssignment>
         });
       }
     });
+  }
+
+  Future<void> _checkInstructionsStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenInstructions = prefs.getBool('has_seen_item_assignment_instructions') ?? false;
+    
+    setState(() {
+      _showInstructions = !hasSeenInstructions;
+    });
+  }
+
+  Future<void> _markInstructionsAsSeen() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('has_seen_item_assignment_instructions', true);
   }
 
   Future<void> _loadGroupData() async {
@@ -211,11 +210,29 @@ class _ItemAssignmentState extends State<ItemAssignment>
       
       if (groupWithMembers != null) {
         // Convert Group members to the format expected by the existing code
-        final newGroupMembers = groupWithMembers.members.map((member) => <String, dynamic>{
-          'id': member.id.toString(),
-          'name': member.nickname,
-          'avatar': '', // GroupMember doesn't have avatar field, will use initials
-        }).toList();
+        final newGroupMembers = <Map<String, dynamic>>[];
+        
+        for (var member in groupWithMembers.members) {
+          String? avatarUrl = member.avatarUrl;
+          
+          // If member has a user_id but no avatar, try to fetch user's avatar
+          if ((avatarUrl == null || avatarUrl.isEmpty) && member.userId != null) {
+            try {
+              final user = await UserService.getUserById(member.userId.toString());
+              if (user != null && user.avatar != null && user.avatar!.isNotEmpty) {
+                avatarUrl = user.avatar;
+              }
+            } catch (e) {
+              print('DEBUG: Failed to fetch avatar for user ${member.userId}: $e');
+            }
+          }
+          
+          newGroupMembers.add(<String, dynamic>{
+            'id': member.id.toString(),
+            'name': member.nickname,
+            'avatar': avatarUrl ?? '', // Use fetched avatar or empty string for initials fallback
+          });
+        }
 
         // Update group members and maintain UI state consistency
         setState(() {
@@ -287,8 +304,7 @@ class _ItemAssignmentState extends State<ItemAssignment>
       _currentIndividualTotals = null;
       _equalSplitTotals = null;
       
-      // Reset bulk selection state as member IDs may have changed
-      _selectedItems.clear();
+      // Clear any selection state as member IDs may have changed
       
       // Keep UI expansion states as they are item-specific, not member-specific
       // _expandedQuantityItemId and _expandedItemId remain unchanged
@@ -347,11 +363,11 @@ class _ItemAssignmentState extends State<ItemAssignment>
         currentAssignments.add(assignment);
 
         final totalAssignedQuantity = currentAssignments.fold<int>(
-            0, (sum, assign) => sum + (assign['quantity'] as int));
+            0, (sum, assign) => sum + ((assign['quantity'] as num?)?.toInt() ?? 0));
 
         _items[itemIndex]['quantityAssignments'] = currentAssignments;
         _items[itemIndex]['remainingQuantity'] =
-            (_items[itemIndex]['originalQuantity'] as int) -
+            ((_items[itemIndex]['originalQuantity'] as num?)?.toInt() ?? 0) -
                 totalAssignedQuantity;
         
         // ALSO update assignedMembers to include all members from quantity assignments
@@ -381,11 +397,11 @@ class _ItemAssignmentState extends State<ItemAssignment>
             (assign) => assign['assignmentId'] == assignment['assignmentId']);
 
         final totalAssignedQuantity = currentAssignments.fold<int>(
-            0, (sum, assign) => sum + (assign['quantity'] as int));
+            0, (sum, assign) => sum + ((assign['quantity'] as num?)?.toInt() ?? 0));
 
         _items[itemIndex]['quantityAssignments'] = currentAssignments;
         _items[itemIndex]['remainingQuantity'] =
-            (_items[itemIndex]['originalQuantity'] as int) -
+            ((_items[itemIndex]['originalQuantity'] as num?)?.toInt() ?? 0) -
                 totalAssignedQuantity;
         
         // ALSO update assignedMembers to include all members from remaining quantity assignments
@@ -414,7 +430,7 @@ class _ItemAssignmentState extends State<ItemAssignment>
         }
         
         // Calculate and store equal split totals for reference
-        final totalAmount = _items.fold(0.0, (sum, item) => sum + (item['total_price'] as double? ?? 0.0));
+        final totalAmount = _items.fold(0.0, (sum, item) => sum + ((item['total_price'] as num?)?.toDouble() ?? 0.0));
         final perMember = _groupMembers.isNotEmpty ? totalAmount / _groupMembers.length : 0.0;
         
         _equalSplitTotals = {};
@@ -439,39 +455,6 @@ class _ItemAssignmentState extends State<ItemAssignment>
     }
   }
 
-  void _toggleBulkMode() {
-    setState(() {
-      _isBulkMode = !_isBulkMode;
-      if (!_isBulkMode) {
-        _selectedItems.clear();
-      }
-      _isDragMode = false;
-    });
-    HapticFeedback.selectionClick();
-  }
-
-  void _toggleDragMode() {
-    setState(() {
-      _isDragMode = !_isDragMode;
-      if (_isDragMode) {
-        _isBulkMode = false;
-        _selectedItems.clear();
-        _expandedItemId = -1;
-      }
-    });
-    HapticFeedback.selectionClick();
-  }
-
-  void _toggleItemSelection(int itemId) {
-    setState(() {
-      if (_selectedItems.contains(itemId)) {
-        _selectedItems.remove(itemId);
-      } else {
-        _selectedItems.add(itemId);
-      }
-    });
-    HapticFeedback.selectionClick();
-  }
 
   void _onAssignmentChanged(Map<String, dynamic> updatedItem) {
     setState(() {
@@ -483,83 +466,11 @@ class _ItemAssignmentState extends State<ItemAssignment>
     });
   }
 
-  void _onBulkAssignmentChanged(List<Map<String, dynamic>> updatedItems) {
-    setState(() {
-      for (var updatedItem in updatedItems) {
-        final index =
-            _items.indexWhere((item) => item['id'] == updatedItem['id']);
-        if (index != -1) {
-          _items[index] = updatedItem;
-        }
-      }
-      _selectedItems.clear();
-      _isBulkMode = false;
-    });
-  }
 
-  void _onMemberSelected(String memberId) {
-    // Find items that are currently expanded and assign them to the selected member
-    if (_expandedItemId != -1) {
-      final item = _items.firstWhere((item) => item['id'] == _expandedItemId);
-      final assignedMembers = List<String>.from(item['assignedMembers'] ?? []);
 
-      if (!assignedMembers.contains(memberId)) {
-        assignedMembers.add(memberId);
-        final updatedItem = Map<String, dynamic>.from(item);
-        updatedItem['assignedMembers'] = assignedMembers;
-        _onAssignmentChanged(updatedItem);
-      }
-    }
-  }
 
-  void _onItemDroppedToMember(
-      Map<String, dynamic> member, Map<String, dynamic> item) {
-    final memberId = member['id'].toString();
-    final assignedMembers = List<String>.from(item['assignedMembers'] ?? []);
 
-    if (!assignedMembers.contains(memberId)) {
-      assignedMembers.add(memberId);
-      final updatedItem = Map<String, dynamic>.from(item);
-      updatedItem['assignedMembers'] = assignedMembers;
-      _onAssignmentChanged(updatedItem);
-    }
-  }
 
-  Map<String, List<Map<String, dynamic>>> _getAssignmentsByMember() {
-    Map<String, List<Map<String, dynamic>>> assignments = {};
-
-    // Initialize all members
-    for (var member in _groupMembers) {
-      assignments[member['id'].toString()] = [];
-    }
-
-    // Group items by assigned members
-    for (var item in _items) {
-      final assignedMembers = item['assignedMembers'] as List<String>? ?? [];
-      for (var memberId in assignedMembers) {
-        if (assignments.containsKey(memberId)) {
-          assignments[memberId]!.add(item);
-        }
-      }
-    }
-
-    return assignments;
-  }
-
-  void _showBulkAssignmentBottomSheet() {
-    final selectedItemsData =
-        _items.where((item) => _selectedItems.contains(item['id'])).toList();
-
-    showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (context) => BulkAssignmentWidget(
-            selectedItems: selectedItemsData,
-            members: _groupMembers,
-            onBulkAssignmentChanged: _onBulkAssignmentChanged,
-            onClose: () => Navigator.pop(context)));
-  }
 
   void _proceedToExpenseCreation() {
     // Check if all items are assigned (unless equal split is enabled)
@@ -653,7 +564,7 @@ class _ItemAssignmentState extends State<ItemAssignment>
     if (_isEqualSplit) {
       // Equal split: always use total of all items regardless of assignments
       for (var item in _items) {
-        final itemPrice = item['total_price'] as double? ?? 0.0;
+        final itemPrice = (item['total_price'] as num?)?.toDouble() ?? 0.0;
         print('DEBUG: Equal split - Item ${item['name']} has total_price: $itemPrice');
         totalAmount += itemPrice;
       }
@@ -663,14 +574,14 @@ class _ItemAssignmentState extends State<ItemAssignment>
       if (_quantityAssignments.isNotEmpty) {
         // Use quantity assignment prices when available
         totalAmount = _quantityAssignments.fold(0.0, (sum, assignment) => 
-            sum + (assignment['totalPrice'] as double? ?? 0.0));
+            sum + ((assignment['totalPrice'] as num?)?.toDouble() ?? 0.0));
         print('DEBUG: Individual assignments - Total from quantity assignments: $totalAmount');
       } else {
         // Fall back to item total prices for assigned items
         for (var item in _items) {
           final assignedMembers = item['assignedMembers'] as List<String>? ?? [];
           if (assignedMembers.isNotEmpty) {
-            final itemPrice = item['total_price'] as double? ?? 0.0;
+            final itemPrice = (item['total_price'] as num?)?.toDouble() ?? 0.0;
             print('DEBUG: Individual assignments - Item ${item['name']} has total_price: $itemPrice');
             totalAmount += itemPrice;
           }
@@ -721,7 +632,7 @@ class _ItemAssignmentState extends State<ItemAssignment>
       for (var assignment in _quantityAssignments) {
         final memberIds = assignment['memberIds'] as List<dynamic>? ?? [];
         final quantity = assignment['quantity'] as int? ?? 1;
-        final totalPrice = assignment['totalPrice'] as double? ?? 0.0;
+        final totalPrice = (assignment['totalPrice'] as num?)?.toDouble() ?? 0.0;
         final itemId = assignment['itemId'];
         
         // Create individual assignment entries for each participant
@@ -798,7 +709,7 @@ class _ItemAssignmentState extends State<ItemAssignment>
       // Calculate from quantity assignments
       for (var assignment in _quantityAssignments) {
         final memberIds = assignment['memberIds'] as List<dynamic>? ?? [];
-        final totalPrice = assignment['totalPrice'] as double? ?? 0.0;
+        final totalPrice = (assignment['totalPrice'] as num?)?.toDouble() ?? 0.0;
         final quantity = assignment['quantity'] as int? ?? 1;
         
         if (memberIds.isNotEmpty) {
@@ -815,7 +726,7 @@ class _ItemAssignmentState extends State<ItemAssignment>
       // Calculate from regular item assignments
       for (var item in _items) {
         final assignedMembers = item['assignedMembers'] as List<String>? ?? [];
-        final itemPrice = item['total_price'] as double? ?? 0.0;
+        final itemPrice = (item['total_price'] as num?)?.toDouble() ?? 0.0;
         
         if (assignedMembers.isNotEmpty) {
           final pricePerMember = itemPrice / assignedMembers.length;
@@ -957,7 +868,6 @@ class _ItemAssignmentState extends State<ItemAssignment>
 
   @override
   Widget build(BuildContext context) {
-    final assignmentsByMember = _getAssignmentsByMember();
 
     // Show empty state if no items
     if (_items.isEmpty) {
@@ -1046,61 +956,14 @@ class _ItemAssignmentState extends State<ItemAssignment>
                       Text('Item Assignment',
                           style: AppTheme.lightTheme.textTheme.titleLarge
                               ?.copyWith(fontWeight: FontWeight.w600)),
-                      PopupMenuButton<String>(
-                        onSelected: (value) {
-                          switch (value) {
-                            case 'bulk':
-                              _toggleBulkMode();
-                              break;
-                            case 'drag':
-                              _toggleDragMode();
-                              break;
-                            case 'instructions':
-                              setState(() {
-                                _showInstructions = true;
-                              });
-                              break;
-                          }
+                      IconButton(
+                        onPressed: () {
+                          setState(() {
+                            _showInstructions = true;
+                          });
                         },
-                        itemBuilder: (context) => [
-                          PopupMenuItem(
-                            value: 'bulk',
-                            child: Row(
-                              children: [
-                                Icon(Icons.select_all, size: 5.w),
-                                SizedBox(width: 2.w),
-                                Text(_isBulkMode
-                                    ? 'Exit Bulk Mode'
-                                    : 'Bulk Mode'),
-                              ],
-                            ),
-                          ),
-                          PopupMenuItem(
-                            value: 'drag',
-                            child: Row(
-                              children: [
-                                Icon(Icons.drag_indicator, size: 5.w),
-                                SizedBox(width: 2.w),
-                                Text(_isDragMode
-                                    ? 'Exit Drag Mode'
-                                    : 'Drag Mode'),
-                              ],
-                            ),
-                          ),
-                          const PopupMenuDivider(),
-                          PopupMenuItem(
-                            value: 'instructions',
-                            child: Row(
-                              children: [
-                                Icon(Icons.help_outline, size: 5.w),
-                                SizedBox(width: 2.w),
-                                const Text('Show Help'),
-                              ],
-                            ),
-                          ),
-                        ],
-                        child: Icon(
-                          Icons.more_vert,
+                        icon: Icon(
+                          Icons.help_outline,
                           color: AppTheme.lightTheme.colorScheme.secondary,
                         ),
                       ),
@@ -1111,61 +974,6 @@ class _ItemAssignmentState extends State<ItemAssignment>
                     stepLabels: ['Capture', 'Review', 'Assign']),
               ])),
 
-          // Mode indicators
-          if (_isBulkMode || _isDragMode)
-            Container(
-              padding: EdgeInsets.all(4.w),
-              color: _isBulkMode
-                  ? AppTheme.lightTheme.colorScheme.secondaryContainer
-                  : AppTheme.lightTheme.colorScheme.tertiaryContainer,
-              child: Row(
-                children: [
-                  Icon(
-                    _isBulkMode ? Icons.select_all : Icons.drag_indicator,
-                    color: _isBulkMode
-                        ? AppTheme.lightTheme.colorScheme.onSecondaryContainer
-                        : AppTheme.lightTheme.colorScheme.onTertiaryContainer,
-                  ),
-                  SizedBox(width: 2.w),
-                  Expanded(
-                    child: Text(
-                      _isBulkMode
-                          ? 'Bulk mode: ${_selectedItems.length} items selected'
-                          : 'Drag mode: Long press items to drag them to members',
-                      style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: _isBulkMode
-                            ? AppTheme
-                                .lightTheme.colorScheme.onSecondaryContainer
-                            : AppTheme
-                                .lightTheme.colorScheme.onTertiaryContainer,
-                      ),
-                    ),
-                  ),
-                  if (_isBulkMode && _selectedItems.isNotEmpty)
-                    ElevatedButton(
-                      onPressed: _showBulkAssignmentBottomSheet,
-                      child: const Text('Assign Selected'),
-                    ),
-                  if (_isBulkMode || _isDragMode)
-                    TextButton(
-                      onPressed:
-                          _isBulkMode ? _toggleBulkMode : _toggleDragMode,
-                      child: const Text('Done'),
-                    ),
-                ],
-              ),
-            ),
-
-          // Instructions
-          AssignmentInstructionsWidget(
-            showInstructions: _showInstructions,
-            onDismiss: () {
-              setState(() {
-                _showInstructions = false;
-              });
-            },
-          ),
 
           // Main content
           Expanded(
@@ -1173,6 +981,16 @@ class _ItemAssignmentState extends State<ItemAssignment>
                   controller: _scrollController,
                   padding: EdgeInsets.all(4.w),
                   child: Column(children: [
+                    // Instructions
+                    AssignmentInstructionsWidget(
+                      showInstructions: _showInstructions,
+                      onDismiss: () {
+                        setState(() {
+                          _showInstructions = false;
+                        });
+                        _markInstructionsAsSeen();
+                      },
+                    ),
                     // Assignment summary with add participant functionality
                     AssignmentSummaryWidget(
                         items: _items,
@@ -1238,68 +1056,8 @@ class _ItemAssignmentState extends State<ItemAssignment>
 
                     SizedBox(height: 3.h),
 
-                    // Search bar (only shown when not in drag mode)
-                    if (!_isDragMode && !_isBulkMode && _expandedItemId != -1)
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Quick member assignment:',
-                            style: AppTheme.lightTheme.textTheme.bodyMedium
-                                ?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          SizedBox(height: 1.h),
-                          MemberSearchWidget(
-                            members: _groupMembers,
-                            onMemberSelected: _onMemberSelected,
-                            hintText: 'Search members to assign...',
-                          ),
-                          SizedBox(height: 3.h),
-                        ],
-                      ),
 
-                    // Drag mode: Member drop zones
-                    if (_isDragMode)
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Drop items on members:',
-                            style: AppTheme.lightTheme.textTheme.titleMedium
-                                ?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          SizedBox(height: 2.h),
-                          GridView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            gridDelegate:
-                                SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              mainAxisSpacing: 2.h,
-                              crossAxisSpacing: 4.w,
-                              childAspectRatio: 1.2,
-                            ),
-                            itemCount: _groupMembers.length,
-                            itemBuilder: (context, index) {
-                              final member = _groupMembers[index];
-                              final memberItems = assignmentsByMember[
-                                      member['id'].toString()] ??
-                                  [];
-                              return MemberDropZoneWidget(
-                                member: member,
-                                assignedItems: memberItems,
-                                onItemDropped: _onItemDroppedToMember,
-                                currency: _currency,
-                              );
-                            },
-                          ),
-                          SizedBox(height: 4.h),
-                        ],
-                      ),
+
                   ]))),
 
           // Bottom action button

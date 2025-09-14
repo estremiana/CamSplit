@@ -101,7 +101,7 @@ class _GroupManagementState extends State<GroupManagement>
     }
 
     try {
-      final groups = await GroupService.getAllGroups();
+      final groups = await GroupService.getAllGroupsWithMembers();
       if (mounted) {
         setState(() {
           _allGroups = groups;
@@ -122,7 +122,7 @@ class _GroupManagementState extends State<GroupManagement>
   /// Refresh groups data
   Future<void> _refreshGroups() async {
     try {
-      final groups = await GroupService.getAllGroups(forceRefresh: true);
+      final groups = await GroupService.getAllGroupsWithMembers(forceRefresh: true);
       if (mounted) {
         setState(() {
           _allGroups = groups;

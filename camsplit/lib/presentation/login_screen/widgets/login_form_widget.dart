@@ -186,7 +186,14 @@ class LoginFormWidget extends StatelessWidget {
                 ),
               ),
               child: isLoading
-                  ? const CircularProgressIndicator(color: Colors.white)
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
                   : Text(
                       'Login',
                       style: TextStyle(

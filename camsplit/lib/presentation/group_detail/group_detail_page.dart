@@ -493,24 +493,6 @@ class _GroupDetailPageState extends State<GroupDetailPage> with RealTimeUpdateMi
             style: AppTheme.lightTheme.appBarTheme.titleTextStyle,
           ),
           actions: [
-            // Refresh button in app bar
-            IconButton(
-              onPressed: _isRefreshing ? null : _refreshData,
-              icon: _isRefreshing 
-                ? SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppTheme.lightTheme.colorScheme.onSurface,
-                    ),
-                  )
-                : CustomIconWidget(
-                    iconName: 'refresh',
-                    color: AppTheme.lightTheme.colorScheme.onSurface,
-                    size: 24,
-                  ),
-            ),
             IconButton(
               onPressed: _showGroupActions,
               icon: CustomIconWidget(
@@ -864,7 +846,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> with RealTimeUpdateMi
             ),
             SizedBox(height: 2.h),
             SizedBox(
-              height: 30.h, // Fixed height for the expense list
+              height: 40.h, // Restored scrollable height for the expense list
               child: ExpenseListWidget(
                 expenses: _groupDetail?.expenses ?? [],
                 onRefresh: _loadGroupData,
