@@ -5,7 +5,7 @@ This document summarizes the configuration changes made to migrate the CamSplit 
 
 ## Changes Made
 
-### 1. Flutter App Configuration (`splitease/lib/config/api_config.dart`)
+### 1. Flutter App Configuration (`camsplit/lib/config/api_config.dart`)
 - **Updated Production URLs:**
   - `prodBaseUrl`: `https://camsplit.onrender.com/api`
   - `prodBackendUrl`: `https://camsplit.onrender.com`
@@ -71,7 +71,7 @@ npm start
 
 ### 2. Test Flutter App
 ```bash
-cd splitease
+cd camsplit
 flutter run
 # Verify API calls go to https://camsplit.onrender.com/api
 ```
@@ -86,7 +86,7 @@ flutter run
 
 1. **Flutter App:**
    ```dart
-   // In splitease/lib/config/api_config.dart
+   // In camsplit/lib/config/api_config.dart
    static const bool isProduction = false;
    ```
 

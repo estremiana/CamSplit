@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This feature aims to unify currency selection and display across the entire SplitEase application. Currently, currency selection is implemented inconsistently across different parts of the app, with hardcoded currency symbols and multiple different selection mechanisms. The goal is to standardize all currency-related functionality to use a single, consistent approach based on the existing Currency object from the currency_picker package, ensuring that currency symbols are displayed correctly throughout the app and that currency selection behaves consistently everywhere.
+This feature aims to unify currency selection and display across the entire CamSplit application. Currently, currency selection is implemented inconsistently across different parts of the app, with hardcoded currency symbols and multiple different selection mechanisms. The goal is to standardize all currency-related functionality to use a single, consistent approach based on the existing Currency object from the currency_picker package, ensuring that currency symbols are displayed correctly throughout the app and that currency selection behaves consistently everywhere.
 
 ## Requirements
 

@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This feature refactors the camera functionality in the SplitEase app to create a reusable camera tool that can be used across different parts of the application. Currently, the camera is tightly coupled with the receipt scanning workflow, which causes issues when trying to use camera functionality for other purposes like expense images, group images, and profile images. This refactoring will separate the camera tool from specific workflows and create a flexible, reusable component that can handle image capture, cropping, and upload for various use cases throughout the app.
+This feature refactors the camera functionality in the CamSplit app to create a reusable camera tool that can be used across different parts of the application. Currently, the camera is tightly coupled with the receipt scanning workflow, which causes issues when trying to use camera functionality for other purposes like expense images, group images, and profile images. This refactoring will separate the camera tool from specific workflows and create a flexible, reusable component that can handle image capture, cropping, and upload for various use cases throughout the app.
 
 ## Requirements
 

@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This feature redesigns the camera page for receipt capture in the SplitEase app to provide a more professional and functional user experience. The current implementation has several UX issues including non-functional UI elements, excessive screen real estate usage by tips, fake detection features, and poor navigation behavior. This redesign will create a streamlined, functional camera interface that actually works with device hardware and provides meaningful feedback to users.
+This feature redesigns the camera page for receipt capture in the CamSplit app to provide a more professional and functional user experience. The current implementation has several UX issues including non-functional UI elements, excessive screen real estate usage by tips, fake detection features, and poor navigation behavior. This redesign will create a streamlined, functional camera interface that actually works with device hardware and provides meaningful feedback to users.
 
 ## Requirements
 

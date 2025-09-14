@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This feature improves the receipt processing flow in the SplitEase app by enhancing the item assignment page's equal split functionality and implementing a proper receipt mode for expense creation. The improvements focus on better state management for assignment summaries and seamless data flow between the item assignment and expense creation screens.
+This feature improves the receipt processing flow in the CamSplit app by enhancing the item assignment page's equal split functionality and implementing a proper receipt mode for expense creation. The improvements focus on better state management for assignment summaries and seamless data flow between the item assignment and expense creation screens.
 
 ## Requirements
 

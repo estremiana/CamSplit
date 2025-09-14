@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This feature involves improving the split options UI design in the SplitEase expense creation screen. The current split options widget needs to be updated with a more modern, user-friendly design that provides better visual feedback and improved user experience for selecting how expenses should be split among group members.
+This feature involves improving the split options UI design in the CamSplit expense creation screen. The current split options widget needs to be updated with a more modern, user-friendly design that provides better visual feedback and improved user experience for selecting how expenses should be split among group members.
 
 ## Requirements
 

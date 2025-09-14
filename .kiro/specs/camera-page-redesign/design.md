@@ -2,7 +2,7 @@
 
 ## Overview
 
-This design addresses the camera page redesign for the SplitEase app, transforming the current mock-heavy implementation into a functional, professional camera interface for receipt capture. The solution focuses on integrating real camera functionality, implementing proper receipt detection, adding image cropping capabilities, and creating a streamlined user experience that eliminates fake UI elements and improves navigation flow.
+This design addresses the camera page redesign for the CamSplit app, transforming the current mock-heavy implementation into a functional, professional camera interface for receipt capture. The solution focuses on integrating real camera functionality, implementing proper receipt detection, adding image cropping capabilities, and creating a streamlined user experience that eliminates fake UI elements and improves navigation flow.
 
 ## Architecture
 
