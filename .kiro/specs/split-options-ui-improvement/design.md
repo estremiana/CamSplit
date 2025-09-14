@@ -2,7 +2,7 @@
 
 ## Overview
 
-This design document outlines the implementation of an improved split options UI for the SplitEase expense creation screen. The design focuses on modernizing the user interface with better visual hierarchy, clearer feedback mechanisms, and improved user experience for expense splitting functionality.
+This design document outlines the implementation of an improved split options UI for the CamSplit expense creation screen. The design focuses on modernizing the user interface with better visual hierarchy, clearer feedback mechanisms, and improved user experience for expense splitting functionality.
 
 ## Architecture
 

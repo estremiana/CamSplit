@@ -22,7 +22,7 @@ backend/package-lock.json
 backend/.env
 database/.env
 backend/google-credentials.json
-splitease/env.json
+camsplit/env.json
 
 # Logs and temp
 *.log
@@ -30,34 +30,34 @@ backend/logs/
 
 # Flutter/Dart
 pubspec.lock
-splitease/pubspec.lock
+camsplit/pubspec.lock
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
-splitease/build/
-splitease/web/
-splitease/ios/Flutter/.last_build_id
-splitease/ios/Flutter/ephemeral/
-splitease/ios/Flutter/app.flx
-splitease/ios/Flutter/app.zip
-splitease/ios/Flutter/flutter_assets/
-splitease/ios/Flutter/flutter_export_environment.sh
-splitease/ios/ServiceDefinitions.json
-splitease/ios/Runner/GeneratedPluginRegistrant.*
-splitease/android/.gradle/
-splitease/android/build/
-splitease/android/app/debug/
-splitease/android/app/profile/
-splitease/android/app/release/
-splitease/android/gradle/
-splitease/android/local.properties
-splitease/android/gradlew
-splitease/android/gradlew.bat
-splitease/android/key.properties
-splitease/android/**/*.keystore
-splitease/android/**/*.jks
+camsplit/build/
+camsplit/web/
+camsplit/ios/Flutter/.last_build_id
+camsplit/ios/Flutter/ephemeral/
+camsplit/ios/Flutter/app.flx
+camsplit/ios/Flutter/app.zip
+camsplit/ios/Flutter/flutter_assets/
+camsplit/ios/Flutter/flutter_export_environment.sh
+camsplit/ios/ServiceDefinitions.json
+camsplit/ios/Runner/GeneratedPluginRegistrant.*
+camsplit/android/.gradle/
+camsplit/android/build/
+camsplit/android/app/debug/
+camsplit/android/app/profile/
+camsplit/android/app/release/
+camsplit/android/gradle/
+camsplit/android/local.properties
+camsplit/android/gradlew
+camsplit/android/gradlew.bat
+camsplit/android/key.properties
+camsplit/android/**/*.keystore
+camsplit/android/**/*.jks
 
 # Expo/React Native
 frontend/.expo/

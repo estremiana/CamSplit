@@ -2,7 +2,7 @@
 
 ## Overview
 
-This design addresses the receipt mode improvements for the SplitEase app, focusing on fixing the assignment summary state management and implementing a proper receipt mode for expense creation. The solution involves enhancing the existing `AssignmentSummaryWidget` to properly handle equal split toggling and modifying the `ExpenseCreation` screen to support a locked receipt mode with pre-filled data.
+This design addresses the receipt mode improvements for the CamSplit app, focusing on fixing the assignment summary state management and implementing a proper receipt mode for expense creation. The solution involves enhancing the existing `AssignmentSummaryWidget` to properly handle equal split toggling and modifying the `ExpenseCreation` screen to support a locked receipt mode with pre-filled data.
 
 ## Architecture
 

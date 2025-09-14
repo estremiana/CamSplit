@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'dart:io';
 
-import 'package:splitease/presentation/camera_capture/flexible_camera_capture.dart';
-import 'package:splitease/presentation/camera_capture/config/camera_capture_config.dart';
-import 'package:splitease/presentation/camera_capture/config/camera_capture_modes.dart';
-import 'package:splitease/presentation/camera_capture/config/camera_capture_mode.dart';
-import 'package:splitease/presentation/camera_capture/config/camera_capture_theme.dart';
+import 'package:camsplit/presentation/camera_capture/flexible_camera_capture.dart';
+import 'package:camsplit/presentation/camera_capture/config/camera_capture_config.dart';
+import 'package:camsplit/presentation/camera_capture/config/camera_capture_modes.dart';
+import 'package:camsplit/presentation/camera_capture/config/camera_capture_mode.dart';
+import 'package:camsplit/presentation/camera_capture/config/camera_capture_theme.dart';
 
 void main() {
   group('FlexibleCameraCapture', () {

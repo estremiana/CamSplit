@@ -2,7 +2,7 @@
 
 ## Overview
 
-This design addresses the refactoring of camera functionality in the SplitEase app to create a reusable, workflow-agnostic camera tool. The current implementation tightly couples camera functionality with receipt scanning, causing navigation issues and preventing reuse across different features. The solution involves creating a standalone camera service that can be used for expense images, group images, profile pictures, and receipt scanning, while maintaining consistent user experience and proper navigation flow.
+This design addresses the refactoring of camera functionality in the CamSplit app to create a reusable, workflow-agnostic camera tool. The current implementation tightly couples camera functionality with receipt scanning, causing navigation issues and preventing reuse across different features. The solution involves creating a standalone camera service that can be used for expense images, group images, profile pictures, and receipt scanning, while maintaining consistent user experience and proper navigation flow.
 
 ## Architecture
 

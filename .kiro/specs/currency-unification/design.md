@@ -2,7 +2,7 @@
 
 ## Overview
 
-The currency unification feature will standardize all currency-related functionality across the SplitEase application by creating a centralized currency management system. This system will replace the current inconsistent currency handling with a unified approach that uses the Currency object from the currency_picker package as the single source of truth for all currency operations.
+The currency unification feature will standardize all currency-related functionality across the CamSplit application by creating a centralized currency management system. This system will replace the current inconsistent currency handling with a unified approach that uses the Currency object from the currency_picker package as the single source of truth for all currency operations.
 
 The design focuses on creating reusable components and services that can be easily integrated across the existing codebase while maintaining backward compatibility and ensuring consistent user experience.
 
