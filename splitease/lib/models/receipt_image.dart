@@ -31,10 +31,10 @@ class ReceiptImage {
     }
     
     return ReceiptImage(
-      id: json['id'],
-      expenseId: json['expense_id'],
-      imageUrl: json['image_url'],
-      cloudinaryPublicId: json['cloudinary_public_id'],
+      id: json['id'] ?? 0,
+      expenseId: json['expense_id'] ?? 0,
+      imageUrl: json['image_url'] ?? '',
+      cloudinaryPublicId: json['cloudinary_public_id'] ?? '', // Make this optional
       createdAt: parseDate(json['created_at']),
       updatedAt: parseDate(json['updated_at']),
     );
@@ -53,10 +53,10 @@ class ReceiptImage {
 
   // Validation methods
   bool isValid() {
-    return id > 0 && 
+    return id >= 0 && // Allow 0 for receipt_image_url format
            expenseId > 0 &&
            imageUrl.isNotEmpty &&
-           cloudinaryPublicId.isNotEmpty &&
+           // cloudinaryPublicId is now optional, so don't require it
            createdAt.isBefore(DateTime.now()) &&
            updatedAt.isBefore(DateTime.now());
   }

@@ -9,6 +9,7 @@ import '../../routes/app_routes.dart';
 import '../../services/api_service.dart';
 import '../../services/navigation_service.dart';
 import '../../services/user_service.dart';
+import '../../services/user_stats_service.dart';
 
 import './widgets/balance_card_widget.dart';
 import './widgets/empty_state_widget.dart';
@@ -812,17 +813,59 @@ class _ExpenseDashboardState extends State<ExpenseDashboard>
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
+              
+              // Optimistic update: Remove from UI immediately
               setState(() {
                 _recentExpenses.removeWhere((e) => e["id"] == expense["id"]);
               });
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Expense deleted successfully'),
-                  backgroundColor: AppTheme.errorLight,
-                ),
-              );
+              
+              // Optimistic update: Decrement expenses count
+              UserStatsService.decrementExpensesCount();
+              
+              try {
+                // Call API to delete expense
+                final response = await ApiService.instance.deleteExpense(expense["id"].toString());
+                
+                if (response['success']) {
+                  // Background refresh of stats
+                  UserStatsService.refreshStatsInBackground();
+                  
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Expense deleted successfully'),
+                      backgroundColor: AppTheme.errorLight,
+                    ),
+                  );
+                } else {
+                  // API failed, revert optimistic updates
+                  setState(() {
+                    _recentExpenses.add(expense);
+                  });
+                  UserStatsService.incrementExpensesCount();
+                  
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to delete expense: ${response['message'] ?? 'Unknown error'}'),
+                      backgroundColor: AppTheme.errorLight,
+                    ),
+                  );
+                }
+              } catch (e) {
+                // API failed, revert optimistic updates
+                setState(() {
+                  _recentExpenses.add(expense);
+                });
+                UserStatsService.incrementExpensesCount();
+                
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Failed to delete expense: $e'),
+                    backgroundColor: AppTheme.errorLight,
+                  ),
+                );
+              }
             },
             child: Text(
               'Delete',

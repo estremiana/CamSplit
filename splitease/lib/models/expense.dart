@@ -60,6 +60,42 @@ class Expense {
       return DateTime.now();
     }
     
+    // Helper function to parse receipt images from different formats
+    List<ReceiptImage> parseReceiptImages(Map<String, dynamic> json) {
+      // Debug logging
+      print('Expense.fromJson: Parsing receipt images from JSON');
+      print('Expense.fromJson: receipt_images field: ${json['receipt_images']}');
+      print('Expense.fromJson: receipt_image_url field: ${json['receipt_image_url']}');
+      
+      // First try the new format with receipt_images array (but only if it has content)
+      if (json['receipt_images'] != null && 
+          json['receipt_images'] is List && 
+          (json['receipt_images'] as List).isNotEmpty) {
+        print('Expense.fromJson: Using receipt_images array format');
+        return (json['receipt_images'] as List<dynamic>)
+            .map((imageJson) => ReceiptImage.fromJson(imageJson))
+            .toList();
+      }
+      
+      // Fallback to the old format with direct receipt_image_url
+      if (json['receipt_image_url'] != null && json['receipt_image_url'].toString().isNotEmpty) {
+        print('Expense.fromJson: Using receipt_image_url direct format');
+        final receiptImage = ReceiptImage(
+          id: 0, // No ID available in this format
+          expenseId: json['id'] ?? 0,
+          imageUrl: json['receipt_image_url'].toString(),
+          cloudinaryPublicId: '', // Not available in this format
+          createdAt: parseDate(json['created_at']),
+          updatedAt: parseDate(json['updated_at']),
+        );
+        print('Expense.fromJson: Created receipt image with URL: ${receiptImage.imageUrl}');
+        return [receiptImage];
+      }
+      
+      print('Expense.fromJson: No receipt images found');
+      return [];
+    }
+    
     return Expense(
       id: int.tryParse(json['id'].toString()) ?? 0,
       groupId: int.tryParse(json['group_id'].toString()) ?? 0,
@@ -77,9 +113,7 @@ class Expense {
       splits: (json['splits'] as List<dynamic>?)
           ?.map((splitJson) => ExpenseSplit.fromJson(splitJson))
           .toList() ?? [],
-      receiptImages: (json['receipt_images'] as List<dynamic>?)
-          ?.map((imageJson) => ReceiptImage.fromJson(imageJson))
-          .toList() ?? [],
+      receiptImages: parseReceiptImages(json),
       createdAt: parseDate(json['created_at']),
       updatedAt: parseDate(json['updated_at']),
       groupName: json['group_name'],

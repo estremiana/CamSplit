@@ -760,10 +760,13 @@ class _ItemAssignmentState extends State<ItemAssignment>
       !_newParticipants.any((newParticipant) => newParticipant['id'] == member['id'])
     ).toList();
 
-    // Get image path from route arguments
+    // Get image path and image URL from route arguments
     final args = ModalRoute.of(context)?.settings.arguments;
     final imagePath = (args is Map && args['imagePath'] != null) 
         ? args['imagePath'] as String 
+        : null;
+    final imageUrl = (args is Map && args['imageUrl'] != null) 
+        ? args['imageUrl'] as String 
         : null;
 
     // Create and return structured receipt mode data
@@ -779,6 +782,7 @@ class _ItemAssignmentState extends State<ItemAssignment>
       selectedGroupName: selectedGroup.name,
       newParticipants: _newParticipants.isNotEmpty ? _newParticipants : null,
       imagePath: imagePath,
+      imageUrl: imageUrl,
     );
   }
 

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
@@ -9,6 +10,8 @@ import '../../models/group.dart';
 import '../../services/group_service.dart';
 import '../../services/api_service.dart';
 import '../../services/currency_migration_service.dart';
+import '../../services/user_stats_service.dart';
+import '../camera_capture/expense_photo_capture.dart';
 import './widgets/expense_details_widget.dart';
 import './widgets/receipt_image_widget.dart';
 import './widgets/split_options_widget.dart';
@@ -858,6 +861,52 @@ class _ExpenseCreationState extends State<ExpenseCreation>
         'splits': _buildSplitsData(),
       };
 
+      // Handle receipt image URL
+      String? imageUrlToUse;
+      
+      debugPrint('Image handling - isReceiptMode: $_isReceiptMode, receiptData: ${_receiptData != null}');
+      if (_receiptData != null) {
+        debugPrint('Receipt data - imageUrl: ${_receiptData!.imageUrl}, imagePath: ${_receiptData!.imagePath}');
+      }
+      
+      if (_isReceiptMode && _receiptData != null) {
+        // Receipt mode: use existing URL or upload local image
+        if (_receiptData!.imageUrl != null) {
+          imageUrlToUse = _receiptData!.imageUrl;
+          debugPrint('Using existing image URL from receipt mode: $imageUrlToUse');
+        } else if (_receiptData!.imagePath != null) {
+          // Upload local image to Cloudinary and get URL
+          debugPrint('Uploading local image from receipt mode: ${_receiptData!.imagePath}');
+          try {
+            final imageFile = File(_receiptData!.imagePath!);
+            imageUrlToUse = await _uploadImageToCloudinary(imageFile);
+            debugPrint('Successfully uploaded image from receipt mode: $imageUrlToUse');
+          } catch (e) {
+            debugPrint('Failed to upload image from receipt mode: $e');
+            // Continue without image URL - expense can still be created
+          }
+        }
+      } else if (!_isReceiptMode && _receiptData != null && _receiptData!.imagePath != null) {
+        // Manual mode: upload local image if available
+        debugPrint('Uploading local image from manual mode: ${_receiptData!.imagePath}');
+        try {
+          final imageFile = File(_receiptData!.imagePath!);
+          imageUrlToUse = await _uploadImageToCloudinary(imageFile);
+          debugPrint('Successfully uploaded image from manual mode: $imageUrlToUse');
+        } catch (e) {
+          debugPrint('Failed to upload image from manual mode: $e');
+          // Continue without image URL - expense can still be created
+        }
+      }
+      
+      // Add image URL to expense data if available
+      if (imageUrlToUse != null) {
+        expenseData['receipt_image_url'] = imageUrlToUse;
+        debugPrint('Added receipt_image_url to expense data: $imageUrlToUse');
+      } else {
+        debugPrint('No image URL to add to expense data');
+      }
+
       // Add items if in receipt mode with items
       if (_isReceiptMode && _receiptData?.items.isNotEmpty == true) {
         expenseData['items'] = _receiptData!.items.map((item) => {
@@ -909,6 +958,12 @@ class _ExpenseCreationState extends State<ExpenseCreation>
       final response = await ApiService.instance.createExpense(expenseData);
       
       debugPrint('API response: $response');
+
+      // Optimistic update: Increment expenses count
+      UserStatsService.incrementExpensesCount();
+      
+      // Background refresh of stats
+      UserStatsService.refreshStatsInBackground();
 
       setState(() {
         _isLoading = false;
@@ -1530,43 +1585,68 @@ class _ExpenseCreationState extends State<ExpenseCreation>
     HapticFeedback.lightImpact();
   }
 
+  /// Upload image to Cloudinary and return the URL
+  Future<String> _uploadImageToCloudinary(File imageFile) async {
+    try {
+      debugPrint('Starting image upload to Cloudinary: ${imageFile.path}');
+      
+      // Use the API service to upload the image
+      final response = await ApiService.instance.processReceipt(imageFile);
+      
+      debugPrint('Upload response: $response');
+      
+      if (response['success'] == true && response['data'] != null) {
+        final imageUrl = response['data']['image_url'];
+        if (imageUrl != null) {
+          debugPrint('Successfully got image URL from upload: $imageUrl');
+          return imageUrl;
+        } else {
+          debugPrint('No image_url in response data: ${response['data']}');
+        }
+      } else {
+        debugPrint('Upload failed or no data in response: success=${response['success']}, data=${response['data']}');
+      }
+      
+      throw Exception('Failed to get image URL from upload response');
+    } catch (e) {
+      debugPrint('Error uploading image to Cloudinary: $e');
+      rethrow;
+    }
+  }
+
   /// Navigate to camera to capture receipt image
   void _navigateToCamera() async {
     try {
-      final result = await Navigator.pushNamed(
-        context,
-        '/camera-receipt-capture',
-      );
+      // Use the new flexible camera system for expense photo capture
+      final result = await ExpensePhotoCapture.showExpensePhotoCaptureWithResult(context);
       
-      if (result != null && result is Map<String, dynamic>) {
-        // Handle the result from camera capture
-        if (result['success'] == true && result['imagePath'] != null) {
-          setState(() {
-            // Update receipt data with the captured image
-            _receiptData = ReceiptModeData(
-              total: _receiptData?.total ?? 0.0,
-              participantAmounts: _receiptData?.participantAmounts ?? [],
-              mode: _receiptData?.mode ?? 'receipt',
-              isEqualSplit: _receiptData?.isEqualSplit ?? false,
-              items: _receiptData?.items ?? [],
-              groupMembers: _receiptData?.groupMembers ?? [],
-              quantityAssignments: _receiptData?.quantityAssignments,
-              selectedGroupId: _receiptData?.selectedGroupId ?? _realGroups.first.id.toString(),
-              selectedGroupName: _receiptData?.selectedGroupName,
-              newParticipants: _receiptData?.newParticipants,
-              imagePath: result['imagePath'],
-            );
-          });
-          
-          // Show success feedback
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Receipt image added successfully'),
-              backgroundColor: AppTheme.lightTheme.primaryColor,
-              duration: Duration(seconds: 2),
-            ),
+      if (result != null && result['success'] == true && result['imagePath'] != null) {
+        setState(() {
+          // Update receipt data with the captured image
+          _receiptData = ReceiptModeData(
+            total: _receiptData?.total ?? 0.0,
+            participantAmounts: _receiptData?.participantAmounts ?? [],
+            mode: _receiptData?.mode ?? 'receipt',
+            isEqualSplit: _receiptData?.isEqualSplit ?? false,
+            items: _receiptData?.items ?? [],
+            groupMembers: _receiptData?.groupMembers ?? [],
+            quantityAssignments: _receiptData?.quantityAssignments,
+            selectedGroupId: _receiptData?.selectedGroupId ?? _realGroups.first.id.toString(),
+            selectedGroupName: _receiptData?.selectedGroupName,
+            newParticipants: _receiptData?.newParticipants,
+            imagePath: result['imagePath'],
+            imageUrl: _receiptData?.imageUrl, // Preserve existing imageUrl if any
           );
-        }
+        });
+        
+        // Show success feedback
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Receipt image added successfully'),
+            backgroundColor: AppTheme.lightTheme.primaryColor,
+            duration: Duration(seconds: 2),
+          ),
+        );
       }
     } catch (e) {
       debugPrint('Error navigating to camera: $e');
