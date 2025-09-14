@@ -22,7 +22,7 @@ backend/package-lock.json
 backend/.env
 database/.env
 backend/google-credentials.json
-splitease/env.json
+camsplit/env.json
 
 # Logs and temp
 *.log
@@ -30,7 +30,7 @@ backend/logs/
 
 # Flutter/Dart
 pubspec.lock
-splitease/pubspec.lock
+camsplit/pubspec.lock
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
