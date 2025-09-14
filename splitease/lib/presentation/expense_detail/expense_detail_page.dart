@@ -143,6 +143,10 @@ class _ExpenseDetailPageState extends State<ExpenseDetailPage> {
         // Then get expense with enhanced member details
         final expense = await ExpenseDetailService.getExpenseWithMemberDetails(widget.expenseId, groupId);
         
+        // Debug logging for receipt image
+        debugPrint('ExpenseDetailPage: Loaded expense with receipt image URL: ${expense.receiptImageUrl}');
+        debugPrint('ExpenseDetailPage: Has receipt image: ${expense.hasReceiptImage}');
+        
         // Also load the full group member list for selection
         await _loadGroupMembers(groupId);
         

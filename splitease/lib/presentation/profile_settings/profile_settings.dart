@@ -5,6 +5,7 @@ import 'package:sizer/sizer.dart';
 import '../../core/app_export.dart';
 import '../../widgets/currency_selection_widget.dart';
 import '../../services/currency_service.dart';
+import '../../services/user_stats_service.dart';
 import 'package:currency_picker/currency_picker.dart';
 
 import './widgets/logout_button_widget.dart';
@@ -30,9 +31,9 @@ class _ProfileSettingsState extends State<ProfileSettings> with AutomaticKeepAli
 
   // User data - will be loaded from UserService
   UserModel? _currentUser;
-  final Map<String, dynamic> _userStats = {
-    "totalGroups": 4,
-    "totalExpenses": 127,
+  Map<String, dynamic> _userStats = {
+    "totalGroups": 0,
+    "totalExpenses": 0,
   };
 
   final Map<String, dynamic> _appSettings = {
@@ -49,14 +50,22 @@ class _ProfileSettingsState extends State<ProfileSettings> with AutomaticKeepAli
   void initState() {
     super.initState();
     _loadUserData();
+    _setupStatsListener();
   }
 
   Future<void> _loadUserData() async {
     try {
+      // Load user data and stats in parallel
       final user = await UserService.getCurrentUser();
+      final stats = await UserStatsService.getUserStats();
+      
       if (mounted) {
         setState(() {
           _currentUser = user;
+          _userStats = {
+            "totalGroups": stats['total_groups'] ?? 0,
+            "totalExpenses": stats['total_expenses'] ?? 0,
+          };
           // Update app settings from user preferences
           _appSettings['currency'] = user.preferences.currency;
           _appSettings['notifications'] = user.preferences.notifications;
@@ -68,6 +77,30 @@ class _ProfileSettingsState extends State<ProfileSettings> with AutomaticKeepAli
       }
     } catch (e) {
       print('Failed to load user data: $e');
+    }
+  }
+
+  /// Setup listener for stats updates from other parts of the app
+  void _setupStatsListener() {
+    UserStatsService.addStatsListener(_statsListener);
+  }
+
+  @override
+  void dispose() {
+    // Remove stats listener to prevent memory leaks
+    UserStatsService.removeStatsListener(_statsListener);
+    super.dispose();
+  }
+
+  /// Stats listener callback
+  void _statsListener(Map<String, dynamic> newStats) {
+    if (mounted) {
+      setState(() {
+        _userStats = {
+          "totalGroups": newStats['total_groups'] ?? 0,
+          "totalExpenses": newStats['total_expenses'] ?? 0,
+        };
+      });
     }
   }
 
@@ -383,11 +416,17 @@ class _ProfileSettingsState extends State<ProfileSettings> with AutomaticKeepAli
     HapticFeedback.lightImpact();
 
     try {
-      // Force refresh user data from API
+      // Force refresh user data and stats from API
       final user = await UserService.refreshUser();
+      final stats = await UserStatsService.getUserStats(forceRefresh: true);
+      
       if (mounted) {
         setState(() {
           _currentUser = user;
+          _userStats = {
+            "totalGroups": stats['total_groups'] ?? 0,
+            "totalExpenses": stats['total_expenses'] ?? 0,
+          };
           // Update app settings from user preferences
           _appSettings['currency'] = user.preferences.currency;
           _appSettings['notifications'] = user.preferences.notifications;

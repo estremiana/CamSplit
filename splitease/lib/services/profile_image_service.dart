@@ -1,12 +1,12 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
+import 'package:http_parser/http_parser.dart';
 
 import '../config/api_config.dart';
 import '../widgets/initials_avatar_widget.dart';
@@ -133,14 +133,15 @@ class ProfileImageService {
   /// Upload profile image to server
   Future<String> uploadProfileImage(File imageFile) async {
     try {
-      // Compress and crop image first
-      final File processedImage = await compressImage(await cropImageToSquare(imageFile));
+      // Process image: crop to square and compress in one step
+      final File processedImage = await _processImageForUpload(imageFile);
       
-      // Create form data
+      // Create form data with proper content type
       final formData = FormData.fromMap({
         'avatar': await MultipartFile.fromFile(
           processedImage.path,
           filename: 'profile_${DateTime.now().millisecondsSinceEpoch}.jpg',
+          contentType: MediaType('image', 'jpeg'),
         ),
       });
 
@@ -157,6 +158,54 @@ class ProfileImageService {
       }
     } catch (e) {
       throw Exception('Failed to upload profile image: $e');
+    }
+  }
+
+  /// Process image for upload: crop to square and compress
+  Future<File> _processImageForUpload(File imageFile) async {
+    try {
+      // Read image
+      final Uint8List bytes = await imageFile.readAsBytes();
+      final img.Image? image = img.decodeImage(bytes);
+      
+      if (image == null) {
+        throw Exception('Failed to decode image');
+      }
+
+      // Calculate crop dimensions for square
+      final int size = image.width < image.height ? image.width : image.height;
+      final int x = (image.width - size) ~/ 2;
+      final int y = (image.height - size) ~/ 2;
+
+      // Crop to square
+      final img.Image cropped = img.copyCrop(
+        image,
+        x: x,
+        y: y,
+        width: size,
+        height: size,
+      );
+
+      // Resize to 400x400 for profile picture
+      final img.Image resized = img.copyResize(
+        cropped,
+        width: 400,
+        height: 400,
+        interpolation: img.Interpolation.cubic,
+      );
+
+      // Compress with good quality
+      final Uint8List compressedBytes = img.encodeJpg(resized, quality: 85);
+      
+      // Save to temporary file with proper extension
+      final Directory tempDir = await getTemporaryDirectory();
+      final String tempPath = '${tempDir.path}/profile_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final File processedFile = File(tempPath);
+      await processedFile.writeAsBytes(compressedBytes);
+      
+      return processedFile;
+    } catch (e) {
+      throw Exception('Failed to process image for upload: $e');
     }
   }
 

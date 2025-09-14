@@ -12,6 +12,7 @@ class ReceiptModeData {
   final String? selectedGroupName;
   final List<Map<String, dynamic>>? newParticipants;
   final String? imagePath;
+  final String? imageUrl;
 
   ReceiptModeData({
     required this.total,
@@ -25,6 +26,7 @@ class ReceiptModeData {
     this.selectedGroupName,
     this.newParticipants,
     this.imagePath,
+    this.imageUrl,
   });
 
   factory ReceiptModeData.fromJson(Map<String, dynamic> json) {
@@ -52,6 +54,7 @@ class ReceiptModeData {
           ? List<Map<String, dynamic>>.from(json['new_participants'])
           : null,
       imagePath: json['image_path'],
+      imageUrl: json['image_url'],
     );
   }
 
@@ -68,6 +71,7 @@ class ReceiptModeData {
       'selected_group_name': selectedGroupName,
       'new_participants': newParticipants,
       'image_path': imagePath,
+      'image_url': imageUrl,
     };
   }
 
@@ -83,6 +87,7 @@ class ReceiptModeData {
     String? selectedGroupName,
     List<Map<String, dynamic>>? newParticipants,
     String? imagePath,
+    String? imageUrl,
   }) {
     return ReceiptModeData(
       total: total ?? this.total,
@@ -96,6 +101,7 @@ class ReceiptModeData {
       selectedGroupName: selectedGroupName ?? this.selectedGroupName,
       newParticipants: newParticipants ?? this.newParticipants,
       imagePath: imagePath ?? this.imagePath,
+      imageUrl: imageUrl ?? this.imageUrl,
     );
   }
 

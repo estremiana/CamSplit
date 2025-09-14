@@ -68,4 +68,47 @@ class CameraCaptureTheme {
     instructionText: 'Tap to capture your photo',
     primaryColor: Color(0xFF9C27B0),
   );
+  
+  // CopyWith method for creating modified themes
+  CameraCaptureTheme copyWith({
+    String? captureButtonText,
+    String? retakeButtonText,
+    String? cropButtonText,
+    String? usePhotoButtonText,
+    String? processingText,
+    String? instructionText,
+    Color? primaryColor,
+    Color? backgroundColor,
+    Color? overlayColor,
+    Color? textColor,
+    Color? buttonColor,
+    TextStyle? titleStyle,
+    TextStyle? subtitleStyle,
+    TextStyle? buttonStyle,
+    TextStyle? instructionStyle,
+    double? borderRadius,
+    double? buttonHeight,
+    EdgeInsets? buttonPadding,
+  }) {
+    return CameraCaptureTheme(
+      captureButtonText: captureButtonText ?? this.captureButtonText,
+      retakeButtonText: retakeButtonText ?? this.retakeButtonText,
+      cropButtonText: cropButtonText ?? this.cropButtonText,
+      usePhotoButtonText: usePhotoButtonText ?? this.usePhotoButtonText,
+      processingText: processingText ?? this.processingText,
+      instructionText: instructionText ?? this.instructionText,
+      primaryColor: primaryColor ?? this.primaryColor,
+      backgroundColor: backgroundColor ?? this.backgroundColor,
+      overlayColor: overlayColor ?? this.overlayColor,
+      textColor: textColor ?? this.textColor,
+      buttonColor: buttonColor ?? this.buttonColor,
+      titleStyle: titleStyle ?? this.titleStyle,
+      subtitleStyle: subtitleStyle ?? this.subtitleStyle,
+      buttonStyle: buttonStyle ?? this.buttonStyle,
+      instructionStyle: instructionStyle ?? this.instructionStyle,
+      borderRadius: borderRadius ?? this.borderRadius,
+      buttonHeight: buttonHeight ?? this.buttonHeight,
+      buttonPadding: buttonPadding ?? this.buttonPadding,
+    );
+  }
 }

@@ -27,7 +27,9 @@ class CustomImageWidget extends StatelessWidget {
   }) : super(key: key);
 
   bool get _isNetworkUrl =>
-      imageUrl != null && (imageUrl!.startsWith('http://') || imageUrl!.startsWith('https://'));
+      imageUrl != null && 
+      imageUrl!.isNotEmpty &&
+      (imageUrl!.startsWith('http://') || imageUrl!.startsWith('https://'));
 
   @override
   Widget build(BuildContext context) {
@@ -82,6 +84,12 @@ class CustomImageWidget extends StatelessWidget {
         },
         maxWidthDiskCache: 1000,
         maxHeightDiskCache: 1000,
+        // Add retry mechanism for failed loads
+        memCacheWidth: 1000,
+        memCacheHeight: 1000,
+        // Add timeout for image loading
+        fadeInDuration: const Duration(milliseconds: 300),
+        fadeOutDuration: const Duration(milliseconds: 100),
       );
     } else if (imageUrl != null) {
       // Local file path

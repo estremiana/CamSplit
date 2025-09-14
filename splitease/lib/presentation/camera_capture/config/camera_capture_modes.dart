@@ -67,4 +67,35 @@ class CameraCaptureModes {
       theme: CameraCaptureTheme.general,
     );
   }
+  
+  static CameraCaptureConfig expensePhotoMode({
+    required ImageProcessingCallback onImageCaptured,
+    VoidCallback? onCancel,
+    ErrorHandlerCallback? onError,
+  }) {
+    return CameraCaptureConfig(
+      title: 'Add Receipt Photo',
+      subtitle: 'Capture or select a photo for your expense',
+      mode: CameraCaptureMode.general,
+      onImageCaptured: onImageCaptured,
+      onCancel: onCancel,
+      onError: onError,
+      enableCrop: true,
+      enableGallery: true,
+      enableFlash: true,
+      enableCameraSwitch: true,
+      showInstructions: true,
+      theme: CameraCaptureTheme(
+        captureButtonText: 'Capture Photo',
+        usePhotoButtonText: 'Use Photo',
+        processingText: 'Processing...',
+        instructionText: 'Position the receipt within the frame or select from gallery',
+        primaryColor: Color(0xFF4CAF50),
+        backgroundColor: Colors.black,
+        textColor: Colors.white,
+        overlayColor: Color(0x80000000),
+        buttonColor: Colors.white,
+      ),
+    );
+  }
 }
