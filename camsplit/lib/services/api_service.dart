@@ -263,16 +263,35 @@ class ApiService {
   
   Future<Map<String, dynamic>> uploadGroupImage(String groupId, File imageFile) async {
     try {
+      // Determine MIME type from file extension
+      String mimeType = 'image/jpeg';
+      final fileName = imageFile.path.toLowerCase();
+      if (fileName.endsWith('.png')) {
+        mimeType = 'image/png';
+      } else if (fileName.endsWith('.gif')) {
+        mimeType = 'image/gif';
+      } else if (fileName.endsWith('.webp')) {
+        mimeType = 'image/webp';
+      }
+
       final formData = FormData.fromMap({
         'image': await MultipartFile.fromFile(
           imageFile.path,
           filename: 'group_${DateTime.now().millisecondsSinceEpoch}.jpg',
+          contentType: MediaType.parse(mimeType),
         ),
       });
       
       final response = await _dio.put(
         '${ApiConfig.groupsEndpoint}/$groupId/image',
         data: formData,
+        options: Options(
+          headers: {
+            // Let Dio set the correct multipart boundary; just declare type
+            'Content-Type': 'multipart/form-data',
+            'Accept': 'application/json',
+          },
+        ),
       );
       return response.data;
     } on DioException catch (e) {

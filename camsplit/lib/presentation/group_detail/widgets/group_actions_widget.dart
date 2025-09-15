@@ -642,6 +642,7 @@ class GroupActionsWidget extends StatelessWidget {
             ],
           ),
           duration: Duration(seconds: 30), // Long duration for loading
+          behavior: SnackBarBehavior.fixed,
         ),
       );
     } catch (e) {
@@ -668,6 +669,7 @@ class GroupActionsWidget extends StatelessWidget {
           ),
           backgroundColor: AppTheme.successLight,
           duration: Duration(seconds: 3),
+          behavior: SnackBarBehavior.fixed,
         ),
       );
     } catch (e) {
@@ -694,6 +696,7 @@ class GroupActionsWidget extends StatelessWidget {
           ),
           backgroundColor: AppTheme.errorLight,
           duration: Duration(seconds: 4),
+          behavior: SnackBarBehavior.fixed,
         ),
       );
     } catch (e) {
