@@ -233,10 +233,12 @@ class _ReceiptPreviewWidgetState extends State<ReceiptPreviewWidget> {
               Expanded(
                 flex: 2,
                 child: ElevatedButton(
-                  onPressed: (widget.isProcessing || _isCropping) ? null : _handleUsePhoto,
+                  onPressed: _isCropping ? null : _handleUsePhoto,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryLight,
                     foregroundColor: Colors.white,
+                    disabledBackgroundColor: AppTheme.primaryLight,
+                    disabledForegroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(vertical: 2.h),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -246,24 +248,12 @@ class _ReceiptPreviewWidgetState extends State<ReceiptPreviewWidget> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      if (widget.isProcessing) ...[
-                        SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: const CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        ),
-                        SizedBox(width: 2.w),
-                      ] else ...[
-                        CustomIconWidget(
-                          iconName: 'check',
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                        SizedBox(width: 2.w),
-                      ],
+                      CustomIconWidget(
+                        iconName: 'check',
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      SizedBox(width: 2.w),
                       Text(
                         'Use Photo',
                         style: AppTheme.lightTheme.textTheme.titleSmall?.copyWith(

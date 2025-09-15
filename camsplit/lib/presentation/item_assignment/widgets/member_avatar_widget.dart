@@ -20,6 +20,9 @@ class MemberAvatarWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Debug logging for avatar data
+    print('DEBUG: MemberAvatarWidget - Member ${member['name']} has avatar: ${member['avatar']}');
+    
     return GestureDetector(
         onTap: () {
           HapticFeedback.selectionClick();
@@ -51,7 +54,7 @@ class MemberAvatarWidget extends StatelessWidget {
                       AppTheme.lightTheme.colorScheme.primaryContainer,
                   child: ClipOval(
                       child: CustomImageWidget(
-                          imageUrl: member['avatarUrl'],
+                          imageUrl: member['avatar'],
                           fit: BoxFit.cover,
                           width: (size * 2).w,
                           height: (size * 2).w,

@@ -1,9 +1,7 @@
-import 'dart:convert';
 import 'package:currency_picker/currency_picker.dart';
 import '../models/group.dart';
 import '../models/group_member.dart';
 import '../models/user_model.dart';
-import '../config/api_config.dart';
 import '../models/mock_group_data.dart';
 import 'api_service.dart';
 import 'currency_service.dart';

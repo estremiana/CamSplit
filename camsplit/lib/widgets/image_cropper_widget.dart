@@ -313,7 +313,7 @@ class CropOverlayPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final Paint overlayPaint = Paint()
-      ..color = Colors.black.withOpacity(0.5)
+      ..color = Colors.black.withValues(alpha: 0.5)
       ..style = PaintingStyle.fill;
 
     final Paint borderPaint = Paint()
@@ -336,7 +336,7 @@ class CropOverlayPainter extends CustomPainter {
 
   void _drawGridLines(Canvas canvas, Rect rect) {
     final Paint gridPaint = Paint()
-      ..color = Colors.white.withOpacity(0.3)
+      ..color = Colors.white.withValues(alpha: 0.3)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
 

@@ -1,4 +1,4 @@
-import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'camera_capture_config.dart';
 import 'camera_capture_theme.dart';

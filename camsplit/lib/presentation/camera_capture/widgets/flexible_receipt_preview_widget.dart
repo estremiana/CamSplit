@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
 
-import '../../../../core/app_export.dart';
+import '../../../core/app_export.dart';
 import '../config/camera_capture_config.dart';
 import '../../camera_receipt_capture/widgets/receipt_image_cropper_widget.dart';
 
@@ -242,10 +242,12 @@ class _FlexibleReceiptPreviewWidgetState extends State<FlexibleReceiptPreviewWid
               Expanded(
                 flex: 2,
                 child: ElevatedButton(
-                  onPressed: (widget.isProcessing || _isCropping) ? null : _handleUsePhoto,
+                  onPressed: _isCropping ? null : _handleUsePhoto,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: widget.config.theme.primaryColor,
                     foregroundColor: Colors.white,
+                    disabledBackgroundColor: widget.config.theme.primaryColor,
+                    disabledForegroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(vertical: 2.h),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -255,24 +257,12 @@ class _FlexibleReceiptPreviewWidgetState extends State<FlexibleReceiptPreviewWid
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      if (widget.isProcessing) ...[
-                        SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: const CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        ),
-                        SizedBox(width: 2.w),
-                      ] else ...[
-                        CustomIconWidget(
-                          iconName: 'check',
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                        SizedBox(width: 2.w),
-                      ],
+                      CustomIconWidget(
+                        iconName: 'check',
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      SizedBox(width: 2.w),
                       Text(
                         widget.config.theme.usePhotoButtonText,
                         style: widget.config.theme.buttonStyle?.copyWith(

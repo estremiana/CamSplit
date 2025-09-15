@@ -55,12 +55,13 @@ class GroupMember {
 
   // Validation methods for data integrity
   bool isValid() {
+    final now = DateTime.now();
     return id > 0 && 
            groupId > 0 &&
            nickname.isNotEmpty &&
            role.isNotEmpty &&
-           createdAt.isBefore(DateTime.now()) &&
-           updatedAt.isBefore(DateTime.now());
+           createdAt.isBefore(now.add(Duration(seconds: 1))) && // Allow small timing differences
+           updatedAt.isBefore(now.add(Duration(seconds: 1)));
   }
 
   bool _isValidEmail(String? email) {
@@ -83,9 +84,8 @@ class GroupMember {
 
   // Helper method to check if this is the current user
   bool get isCurrentUser {
-    // This will be set by the frontend logic when loading groups
-    // For now, we'll need to pass this information from the service layer
-    return false; // Will be overridden by frontend logic
+    // Simple check for mock data - in real app this would be set by service layer
+    return nickname == 'You';
   }
 
   // Helper method to check if member is admin

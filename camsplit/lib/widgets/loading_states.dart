@@ -118,7 +118,7 @@ class LoadingStates {
             child: Container(
               height: 16,
               decoration: BoxDecoration(
-                color: AppTheme.lightTheme.colorScheme.onSurfaceVariant.withOpacity(0.1),
+                color: AppTheme.lightTheme.colorScheme.onSurfaceVariant.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
@@ -176,7 +176,7 @@ class LoadingStates {
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 10,
                 offset: Offset(0, 4),
               ),
@@ -215,7 +215,7 @@ class LoadingStates {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: AppTheme.lightTheme.colorScheme.onSurfaceVariant.withOpacity(0.1),
+              color: AppTheme.lightTheme.colorScheme.onSurfaceVariant.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
           ),
@@ -229,7 +229,7 @@ class LoadingStates {
                   height: 16,
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: AppTheme.lightTheme.colorScheme.onSurfaceVariant.withOpacity(0.1),
+                    color: AppTheme.lightTheme.colorScheme.onSurfaceVariant.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -239,7 +239,7 @@ class LoadingStates {
                   height: 12,
                   width: 150,
                   decoration: BoxDecoration(
-                    color: AppTheme.lightTheme.colorScheme.onSurfaceVariant.withOpacity(0.1),
+                    color: AppTheme.lightTheme.colorScheme.onSurfaceVariant.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -252,7 +252,7 @@ class LoadingStates {
             height: 20,
             width: 60,
             decoration: BoxDecoration(
-              color: AppTheme.lightTheme.colorScheme.onSurfaceVariant.withOpacity(0.1),
+              color: AppTheme.lightTheme.colorScheme.onSurfaceVariant.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(4),
             ),
           ),
@@ -274,7 +274,7 @@ class LoadingStates {
               height: 20,
               width: 200,
               decoration: BoxDecoration(
-                color: AppTheme.lightTheme.colorScheme.onSurfaceVariant.withOpacity(0.1),
+                color: AppTheme.lightTheme.colorScheme.onSurfaceVariant.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
@@ -284,7 +284,7 @@ class LoadingStates {
               height: 16,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: AppTheme.lightTheme.colorScheme.onSurfaceVariant.withOpacity(0.1),
+                color: AppTheme.lightTheme.colorScheme.onSurfaceVariant.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
@@ -293,7 +293,7 @@ class LoadingStates {
               height: 16,
               width: 250,
               decoration: BoxDecoration(
-                color: AppTheme.lightTheme.colorScheme.onSurfaceVariant.withOpacity(0.1),
+                color: AppTheme.lightTheme.colorScheme.onSurfaceVariant.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
@@ -317,7 +317,7 @@ class LoadingStates {
             width: 60.w,
             child: LinearProgressIndicator(
               value: progress,
-              backgroundColor: AppTheme.lightTheme.colorScheme.onSurfaceVariant.withOpacity(0.2),
+              backgroundColor: AppTheme.lightTheme.colorScheme.onSurfaceVariant.withValues(alpha: 0.2),
               valueColor: AlwaysStoppedAnimation<Color>(
                 color ?? AppTheme.lightTheme.colorScheme.primary,
               ),

@@ -5,10 +5,10 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/app_export.dart';
 import '../../../models/group_detail_model.dart';
 import '../../../services/group_service.dart';
-import '../../../services/api_service.dart';
+
 import '../../../utils/loading_overlay.dart';
 import '../../../utils/snackbar_utils.dart';
-import '../../../widgets/custom_icon_widget.dart';
+
 
 /// Widget that provides group management actions through a bottom sheet interface
 /// Includes share, exit, and delete group functionality with proper permission checks
@@ -188,10 +188,10 @@ class GroupActionsWidget extends StatelessWidget {
             Container(
               padding: EdgeInsets.all(3.w),
               decoration: BoxDecoration(
-                color: AppTheme.lightTheme.colorScheme.surfaceVariant,
+                color: AppTheme.lightTheme.colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: AppTheme.lightTheme.colorScheme.outline.withOpacity(0.3),
+                  color: AppTheme.lightTheme.colorScheme.outline.withValues(alpha: 0.3),
                 ),
               ),
               child: SelectableText(

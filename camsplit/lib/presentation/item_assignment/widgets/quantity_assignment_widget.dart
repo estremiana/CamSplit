@@ -188,7 +188,7 @@ class _QuantityAssignmentWidgetState extends State<QuantityAssignmentWidget> {
                 width: double.infinity,
                 padding: EdgeInsets.all(3.w),
                 child: Row(
-                children: [
+                  children: [
                   // Item info
                   Expanded(
                     child: Column(
@@ -273,6 +273,7 @@ class _QuantityAssignmentWidgetState extends State<QuantityAssignmentWidget> {
               ),
             ),
           ),
+        ),
 
           // Expanded content
           AnimatedContainer(

@@ -1,11 +1,19 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:camsplit/services/group_service.dart';
 import 'package:camsplit/models/group.dart';
 import 'package:camsplit/models/group_member.dart';
 
 void main() {
   group('GroupService', () {
-    setUp(() {
+    setUpAll(() {
+      // Initialize Flutter binding for tests
+      TestWidgetsFlutterBinding.ensureInitialized();
+    });
+    
+    setUp(() async {
+      // Mock SharedPreferences for tests
+      SharedPreferences.setMockInitialValues({});
       // Clear cache before each test
       GroupService.clearCache();
     });

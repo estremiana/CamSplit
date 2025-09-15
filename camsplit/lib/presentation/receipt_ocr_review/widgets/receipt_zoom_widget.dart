@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
-import 'package:currency_picker/currency_picker.dart';
 
 import '../../../core/app_export.dart';
-import '../../../widgets/currency_display_widget.dart';
 
 class ReceiptZoomWidget extends StatefulWidget {
   final String imageUrl;

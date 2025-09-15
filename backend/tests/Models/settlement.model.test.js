@@ -13,22 +13,21 @@ describe('Settlement Model', () => {
       first_name: 'John',
       last_name: 'Doe',
       email: 'john.settlement@test.com',
-      password: 'password123'
+      password: 'Test@1234'
     });
 
     testUser2 = await User.create({
       first_name: 'Jane',
       last_name: 'Smith',
       email: 'jane.settlement@test.com',
-      password: 'password123'
+      password: 'Test@1234'
     });
 
     // Create test group
     testGroup = await Group.create({
       name: 'Settlement Test Group',
-      description: 'Test group for settlement operations',
-      created_by: testUser1.id
-    });
+      description: 'Test group for settlement operations'
+    }, testUser1.id);
 
     // Add members to group
     testMember1 = await GroupMember.create({

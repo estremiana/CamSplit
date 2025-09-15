@@ -13,7 +13,7 @@ class QuickStatsWidget extends StatelessWidget {
   final bool isPrivacyMode;
   final Currency currency;
 
-  const QuickStatsWidget({
+  QuickStatsWidget({
     super.key,
     required this.monthlySpending,
     required this.pendingSettlements,

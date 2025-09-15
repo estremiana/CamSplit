@@ -3,7 +3,7 @@ import 'package:sizer/sizer.dart';
 
 import '../../../core/app_export.dart';
 import '../../../models/receipt_mode_config.dart';
-import 'group_dropdown_widget.dart';
+
 import 'package:currency_picker/currency_picker.dart';
 import '../../../widgets/currency_selection_widget.dart';
 
@@ -99,7 +99,7 @@ class ExpenseDetailsWidget extends StatelessWidget {
 
   Color _getPayerDropdownIconColor() {
     if (isReadOnly || selectedGroup.isEmpty) {
-      return AppTheme.lightTheme.colorScheme.secondary.withOpacity(0.6);
+      return AppTheme.lightTheme.colorScheme.secondary.withValues(alpha: 0.6);
     }
     return AppTheme.lightTheme.colorScheme.secondary;
   }
@@ -108,21 +108,21 @@ class ExpenseDetailsWidget extends StatelessWidget {
     if (isReadOnly) {
       return Icon(
         Icons.lock_outline,
-        color: AppTheme.lightTheme.colorScheme.secondary.withOpacity(0.6),
+        color: AppTheme.lightTheme.colorScheme.secondary.withValues(alpha: 0.6),
         size: 16,
       );
     }
     if (selectedGroup.isEmpty) {
       return Icon(
         Icons.group_off,
-        color: AppTheme.lightTheme.colorScheme.secondary.withOpacity(0.6),
+        color: AppTheme.lightTheme.colorScheme.secondary.withValues(alpha: 0.6),
         size: 16,
       );
     }
     if (groupMembers.isEmpty && !isLoadingPayers) {
       return Icon(
         Icons.person_off,
-        color: AppTheme.lightTheme.colorScheme.secondary.withOpacity(0.6),
+        color: AppTheme.lightTheme.colorScheme.secondary.withValues(alpha: 0.6),
         size: 16,
       );
     }
@@ -138,7 +138,7 @@ class ExpenseDetailsWidget extends StatelessWidget {
 
   Color _getPayerDropdownFillColor() {
     if (_shouldDisablePayerDropdown()) {
-      return AppTheme.lightTheme.colorScheme.surface.withOpacity(0.5);
+      return AppTheme.lightTheme.colorScheme.surface.withValues(alpha: 0.5);
     }
     // In receipt mode, maintain normal styling since payer selection is allowed
     return Colors.transparent;

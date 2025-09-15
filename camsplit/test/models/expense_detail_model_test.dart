@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:camsplit/models/expense_detail_model.dart';
 import 'package:camsplit/models/participant_amount.dart';
+import 'package:currency_picker/currency_picker.dart';
+import 'package:camsplit/services/currency_service.dart';
 
 void main() {
   group('ExpenseDetailModel Tests', () {
@@ -48,7 +50,7 @@ void main() {
       expect(expense.id, 1);
       expect(expense.title, 'Dinner at Restaurant');
       expect(expense.amount, 50.00);
-      expect(expense.currency, 'EUR');
+      expect(expense.currency.code, 'EUR');
       expect(expense.date, testDate);
       expect(expense.category, 'Food & Dining');
       expect(expense.notes, 'Great meal');
@@ -76,7 +78,7 @@ void main() {
 
       final expense = ExpenseDetailModel.fromJson(json);
 
-      expect(expense.currency, 'EUR'); // Default value
+      expect(expense.currency.code, 'EUR'); // Default value
       expect(expense.category, 'Other'); // Default value
       expect(expense.notes, ''); // Default value
       expect(expense.splitType, 'equal'); // Default value
@@ -89,7 +91,7 @@ void main() {
         id: 1,
         title: 'Test Expense',
         amount: 50.00,
-        currency: 'EUR',
+        currency: CamSplitCurrencyService.getCurrencyByCode('EUR'),
         date: testDate,
         category: 'Food & Dining',
         notes: 'Test notes',
@@ -126,7 +128,7 @@ void main() {
         id: 1,
         title: 'Original Title',
         amount: 50.00,
-        currency: 'EUR',
+        currency: CamSplitCurrencyService.getCurrencyByCode('EUR'),
         date: testDate,
         category: 'Food & Dining',
         notes: 'Original notes',
@@ -151,7 +153,7 @@ void main() {
       expect(updatedExpense.notes, 'Updated notes');
       // Unchanged fields should remain the same
       expect(updatedExpense.id, 1);
-      expect(updatedExpense.currency, 'EUR');
+      expect(updatedExpense.currency.code, 'EUR');
       expect(updatedExpense.groupId, '123');
     });
 
@@ -160,7 +162,7 @@ void main() {
         id: 1,
         title: 'Valid Expense',
         amount: 50.00,
-        currency: 'EUR',
+        currency: CamSplitCurrencyService.getCurrencyByCode('EUR'),
         date: DateTime.now().subtract(const Duration(hours: 1)),
         category: 'Food & Dining',
         notes: 'Valid notes',
@@ -182,7 +184,7 @@ void main() {
         id: 0, // Invalid ID
         title: '', // Empty title
         amount: -10.00, // Negative amount
-        currency: '', // Empty currency
+        currency: CamSplitCurrencyService.getCurrencyByCode('EUR'), // Valid currency but other fields invalid
         date: DateTime.now().add(const Duration(days: 2)), // Too far in future
         category: '', // Empty category
         notes: 'Notes',
@@ -204,7 +206,7 @@ void main() {
         id: 1,
         title: 'Custom Split Expense',
         amount: 50.00,
-        currency: 'EUR',
+        currency: CamSplitCurrencyService.getCurrencyByCode('EUR'),
         date: testDate,
         category: 'Food & Dining',
         notes: 'Custom split',
@@ -239,7 +241,7 @@ void main() {
         id: 1,
         title: 'Test Expense',
         amount: 50.00,
-        currency: 'EUR',
+        currency: CamSplitCurrencyService.getCurrencyByCode('EUR'),
         date: testDate,
         category: 'Food & Dining',
         notes: 'Test',
@@ -264,7 +266,7 @@ void main() {
         id: 1,
         title: 'Test Expense',
         amount: 50.00,
-        currency: 'EUR',
+        currency: CamSplitCurrencyService.getCurrencyByCode('EUR'),
         date: testDate,
         category: 'Food & Dining',
         notes: 'Test',
@@ -292,7 +294,7 @@ void main() {
         id: 1,
         title: 'Test Expense',
         amount: 50.00,
-        currency: 'EUR',
+        currency: CamSplitCurrencyService.getCurrencyByCode('EUR'),
         date: DateTime(2024, 3, 15),
         category: 'Food & Dining',
         notes: 'Test',
@@ -314,7 +316,7 @@ void main() {
         id: 1,
         title: 'Test Expense',
         amount: 50.50,
-        currency: 'EUR',
+        currency: CamSplitCurrencyService.getCurrencyByCode('EUR'),
         date: testDate,
         category: 'Food & Dining',
         notes: 'Test',
@@ -336,7 +338,7 @@ void main() {
         id: 1,
         title: 'Recent Expense',
         amount: 50.00,
-        currency: 'EUR',
+        currency: CamSplitCurrencyService.getCurrencyByCode('EUR'),
         date: testDate,
         category: 'Food & Dining',
         notes: 'Recent',
@@ -363,7 +365,7 @@ void main() {
         id: 1,
         title: 'Test Expense',
         amount: 50.00,
-        currency: 'EUR',
+        currency: CamSplitCurrencyService.getCurrencyByCode('EUR'),
         date: testDate,
         category: 'Food & Dining',
         notes: 'Test',
@@ -392,7 +394,7 @@ void main() {
         id: 1,
         title: 'Large Expense',
         amount: 999999.99,
-        currency: 'EUR',
+        currency: CamSplitCurrencyService.getCurrencyByCode('EUR'),
         date: testDate,
         category: 'Food & Dining',
         notes: 'Large amount',
@@ -417,7 +419,7 @@ void main() {
         id: 1,
         title: 'Test Expense',
         amount: 50.00,
-        currency: 'EUR',
+        currency: CamSplitCurrencyService.getCurrencyByCode('EUR'),
         date: testDate,
         category: 'Food & Dining',
         notes: 'A' * 501, // Model validation doesn't check note length
@@ -451,7 +453,7 @@ void main() {
         id: 1,
         title: 'Café & Restaurant 🍽️',
         amount: 50.00,
-        currency: 'EUR',
+        currency: CamSplitCurrencyService.getCurrencyByCode('EUR'),
         date: testDate,
         category: 'Food & Dining',
         notes: 'Notes with émojis 😊 and spëcial chars',
@@ -479,7 +481,7 @@ void main() {
         id: 1,
         title: 'Precision Test',
         amount: 10.01,
-        currency: 'EUR',
+        currency: CamSplitCurrencyService.getCurrencyByCode('EUR'),
         date: testDate,
         category: 'Food & Dining',
         notes: 'Precision test',
@@ -519,7 +521,7 @@ void main() {
         id: 1,
         title: 'Test Expense',
         amount: 50.00,
-        currency: 'EUR',
+        currency: CamSplitCurrencyService.getCurrencyByCode('EUR'),
         date: testDate,
         category: 'Food & Dining',
         notes: 'Test notes',
@@ -538,7 +540,7 @@ void main() {
       expect(updateRequest.expenseId, 1);
       expect(updateRequest.title, 'Test Expense');
       expect(updateRequest.amount, 50.00);
-      expect(updateRequest.currency, 'EUR');
+      expect(updateRequest.currency.code, 'EUR');
       expect(updateRequest.date, testDate);
       expect(updateRequest.category, 'Food & Dining');
       expect(updateRequest.notes, 'Test notes');
@@ -549,21 +551,30 @@ void main() {
     test('should convert ExpenseUpdateRequest to JSON correctly', () {
       final updateRequest = ExpenseUpdateRequest(
         expenseId: 1,
+        groupId: 123,
         title: 'Updated Expense',
         amount: 75.00,
-        currency: 'USD',
+        currency: CamSplitCurrencyService.getCurrencyByCode('USD'),
         date: testDate,
         category: 'Entertainment',
         notes: 'Updated notes',
         splitType: 'equal',
         participantAmounts: testParticipantAmounts,
+        payers: [
+          {
+            'group_member_id': 456,
+            'amount_paid': 75.00,
+            'payment_method': 'unknown',
+            'payment_date': DateTime.now().toIso8601String(),
+          }
+        ],
       );
 
       final json = updateRequest.toJson();
 
       expect(json['expense_id'], 1);
       expect(json['title'], 'Updated Expense');
-      expect(json['amount'], 75.00);
+      expect(json['total_amount'], 75.00);
       expect(json['currency'], 'USD');
       expect(json['category'], 'Entertainment');
       expect(json['notes'], 'Updated notes');
@@ -574,28 +585,39 @@ void main() {
     test('should validate ExpenseUpdateRequest correctly', () {
       final validRequest = ExpenseUpdateRequest(
         expenseId: 1,
+        groupId: 123,
         title: 'Valid Update',
         amount: 50.00,
-        currency: 'EUR',
+        currency: CamSplitCurrencyService.getCurrencyByCode('EUR'),
         date: testDate,
         category: 'Food & Dining',
         notes: 'Valid notes',
         splitType: 'custom',
         participantAmounts: testParticipantAmounts,
+        payers: [
+          {
+            'group_member_id': 456,
+            'amount_paid': 50.00,
+            'payment_method': 'unknown',
+            'payment_date': DateTime.now().toIso8601String(),
+          }
+        ],
       );
 
       expect(validRequest.isValid(), true);
 
       final invalidRequest = ExpenseUpdateRequest(
         expenseId: 0, // Invalid ID
+        groupId: 0, // Invalid group ID
         title: '', // Empty title
         amount: -10.00, // Negative amount
-        currency: '', // Empty currency
+        currency: CamSplitCurrencyService.getCurrencyByCode('EUR'), // Valid currency but other fields invalid
         date: testDate,
         category: '', // Empty category
         notes: 'Notes',
         splitType: 'invalid', // Invalid split type
         participantAmounts: [], // Empty participants
+        payers: [], // Empty payers
       );
 
       expect(invalidRequest.isValid(), false);
@@ -604,9 +626,10 @@ void main() {
     test('should validate custom split participant amounts in update request', () {
       final validCustomSplit = ExpenseUpdateRequest(
         expenseId: 1,
+        groupId: 123,
         title: 'Custom Split Update',
         amount: 50.00,
-        currency: 'EUR',
+        currency: CamSplitCurrencyService.getCurrencyByCode('EUR'),
         date: testDate,
         category: 'Food & Dining',
         notes: 'Custom split',
@@ -614,6 +637,14 @@ void main() {
         participantAmounts: [
           ParticipantAmount(name: 'John Doe', amount: 30.00),
           ParticipantAmount(name: 'Jane Smith', amount: 20.00), // Total: 50.00
+        ],
+        payers: [
+          {
+            'group_member_id': 456,
+            'amount_paid': 50.00,
+            'payment_method': 'unknown',
+            'payment_date': DateTime.now().toIso8601String(),
+          }
         ],
       );
 
@@ -634,17 +665,20 @@ void main() {
 extension on ExpenseUpdateRequest {
   ExpenseUpdateRequest copyWith({
     int? expenseId,
+    int? groupId,
     String? title,
     double? amount,
-    String? currency,
+    Currency? currency,
     DateTime? date,
     String? category,
     String? notes,
     String? splitType,
     List<ParticipantAmount>? participantAmounts,
+    List<Map<String, dynamic>>? payers,
   }) {
     return ExpenseUpdateRequest(
       expenseId: expenseId ?? this.expenseId,
+      groupId: groupId ?? this.groupId,
       title: title ?? this.title,
       amount: amount ?? this.amount,
       currency: currency ?? this.currency,
@@ -653,6 +687,7 @@ extension on ExpenseUpdateRequest {
       notes: notes ?? this.notes,
       splitType: splitType ?? this.splitType,
       participantAmounts: participantAmounts ?? this.participantAmounts,
+      payers: payers ?? this.payers,
     );
   }
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 
-import '../../../../core/app_export.dart';
+import '../../../core/app_export.dart';
 import '../config/camera_capture_config.dart';
 
 class FlexibleCameraControlsWidget extends StatelessWidget {

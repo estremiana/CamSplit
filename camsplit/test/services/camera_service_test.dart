@@ -7,6 +7,11 @@ void main() {
   group('CameraService', () {
     late CameraService cameraService;
 
+    setUpAll(() {
+      // Initialize Flutter binding for tests
+      TestWidgetsFlutterBinding.ensureInitialized();
+    });
+
     setUp(() {
       cameraService = CameraService.instance;
     });

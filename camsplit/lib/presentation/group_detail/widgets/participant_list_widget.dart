@@ -5,8 +5,8 @@ import '../../../core/app_export.dart';
 import '../../../models/group_detail_model.dart';
 import '../../../models/group_member.dart';
 import '../../../services/group_detail_service.dart';
-import '../../../widgets/custom_icon_widget.dart';
-import '../../../widgets/custom_image_widget.dart';
+
+
 
 class ParticipantListWidget extends StatefulWidget {
   final GroupDetailModel groupDetail;

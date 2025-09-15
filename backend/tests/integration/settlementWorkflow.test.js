@@ -21,7 +21,7 @@ describe('Settlement Workflow Integration Tests', () => {
         first_name: `User${i}`,
         last_name: `Integration`,
         email: `user${i}.integration@test.com`,
-        password: 'password123'
+        password: 'Test@1234'
       });
       testUsers.push(user);
       
@@ -37,9 +37,8 @@ describe('Settlement Workflow Integration Tests', () => {
     // Create test group
     testGroup = await Group.create({
       name: 'Settlement Integration Test Group',
-      description: 'Test group for settlement integration tests',
-      created_by: testUsers[0].id
-    });
+      description: 'Test group for settlement integration tests'
+    }, testUsers[0].id);
 
     // Add members to group
     testMembers = [];
@@ -361,9 +360,8 @@ describe('Settlement Workflow Integration Tests', () => {
       // Create a larger group for this test
       const largeGroup = await Group.create({
         name: 'Large Settlement Test Group',
-        description: 'Test group for large settlement optimization',
-        created_by: testUsers[0].id
-      });
+        description: 'Test group for large settlement optimization'
+      }, testUsers[0].id);
 
       // Add more members (reuse existing users multiple times)
       const largeGroupMembers = [];
@@ -532,7 +530,7 @@ describe('Settlement Workflow Integration Tests', () => {
         first_name: 'Unauthorized',
         last_name: 'User',
         email: 'unauthorized@test.com',
-        password: 'password123'
+        password: 'Test@1234'
       });
 
       const unauthorizedToken = jwt.sign(

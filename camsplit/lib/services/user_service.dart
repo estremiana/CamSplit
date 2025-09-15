@@ -66,14 +66,14 @@ class UserService {
     return user;
   }
 
-  /// Get user by ID
-  static Future<UserModel?> getUserById(String userId) async {
+  /// Get user by ID - returns basic user info for avatar purposes
+  static Future<Map<String, dynamic>?> getUserById(String userId) async {
     try {
       final apiService = ApiService.instance;
       final response = await apiService.getUserById(userId);
       
       if (response['success'] == true) {
-        return UserModel.fromJson(response['data']);
+        return response['data'] as Map<String, dynamic>;
       } else {
         return null;
       }

@@ -124,12 +124,12 @@ class AccessibilityService {
   /// [totalPages] - The total number of pages
   /// [onNavigate] - Callback to execute navigation
   static bool handleKeyboardNavigation(
-    RawKeyEvent event,
+    KeyEvent event,
     int currentIndex,
     int totalPages,
     Function(int) onNavigate,
   ) {
-    if (event is RawKeyDownEvent) {
+    if (event is KeyDownEvent) {
       switch (event.logicalKey) {
         case LogicalKeyboardKey.arrowLeft:
           if (currentIndex > 0) {

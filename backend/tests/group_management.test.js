@@ -13,7 +13,7 @@ describe('Group Management API', () => {
       first_name: 'Test',
       last_name: 'User',
       email: 'test@example.com',
-      password: 'password123'
+      password: 'Test@1234'
     });
 
     // Create test group
@@ -28,7 +28,7 @@ describe('Group Management API', () => {
       .post('/api/auth/login')
       .send({
         email: 'test@example.com',
-        password: 'password123'
+        password: 'Test@1234'
       });
 
     authToken = loginResponse.body.data.token;
@@ -63,14 +63,14 @@ describe('Group Management API', () => {
         first_name: 'Other',
         last_name: 'User',
         email: 'other@example.com',
-        password: 'password123'
+        password: 'Test@1234'
       });
 
       const otherLoginResponse = await request(app)
         .post('/api/auth/login')
         .send({
           email: 'other@example.com',
-          password: 'password123'
+          password: 'Test@1234'
         });
 
       const otherAuthToken = otherLoginResponse.body.data.token;
@@ -143,7 +143,7 @@ describe('Group Management API', () => {
         first_name: 'Other',
         last_name: 'User',
         email: 'other2@example.com',
-        password: 'password123'
+        password: 'Test@1234'
       });
 
       await multiUserGroup.addMember({
@@ -181,7 +181,7 @@ describe('Group Management API', () => {
         first_name: 'Other',
         last_name: 'User',
         email: 'other3@example.com',
-        password: 'password123'
+        password: 'Test@1234'
       });
 
       await multiUserGroup.addMember({

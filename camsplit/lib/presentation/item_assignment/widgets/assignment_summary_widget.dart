@@ -301,6 +301,9 @@ class _AssignmentSummaryWidgetState extends State<AssignmentSummaryWidget> {
             final memberTotal = memberTotals[memberId] ?? 0.0;
             final percentage =
                 totalAmount > 0 ? (memberTotal / totalAmount) * 100 : 0.0;
+            
+            // Debug logging for avatar data
+            print('DEBUG: AssignmentSummary - Member ${member['name']} (ID: $memberId) has avatar: ${member['avatar']}');
 
             return Container(
                 margin: EdgeInsets.only(bottom: 1.h),

@@ -8,12 +8,15 @@ void main() {
     test('should create complete GroupDetailModel with all related models', () {
       // Create a group member
       final member = GroupMember(
-        id: '1',
-        name: 'Test User',
+        id: 1,
+        groupId: 1,
+        nickname: 'Test User',
         email: 'test@example.com',
-        avatar: 'avatar.jpg',
-        isCurrentUser: true,
-        joinedAt: DateTime.now().subtract(const Duration(days: 1)),
+        role: 'member',
+        isRegisteredUser: true,
+        avatarUrl: 'avatar.jpg',
+        createdAt: DateTime.now().subtract(const Duration(days: 1)),
+        updatedAt: DateTime.now().subtract(const Duration(days: 1)),
       );
 
       // Create a group expense
@@ -73,12 +76,15 @@ void main() {
 
     test('should handle empty collections correctly', () {
       final member = GroupMember(
-        id: '1',
-        name: 'Test User',
+        id: 1,
+        groupId: 1,
+        nickname: 'Test User',
         email: 'test@example.com',
-        avatar: 'avatar.jpg',
-        isCurrentUser: true,
-        joinedAt: DateTime.now().subtract(const Duration(days: 1)),
+        role: 'member',
+        isRegisteredUser: true,
+        avatarUrl: 'avatar.jpg',
+        createdAt: DateTime.now().subtract(const Duration(days: 1)),
+        updatedAt: DateTime.now().subtract(const Duration(days: 1)),
       );
 
       final emptyGroupDetail = GroupDetailModel(

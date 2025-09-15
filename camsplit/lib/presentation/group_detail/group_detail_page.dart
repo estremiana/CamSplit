@@ -4,7 +4,7 @@ import 'package:sizer/sizer.dart';
 
 import '../../core/app_export.dart';
 import '../../models/group_detail_model.dart';
-import '../../models/group_member.dart';
+
 import '../../services/group_detail_service.dart';
 import '../../services/currency_migration_service.dart';
 import '../../utils/snackbar_utils.dart';
@@ -481,8 +481,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> with RealTimeUpdateMi
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: _onWillPop,
+    return PopScope(
       child: Scaffold(
         backgroundColor: AppTheme.lightTheme.scaffoldBackgroundColor,
         appBar: AppBar(

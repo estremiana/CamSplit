@@ -13,7 +13,7 @@ describe('UserController - Profile Image Upload', () => {
       first_name: 'Test',
       last_name: 'User',
       email: 'testuser@example.com',
-      password: 'password123'
+      password: 'Test@1234'
     };
 
     const user = await UserService.register(testUser);
@@ -27,7 +27,7 @@ describe('UserController - Profile Image Upload', () => {
   afterAll(async () => {
     // Clean up test user
     try {
-      await UserService.deleteAccount(testUserId, 'password123');
+      await UserService.deleteAccount(testUserId, 'Test@1234');
     } catch (error) {
       console.warn('Failed to clean up test user:', error.message);
     }

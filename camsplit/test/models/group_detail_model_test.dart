@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:camsplit/models/group_detail_model.dart';
 import 'package:camsplit/models/group_member.dart';
 import 'package:camsplit/models/debt_relationship_model.dart';
+import 'package:camsplit/services/currency_service.dart';
 
 void main() {
   group('GroupExpense Model Tests', () {
@@ -124,12 +125,15 @@ void main() {
 
     setUp(() {
       testMember = GroupMember(
-        id: '1',
-        name: 'Test User',
+        id: 1,
+        groupId: 1,
+        nickname: 'Test User',
         email: 'test@example.com',
-        avatar: 'avatar.jpg',
-        isCurrentUser: true,
-        joinedAt: DateTime.now().subtract(const Duration(days: 1)),
+        role: 'member',
+        isRegisteredUser: true,
+        avatarUrl: 'avatar.jpg',
+        createdAt: DateTime.now().subtract(const Duration(days: 1)),
+        updatedAt: DateTime.now().subtract(const Duration(days: 1)),
       );
 
       testExpense = GroupExpense(
@@ -456,7 +460,7 @@ void main() {
         description: 'Different description',
         members: [],
         expenses: [],
-        debts: [],
+        settlements: [],
         userBalance: 100.00,
         currency: 'USD',
         lastActivity: DateTime.now(),

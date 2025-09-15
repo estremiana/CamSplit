@@ -21,7 +21,7 @@ describe('Settlement Controller', () => {
         first_name: `User${i}`,
         last_name: `Test`,
         email: `user${i}.settlement.controller@test.com`,
-        password: 'password123'
+        password: 'Test@1234'
       });
       testUsers.push(user);
       
@@ -37,9 +37,8 @@ describe('Settlement Controller', () => {
     // Create test group
     testGroup = await Group.create({
       name: 'Settlement Controller Test Group',
-      description: 'Test group for settlement controller',
-      created_by: testUsers[0].id
-    });
+      description: 'Test group for settlement controller'
+    }, testUsers[0].id);
 
     // Add members to group
     testMembers = [];
@@ -123,7 +122,7 @@ describe('Settlement Controller', () => {
         first_name: 'Outside',
         last_name: 'User',
         email: 'outside@test.com',
-        password: 'password123'
+        password: 'Test@1234'
       });
 
       const outsideToken = jwt.sign(
@@ -289,7 +288,7 @@ describe('Settlement Controller', () => {
         first_name: 'Outside',
         last_name: 'User',
         email: 'outside.history@test.com',
-        password: 'password123'
+        password: 'Test@1234'
       });
 
       const outsideToken = jwt.sign(
@@ -479,7 +478,7 @@ describe('Settlement Controller', () => {
         first_name: 'Outside',
         last_name: 'User',
         email: 'outside.batch@test.com',
-        password: 'password123'
+        password: 'Test@1234'
       });
 
       const outsideToken = jwt.sign(
@@ -578,7 +577,7 @@ describe('Settlement Controller', () => {
         first_name: 'Outside',
         last_name: 'User',
         email: 'outside.stats@test.com',
-        password: 'password123'
+        password: 'Test@1234'
       });
 
       const outsideToken = jwt.sign(

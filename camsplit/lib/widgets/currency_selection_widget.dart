@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:currency_picker/currency_picker.dart';
-import 'package:sizer/sizer.dart';
+
 
 import '../core/app_export.dart';
 import 'custom_icon_widget.dart';
@@ -167,7 +167,7 @@ class _CurrencySelectionWidgetState extends State<CurrencySelectionWidget>
   /// Get the appropriate icon color based on state
   Color _getIconColor(BuildContext context) {
     if (widget.isReadOnly || !widget.isEnabled) {
-      return AppTheme.lightTheme.colorScheme.secondary.withOpacity(0.6);
+      return AppTheme.lightTheme.colorScheme.secondary.withValues(alpha: 0.6);
     }
     return AppTheme.lightTheme.colorScheme.secondary;
   }
@@ -175,7 +175,7 @@ class _CurrencySelectionWidgetState extends State<CurrencySelectionWidget>
   /// Get the appropriate text color based on state
   Color? _getTextColor(BuildContext context) {
     if (widget.isReadOnly || !widget.isEnabled) {
-      return AppTheme.lightTheme.colorScheme.onSurface.withOpacity(0.6);
+      return AppTheme.lightTheme.colorScheme.onSurface.withValues(alpha: 0.6);
     }
     return null;
   }
@@ -183,7 +183,7 @@ class _CurrencySelectionWidgetState extends State<CurrencySelectionWidget>
   /// Get the appropriate fill color based on state
   Color? _getFillColor(BuildContext context) {
     if (widget.isReadOnly || !widget.isEnabled) {
-      return AppTheme.lightTheme.colorScheme.surface.withOpacity(0.5);
+      return AppTheme.lightTheme.colorScheme.surface.withValues(alpha: 0.5);
     }
     return null;
   }
@@ -289,7 +289,7 @@ class _CurrencySelectionWidgetState extends State<CurrencySelectionWidget>
                             )
                           : Icon(
                               Icons.lock_outline,
-                              color: AppTheme.lightTheme.colorScheme.secondary.withOpacity(0.6),
+                              color: AppTheme.lightTheme.colorScheme.secondary.withValues(alpha: 0.6),
                               size: 16,
                             ),
                       fillColor: _getFillColor(context),
@@ -356,7 +356,7 @@ class _CurrencySelectionWidgetState extends State<CurrencySelectionWidget>
                           )
                         : Icon(
                             Icons.lock_outline,
-                            color: AppTheme.lightTheme.colorScheme.secondary.withOpacity(0.6),
+                            color: AppTheme.lightTheme.colorScheme.secondary.withValues(alpha: 0.6),
                             size: 16,
                           ),
                     fillColor: _getFillColor(context),

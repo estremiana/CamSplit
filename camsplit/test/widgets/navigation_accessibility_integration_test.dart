@@ -175,15 +175,10 @@ void main() {
         int navigatedTo = -1;
 
         // Test left arrow key
-        final leftEvent = RawKeyDownEvent(
-          data: RawKeyEventDataAndroid(
-            flags: 0,
-            codePoint: 0,
-            plainCodePoint: 0,
-            scanCode: 0,
-            metaState: 0,
-            deviceId: 0,
-          ),
+        final leftEvent = KeyDownEvent(
+          physicalKey: PhysicalKeyboardKey.arrowLeft,
+          logicalKey: LogicalKeyboardKey.arrowLeft,
+          timeStamp: Duration.zero,
         );
 
         final leftHandled = AccessibilityService.handleKeyboardNavigation(
@@ -200,15 +195,10 @@ void main() {
         expect(navigationCalled, isFalse);
 
         // Test digit key navigation
-        final digitEvent = RawKeyDownEvent(
-          data: RawKeyEventDataAndroid(
-            flags: 0,
-            codePoint: 0,
-            plainCodePoint: 0,
-            scanCode: 0,
-            metaState: 0,
-            deviceId: 0,
-          ),
+        final digitEvent = KeyDownEvent(
+          physicalKey: PhysicalKeyboardKey.digit1,
+          logicalKey: LogicalKeyboardKey.digit1,
+          timeStamp: Duration.zero,
         );
 
         final digitHandled = AccessibilityService.handleKeyboardNavigation(

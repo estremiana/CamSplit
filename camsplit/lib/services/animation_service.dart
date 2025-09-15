@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 /// Animation service for providing enhanced animation curves and visual feedback
 /// during page transitions and navigation interactions.

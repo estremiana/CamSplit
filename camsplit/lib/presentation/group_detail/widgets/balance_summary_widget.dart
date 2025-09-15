@@ -45,7 +45,7 @@ class BalanceSummaryWidget extends StatelessWidget {
             CurrencyDisplayWidget(
               amount: balance,
               currency: currency,
-              style: theme.textTheme.bodyLarge?.copyWith(
+              style: theme.textTheme.bodyMedium?.copyWith(
                 color: _getBalanceColor(isLight),
                 fontWeight: FontWeight.w600,
               ),

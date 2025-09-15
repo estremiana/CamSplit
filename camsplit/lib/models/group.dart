@@ -96,9 +96,10 @@ class Group {
   }
 
   bool hasValidTimestamps() {
-    return createdAt.isBefore(DateTime.now()) &&
-           updatedAt.isBefore(DateTime.now()) &&
-           lastUsed.isBefore(DateTime.now()) &&
+    final now = DateTime.now();
+    return createdAt.isBefore(now.add(Duration(seconds: 1))) &&
+           updatedAt.isBefore(now.add(Duration(seconds: 1))) &&
+           lastUsed.isBefore(now.add(Duration(seconds: 1))) &&
            !createdAt.isAfter(updatedAt);
   }
 

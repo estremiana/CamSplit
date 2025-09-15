@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
+
 import 'dart:async';
 
 /// Performance optimization service for managing memory and optimizing navigation performance.
@@ -163,7 +163,7 @@ class PerformanceOptimizer {
     // In a real implementation, this would check device specs
     // For now, we'll use a simple heuristic based on screen size
     
-    final screenSize = WidgetsBinding.instance.window.physicalSize;
+    final screenSize = WidgetsBinding.instance.platformDispatcher.views.first.physicalSize;
     final screenArea = screenSize.width * screenSize.height;
     
     // Assume smaller screens indicate lower-end devices

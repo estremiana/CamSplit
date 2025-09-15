@@ -218,13 +218,21 @@ class _ItemAssignmentState extends State<ItemAssignment>
           // If member has a user_id but no avatar, try to fetch user's avatar
           if ((avatarUrl == null || avatarUrl.isEmpty) && member.userId != null) {
             try {
-              final user = await UserService.getUserById(member.userId.toString());
-              if (user != null && user.avatar != null && user.avatar!.isNotEmpty) {
-                avatarUrl = user.avatar;
+              print('DEBUG: Fetching avatar for user ${member.userId} (${member.nickname})');
+              final userData = await UserService.getUserById(member.userId.toString());
+              if (userData != null && userData['avatar'] != null && userData['avatar'].toString().isNotEmpty) {
+                avatarUrl = userData['avatar'].toString();
+                print('DEBUG: Found avatar for user ${member.userId}: $avatarUrl');
+              } else {
+                print('DEBUG: No avatar found for user ${member.userId}');
               }
             } catch (e) {
               print('DEBUG: Failed to fetch avatar for user ${member.userId}: $e');
             }
+          } else if (avatarUrl != null && avatarUrl.isNotEmpty) {
+            print('DEBUG: Member ${member.nickname} already has avatar: $avatarUrl');
+          } else {
+            print('DEBUG: Member ${member.nickname} has no userId, will use initials');
           }
           
           newGroupMembers.add(<String, dynamic>{
@@ -251,7 +259,7 @@ class _ItemAssignmentState extends State<ItemAssignment>
         
         print('DEBUG: _updateGroupMembers - updated group members count: ${_groupMembers.length}');
         for (var member in _groupMembers) {
-          print('DEBUG: _updateGroupMembers - member: ${member['name']} (ID: ${member['id']})');
+          print('DEBUG: _updateGroupMembers - member: ${member['name']} (ID: ${member['id']}) avatar: ${member['avatar']}');
         }
       } else {
         setState(() {

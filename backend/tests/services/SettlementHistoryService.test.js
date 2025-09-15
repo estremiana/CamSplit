@@ -4,20 +4,20 @@ const User = require('../../src/models/User');
 const Group = require('../../src/models/Group');
 const GroupMember = require('../../src/models/GroupMember');
 const Expense = require('../../src/models/Expense');
+const TestHelpers = require('../helpers/testHelpers');
 const db = require('../../database/connection');
 
 describe('SettlementHistoryService', () => {
   let testGroup, testUsers, testMembers, testSettlements;
 
   beforeAll(async () => {
-    // Create test users
+    // Create test users using TestHelpers
     testUsers = [];
     for (let i = 1; i <= 3; i++) {
-      const user = await User.create({
+      const { user } = await TestHelpers.createTestUser({
         first_name: `User${i}`,
         last_name: `Test`,
-        email: `user${i}.history@test.com`,
-        password: 'password123'
+        email: `user${i}.history@test.com`
       });
       testUsers.push(user);
     }
@@ -25,9 +25,8 @@ describe('SettlementHistoryService', () => {
     // Create test group
     testGroup = await Group.create({
       name: 'Settlement History Test Group',
-      description: 'Test group for settlement history service',
-      created_by: testUsers[0].id
-    });
+      description: 'Test group for settlement history service'
+    }, testUsers[0].id);
 
     // Add members to group
     testMembers = [];
@@ -43,12 +42,8 @@ describe('SettlementHistoryService', () => {
   });
 
   afterAll(async () => {
-    // Clean up test data
-    await db.query('DELETE FROM settlements WHERE group_id = $1', [testGroup.id]);
-    await db.query('DELETE FROM expenses WHERE group_id = $1', [testGroup.id]);
-    await db.query('DELETE FROM group_members WHERE group_id = $1', [testGroup.id]);
-    await db.query('DELETE FROM groups WHERE id = $1', [testGroup.id]);
-    await db.query('DELETE FROM users WHERE id = ANY($1)', [testUsers.map(u => u.id)]);
+    // Clean up test data using TestHelpers
+    await TestHelpers.cleanupTestData();
   });
 
   beforeEach(async () => {
@@ -89,9 +84,11 @@ describe('SettlementHistoryService', () => {
   });
 
   afterEach(async () => {
-    // Clean up settlements after each test
-    await db.query('DELETE FROM settlements WHERE group_id = $1', [testGroup.id]);
-    await db.query('DELETE FROM expenses WHERE group_id = $1', [testGroup.id]);
+    // Clean up settlements after each test (only if testGroup exists)
+    if (testGroup && testGroup.id) {
+      await db.query('DELETE FROM settlements WHERE group_id = $1', [testGroup.id]);
+      await db.query('DELETE FROM expenses WHERE group_id = $1', [testGroup.id]);
+    }
   });
 
   describe('getSettlementHistory', () => {
@@ -308,9 +305,8 @@ describe('SettlementHistoryService', () => {
       // Create a new group with no settlements
       const emptyGroup = await Group.create({
         name: 'Empty Group',
-        description: 'Group with no settlements',
-        created_by: testUsers[0].id
-      });
+        description: 'Group with no settlements'
+      }, testUsers[0].id);
 
       const analytics = await SettlementHistoryService.getSettlementAnalytics(emptyGroup.id);
 

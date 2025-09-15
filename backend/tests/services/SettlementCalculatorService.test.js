@@ -16,7 +16,7 @@ describe('SettlementCalculatorService', () => {
         first_name: `User${i}`,
         last_name: `Test`,
         email: `user${i}.settlement@test.com`,
-        password: 'password123'
+        password: 'Test@1234'
       });
       testUsers.push(user);
     }
@@ -24,9 +24,8 @@ describe('SettlementCalculatorService', () => {
     // Create test group
     testGroup = await Group.create({
       name: 'Settlement Calculator Test Group',
-      description: 'Test group for settlement calculator',
-      created_by: testUsers[0].id
-    });
+      description: 'Test group for settlement calculator'
+    }, testUsers[0].id);
 
     // Add members to group
     testMembers = [];

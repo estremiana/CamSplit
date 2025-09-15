@@ -122,32 +122,6 @@ class _ProfileSettingsState extends State<ProfileSettings> with AutomaticKeepAli
         backgroundColor: AppTheme.lightTheme.cardColor,
         elevation: 1.0,
         automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            onPressed: _showNotifications,
-            icon: Stack(
-              children: [
-                CustomIconWidget(
-                  iconName: 'notifications_outlined',
-                  color: AppTheme.textPrimaryLight,
-                  size: 24,
-                ),
-                Positioned(
-                  right: 0,
-                  top: 0,
-                  child: Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: AppTheme.errorLight,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
       body: RefreshIndicator(
         key: _refreshIndicatorKey,
@@ -527,9 +501,7 @@ class _ProfileSettingsState extends State<ProfileSettings> with AutomaticKeepAli
     }
   }
 
-  void _showNotifications() {
-    // Implementation for showing notifications
-  }
+
 
   void _showPrivacySettings() {
     HapticFeedback.selectionClick();

@@ -190,7 +190,7 @@ class MainNavigationContainerState extends State<MainNavigationContainer>
   }
 
   /// Handle keyboard navigation for accessibility
-  void _handleKeyboardNavigation(RawKeyEvent event) {
+  void _handleKeyboardNavigation(KeyEvent event) {
     final bool handled = AccessibilityService.handleKeyboardNavigation(
       event,
       _navigationState.currentPageIndex,
@@ -203,7 +203,7 @@ class MainNavigationContainerState extends State<MainNavigationContainer>
 
     if (!handled) {
       // Handle additional keyboard shortcuts if needed
-      if (event is RawKeyDownEvent) {
+      if (event is KeyDownEvent) {
         switch (event.logicalKey) {
           case LogicalKeyboardKey.keyH:
             // Help shortcut - announce accessibility instructions
@@ -479,9 +479,9 @@ class MainNavigationContainerState extends State<MainNavigationContainer>
     return Scaffold(
       body: NotificationListener<ScrollNotification>(
         onNotification: _handleScrollNotification,
-        child: RawKeyboardListener(
+        child: KeyboardListener(
           focusNode: _pageViewFocusNode,
-          onKey: _handleKeyboardNavigation,
+          onKeyEvent: _handleKeyboardNavigation,
           child: _buildPageViewWithGestureHandling(),
         ),
       ),

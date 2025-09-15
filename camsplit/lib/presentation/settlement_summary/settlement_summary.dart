@@ -5,10 +5,7 @@ import 'package:sizer/sizer.dart';
 import '../../core/app_export.dart';
 import '../../models/settlement.dart';
 import '../../services/settlement_service.dart';
-import './widgets/group_settlement_widget.dart';
-import './widgets/payment_method_widget.dart';
 import './widgets/settlement_card_widget.dart';
-import './widgets/settlement_history_widget.dart';
 
 class SettlementSummary extends StatefulWidget {
   final String? groupId;

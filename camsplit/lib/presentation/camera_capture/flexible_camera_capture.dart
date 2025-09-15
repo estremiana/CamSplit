@@ -4,8 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
 import 'package:camera/camera.dart';
 
-import '../../../core/app_export.dart';
-import '../../../services/error_handler_service.dart';
+import '../../core/app_export.dart';
+import '../../services/error_handler_service.dart';
 import 'config/camera_capture_config.dart';
 import 'widgets/flexible_camera_controls_widget.dart';
 import 'widgets/flexible_receipt_preview_widget.dart';

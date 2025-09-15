@@ -3,12 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
 
 import '../../core/app_export.dart';
-import '../../models/dashboard_model.dart';
-import '../../models/expense.dart';
-import '../../routes/app_routes.dart';
-import '../../services/api_service.dart';
+
+
+
+
 import '../../services/navigation_service.dart';
-import '../../services/user_service.dart';
+
 import '../../services/user_stats_service.dart';
 
 import './widgets/balance_card_widget.dart';
@@ -191,13 +191,12 @@ class _ExpenseDashboardState extends State<ExpenseDashboard>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return WillPopScope(
-      onWillPop: () async {
+    return PopScope(
+      canPop: !_fabMenuOpen,
+      onPopInvokedWithResult: (didPop, result) {
         if (_fabMenuOpen) {
           _closeFabMenu();
-          return false;
         }
-        return true;
       },
       child: Scaffold(
       backgroundColor: AppTheme.lightTheme.scaffoldBackgroundColor,

@@ -4,6 +4,7 @@ const User = require('../../src/models/User');
 const Group = require('../../src/models/Group');
 const GroupMember = require('../../src/models/GroupMember');
 const Expense = require('../../src/models/Expense');
+const TestHelpers = require('../helpers/testHelpers');
 const db = require('../../database/connection');
 
 // Mock Settlement.recalculateSettlements to avoid actual database operations in debounce tests
@@ -13,20 +14,19 @@ describe('SettlementUpdateService', () => {
   let testGroup, testUsers, testMembers;
 
   beforeAll(async () => {
-    // Create test users
+    // Create test users using TestHelpers
     testUsers = [];
     for (let i = 1; i <= 3; i++) {
-      const user = await User.create({
+      const { user } = await TestHelpers.createTestUser({
         first_name: `User${i}`,
         last_name: `Test`,
-        email: `user${i}.update@test.com`,
-        password: 'password123'
+        email: `user${i}.update@test.com`
       });
       testUsers.push(user);
     }
 
     // Create test group
-    testGroup = await Group.create({
+    testGroup = await TestHelpers.createTestGroup(testUsers[0].id, {
       name: 'Settlement Update Test Group',
       description: 'Test group for settlement update service',
       created_by: testUsers[0].id
@@ -46,10 +46,8 @@ describe('SettlementUpdateService', () => {
   });
 
   afterAll(async () => {
-    // Clean up test data
-    await db.query('DELETE FROM group_members WHERE group_id = $1', [testGroup.id]);
-    await db.query('DELETE FROM groups WHERE id = $1', [testGroup.id]);
-    await db.query('DELETE FROM users WHERE id = ANY($1)', [testUsers.map(u => u.id)]);
+    // Clean up test data using TestHelpers
+    await TestHelpers.cleanupTestData();
   });
 
   beforeEach(() => {

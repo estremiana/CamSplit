@@ -1,15 +1,7 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:http_parser/http_parser.dart';
 import '../config/api_config.dart';
-import '../models/user.dart';
-import '../models/group.dart';
-import '../models/expense.dart';
-import '../models/payment.dart';
-import '../models/item.dart';
-import '../models/assignment.dart';
-import '../models/receipt_image.dart';
 import '../models/dashboard_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'cache_clearer_service.dart';
@@ -1172,7 +1164,6 @@ class ApiService {
         return Exception('SSL certificate error');
       
       case DioExceptionType.unknown:
-      default:
         return Exception('An unexpected error occurred');
     }
   }

@@ -3,7 +3,7 @@ import 'package:sizer/sizer.dart';
 
 import '../../../core/app_export.dart';
 import '../../../models/group.dart';
-import '../../../models/group_member.dart';
+
 import '../../../widgets/custom_image_widget.dart';
 import '../../../widgets/currency_display_widget.dart';
 
@@ -63,7 +63,7 @@ class _GroupCardWidgetState extends State<GroupCardWidget> {
         width: 7.w,
         height: 7.w,
         decoration: BoxDecoration(
-          color: AppTheme.lightTheme.colorScheme.surfaceVariant,
+          color: AppTheme.lightTheme.colorScheme.surfaceContainerHighest,
           shape: BoxShape.circle,
           border: Border.all(
             color: AppTheme.lightTheme.colorScheme.outline,
@@ -111,7 +111,7 @@ class _GroupCardWidgetState extends State<GroupCardWidget> {
             height: 7.w,
             margin: EdgeInsets.only(left: 0.5.w),
             decoration: BoxDecoration(
-              color: AppTheme.lightTheme.colorScheme.surfaceVariant,
+              color: AppTheme.lightTheme.colorScheme.surfaceContainerHighest,
               shape: BoxShape.circle,
               border: Border.all(
                 color: AppTheme.lightTheme.colorScheme.outline,

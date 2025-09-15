@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
-import '../../widgets/main_navigation_container.dart';
+
 import 'widgets/registration_form_widget.dart';
 import 'widgets/social_registration_widget.dart';
 
@@ -135,10 +135,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        _navigateToLogin();
-        return false; // Prevent default back behavior
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          _navigateToLogin();
+        }
       },
       child: Scaffold(
         backgroundColor: AppTheme.lightTheme.colorScheme.surface,

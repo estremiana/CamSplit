@@ -1,8 +1,6 @@
 import 'expense_payer.dart';
 import 'expense_split.dart';
 import 'receipt_image.dart';
-import 'item.dart';
-import 'assignment.dart';
 
 class Expense {
   final int id;
