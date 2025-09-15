@@ -198,7 +198,7 @@ class GroupHeaderWidget extends StatelessWidget {
     );
   }
 
-  /// Builds the last activity timestamp
+  /// Builds the creation timestamp (time since created_at)
   Widget _buildLastActivity(BuildContext context) {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -210,7 +210,7 @@ class GroupHeaderWidget extends StatelessWidget {
         ),
         SizedBox(width: _getResponsiveWidthSpacing(context, 1.0)),
         Text(
-          _formatTimeAgo(groupDetail.lastActivity),
+          _formatTimeAgo(groupDetail.createdAt),
           style: AppTheme.lightTheme.textTheme.bodySmall,
         ),
       ],

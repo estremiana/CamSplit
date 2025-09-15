@@ -157,7 +157,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     child: Center(
                       child: Text(
-                        'SE',
+                        'CA',
                         style: AppTheme.lightTheme.textTheme.headlineMedium
                             ?.copyWith(
                           color: Colors.white,

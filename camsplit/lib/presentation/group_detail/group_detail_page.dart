@@ -465,7 +465,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> with RealTimeUpdateMi
       ),
       builder: (context) => GroupActionsWidget(
         groupDetail: _groupDetail!,
-        onGroupUpdated: _loadGroupData,
+        onGroupUpdated: _refreshData,
         onGroupDeleted: () {
           // Navigation is already handled by the GroupActionsWidget
           // No need to do anything here

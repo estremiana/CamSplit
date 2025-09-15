@@ -164,7 +164,8 @@ class _GroupCardWidgetState extends State<GroupCardWidget> {
   Widget build(BuildContext context) {
     // Use Group model properties
     final memberCount = widget.group.memberCount;
-    final lastActivity = widget.group.lastUsed;
+    // Display created_at as the reference timestamp per requirement
+    final createdAt = widget.group.createdAt;
 
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 4.w, vertical: 0.5.h),
@@ -267,21 +268,13 @@ class _GroupCardWidgetState extends State<GroupCardWidget> {
                         overflow: TextOverflow.ellipsis,
                       ),
                       SizedBox(height: 1.h),
-                      // Bottom row with avatars, member count, and time
+                      // Bottom row with avatars and time (member count removed)
                       Row(
                         children: [
                           _buildMemberAvatars(),
-                          SizedBox(width: 2.w),
-                          Text(
-                            '$memberCount members',
-                            style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-                              color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
-                              fontSize: 12,
-                            ),
-                          ),
                           Spacer(),
                           Text(
-                            _getTimeAgo(lastActivity),
+                            _getTimeAgo(createdAt),
                             style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
                               color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
                               fontSize: 12,

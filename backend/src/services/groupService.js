@@ -91,6 +91,69 @@ class GroupService {
     }
   }
 
+  // Upload and set group image
+  static async uploadGroupImage(groupId, userId, file) {
+    try {
+      const group = await Group.findById(groupId);
+      if (!group) {
+        throw new Error('Group not found');
+      }
+
+      const isAdmin = await group.isUserAdmin(userId);
+      if (!isAdmin) {
+        throw new Error('Only group admins can update group image');
+      }
+
+      const cloudinary = require('../config/cloudinary');
+      const streamifier = require('streamifier');
+
+      // If existing image_url is a Cloudinary asset, try to delete it
+      if (group.image_url && group.image_url.includes('cloudinary')) {
+        try {
+          const urlParts = group.image_url.split('/');
+          const lastPart = urlParts[urlParts.length - 1];
+          const publicId = lastPart.split('.')[0];
+          await cloudinary.uploader.destroy(publicId);
+        } catch (error) {
+          console.warn('Failed to delete old group image:', error.message);
+        }
+      }
+
+      // Upload new image to Cloudinary under a separate folder
+      const uploadPromise = new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            folder: 'group_images',
+            transformation: [
+              { width: 800, height: 800, crop: 'fill', gravity: 'auto' },
+              { quality: 'auto:good', fetch_format: 'auto' }
+            ],
+            public_id: `group_${groupId}_${Date.now()}`
+          },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+
+        streamifier.createReadStream(file.buffer).pipe(uploadStream);
+      });
+
+      const result = await uploadPromise;
+
+      // Persist new image_url on the group
+      const updated = await group.update({ image_url: result.secure_url });
+
+      return {
+        group: updated.toJSON(),
+        image_url: result.secure_url,
+        public_id: result.public_id
+      };
+    } catch (error) {
+      throw new Error(`Failed to upload group image: ${error.message}`);
+    }
+  }
+
   // Delete group
   static async deleteGroup(groupId, userId) {
     try {

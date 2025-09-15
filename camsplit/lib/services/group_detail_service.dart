@@ -457,6 +457,7 @@ class GroupDetailService {
       id: group.id,
       name: group.name,
       description: group.description ?? '',
+      imageUrl: group.imageUrl,
       currency: CurrencyMigrationService.prepareForBackend(group.currency, format: 'code'),
       members: enhancedMembers,
       expenses: expenses,

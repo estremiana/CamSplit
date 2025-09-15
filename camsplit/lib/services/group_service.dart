@@ -21,8 +21,8 @@ class GroupService {
   static DateTime? _cacheTimestamp;
   static const Duration _cacheExpiry = Duration(minutes: 5);
   
-  /// Get all groups for the current user, sorted by most recent usage
-  /// Returns groups ordered by last_used timestamp in descending order
+  /// Get all groups for the current user, sorted by creation time
+  /// Returns groups ordered by created_at timestamp in descending order
   static Future<List<Group>> getAllGroups({bool forceRefresh = false}) async {
     // Check cache first (unless force refresh is requested)
     if (!forceRefresh && _isCacheValid()) {
@@ -66,6 +66,7 @@ class GroupService {
                   createdAt: group.createdAt,
                   updatedAt: group.updatedAt,
                   userBalance: userBalance,
+                  imageUrl: group.imageUrl,
                 );
                 groups.add(groupWithBalance);
               } else {
@@ -83,6 +84,9 @@ class GroupService {
             // Skip this group
           }
         }
+        
+        // Sort by created_at desc as the source of truth for ordering
+        groups.sort((a, b) => b.createdAt.compareTo(a.createdAt));
         
         // Update cache
         _updateCache(groups);
@@ -147,6 +151,7 @@ class GroupService {
               createdAt: group.createdAt,
               updatedAt: group.updatedAt,
               userBalance: group.userBalance,
+              imageUrl: group.imageUrl ?? groupWithMembers.imageUrl,
             );
             groupsWithMembers.add(updatedGroup);
           } else {
@@ -201,6 +206,7 @@ class GroupService {
         createdAt: group.createdAt,
         updatedAt: group.updatedAt,
         userBalance: group.userBalance,
+        imageUrl: group.imageUrl,
       );
     }).toList();
   }

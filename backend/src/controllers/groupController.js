@@ -530,36 +530,15 @@ class GroupController {
         });
       }
 
-      // Upload image using the same service as profile images
-      const result = await UserService.uploadProfileImage(userId, req.file);
-
-      // Fetch existing group to satisfy validation (requires name >= 2 chars)
-      const existingGroup = await GroupService.getGroup(groupId);
-      if (!existingGroup) {
-        return res.status(404).json({
-          success: false,
-          message: 'Group not found'
-        });
-      }
-
-      // Update group with preserved fields and new image URL
-      const updatedGroup = await GroupService.updateGroup(
-        groupId,
-        {
-          name: existingGroup.name,
-          description: existingGroup.description,
-          currency: existingGroup.currency,
-          image_url: result.avatar_url,
-        },
-        userId
-      );
+      // Upload image using group-specific service
+      const result = await GroupService.uploadGroupImage(groupId, userId, req.file);
 
       res.status(200).json({
         success: true,
         message: 'Group image uploaded successfully',
         data: {
-          group: updatedGroup,
-          image_url: result.avatar_url,
+          group: result.group,
+          image_url: result.image_url,
           public_id: result.public_id
         }
       });
