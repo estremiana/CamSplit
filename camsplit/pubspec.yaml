@@ -1,6 +1,7 @@
 name: camsplit
 description: A new Flutter project.
 version: 1.0.0+1
+license: MIT
 environment: 
   sdk: ^3.6.0
 dependencies: 
