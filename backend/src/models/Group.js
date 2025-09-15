@@ -655,8 +655,8 @@ class Group {
       errors.push('Nickname must be less than 255 characters');
     }
 
-    // Email validation (optional for non-users)
-    if (email && !Group.isValidEmail(email)) {
+    // Email validation (optional - only validate format if provided)
+    if (email && email.trim() && !Group.isValidEmail(email)) {
       errors.push('Invalid email format');
     }
 

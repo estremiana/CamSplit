@@ -5,9 +5,11 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/app_export.dart';
 import '../../../models/group_detail_model.dart';
 import '../../../services/group_service.dart';
+import '../../../services/group_image_service.dart';
 
 import '../../../utils/loading_overlay.dart';
 import '../../../utils/snackbar_utils.dart';
+import '../../group_management/widgets/group_image_picker_widget.dart';
 
 
 /// Widget that provides group management actions through a bottom sheet interface
@@ -73,6 +75,15 @@ class GroupActionsWidget extends StatelessWidget {
             onTap: () => _handleGenerateInviteLink(context),
           ),
           
+          // Change Group Photo Action
+          _buildActionTile(
+            context: context,
+            icon: 'photo_camera',
+            title: 'Change Group Photo',
+            color: AppTheme.lightTheme.colorScheme.primary,
+            onTap: () => _handleChangeGroupPhoto(context),
+          ),
+          
           // Exit Group Action
           _buildActionTile(
             context: context,
@@ -134,6 +145,85 @@ class GroupActionsWidget extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
         ),
         contentPadding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
+      ),
+    );
+  }
+
+  /// Handle change group photo
+  void _handleChangeGroupPhoto(BuildContext context) {
+    Navigator.pop(context); // Close the actions sheet
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: 60.h,
+        decoration: BoxDecoration(
+          color: AppTheme.lightTheme.scaffoldBackgroundColor,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+        ),
+        child: Column(
+          children: [
+            // Handle bar
+            Container(
+              width: 12.w,
+              height: 0.5.h,
+              margin: EdgeInsets.symmetric(vertical: 2.h),
+              decoration: BoxDecoration(
+                color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                borderRadius: BorderRadius.circular(2.0),
+              ),
+            ),
+            // Header
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 4.w),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: CustomIconWidget(
+                      iconName: 'close',
+                      color: AppTheme.lightTheme.colorScheme.onSurface,
+                      size: 24,
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      'Change Group Photo',
+                      style: AppTheme.lightTheme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  SizedBox(width: 12.w), // Balance the close button
+                ],
+              ),
+            ),
+            Divider(color: AppTheme.lightTheme.dividerColor),
+            // Content
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.all(4.w),
+                child: GroupImagePickerWidget(
+                  currentImageUrl: groupDetail.imageUrl,
+                  groupName: groupDetail.name,
+                  groupId: groupDetail.id.toString(),
+                  onImageSelected: (String? imagePath) {
+                    // This won't be called for existing groups with groupId
+                  },
+                  onImageUploaded: (String imageUrl) {
+                    // Update the group detail and notify parent
+                    Navigator.pop(context); // Close the modal
+                    onGroupUpdated?.call();
+                    SnackBarUtils.showSuccess(context, 'Group photo updated successfully');
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

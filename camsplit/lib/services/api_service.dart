@@ -261,6 +261,25 @@ class ApiService {
     }
   }
   
+  Future<Map<String, dynamic>> uploadGroupImage(String groupId, File imageFile) async {
+    try {
+      final formData = FormData.fromMap({
+        'image': await MultipartFile.fromFile(
+          imageFile.path,
+          filename: 'group_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        ),
+      });
+      
+      final response = await _dio.put(
+        '${ApiConfig.groupsEndpoint}/$groupId/image',
+        data: formData,
+      );
+      return response.data;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+  
   Future<Map<String, dynamic>> deleteGroup(String groupId) async {
     try {
       final response = await _dio.delete('${ApiConfig.groupsEndpoint}/$groupId');

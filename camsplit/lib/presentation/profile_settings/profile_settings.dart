@@ -42,7 +42,6 @@ class _ProfileSettingsState extends State<ProfileSettings> with AutomaticKeepAli
     "darkMode": false,
     "currency": CamSplitCurrencyService.getDefaultCurrency(),
     "language": "English",
-    "biometricAuth": true,
     "autoSync": true,
   };
 
@@ -71,7 +70,6 @@ class _ProfileSettingsState extends State<ProfileSettings> with AutomaticKeepAli
           _appSettings['notifications'] = user.preferences.notifications;
           _appSettings['emailNotifications'] = user.preferences.emailNotifications;
           _appSettings['darkMode'] = user.preferences.darkMode;
-          _appSettings['biometricAuth'] = user.preferences.biometricAuth;
           _appSettings['autoSync'] = user.preferences.autoSync;
         });
       }
@@ -250,14 +248,6 @@ class _ProfileSettingsState extends State<ProfileSettings> with AutomaticKeepAli
                 title: 'Security',
                 settings: [
                   {
-                    'title': 'Biometric Authentication',
-                    'subtitle': 'Use fingerprint or face ID',
-                    'value': _appSettings['biometricAuth'],
-                    'type': 'toggle',
-                    'onChanged': (value) =>
-                        _updateSetting('biometricAuth', value),
-                  },
-                  {
                     'title': 'Change Password',
                     'subtitle': 'Update your account password',
                     'type': 'navigation',
@@ -406,7 +396,6 @@ class _ProfileSettingsState extends State<ProfileSettings> with AutomaticKeepAli
           _appSettings['notifications'] = user.preferences.notifications;
           _appSettings['emailNotifications'] = user.preferences.emailNotifications;
           _appSettings['darkMode'] = user.preferences.darkMode;
-          _appSettings['biometricAuth'] = user.preferences.biometricAuth;
           _appSettings['autoSync'] = user.preferences.autoSync;
         });
       }
@@ -484,9 +473,6 @@ class _ProfileSettingsState extends State<ProfileSettings> with AutomaticKeepAli
         case 'darkMode':
           preferences['dark_mode'] = value;
           break;
-        case 'biometricAuth':
-          preferences['biometric_auth'] = value;
-          break;
         case 'autoSync':
           preferences['auto_sync'] = value;
           break;
@@ -505,12 +491,18 @@ class _ProfileSettingsState extends State<ProfileSettings> with AutomaticKeepAli
 
   void _showPrivacySettings() {
     HapticFeedback.selectionClick();
-    // Navigate to privacy settings
+    _showComingSoonDialog(
+      title: 'Privacy Controls',
+      message: 'Privacy settings and controls will be available in a future update. You\'ll be able to manage data sharing, visibility settings, and privacy preferences.',
+    );
   }
 
   void _exportData() {
     HapticFeedback.selectionClick();
-    // Implementation for data export
+    _showComingSoonDialog(
+      title: 'Data Export',
+      message: 'Data export functionality will be available in a future update. You\'ll be able to download your expense data in various formats like CSV, PDF, and Excel.',
+    );
   }
 
   void _selectCurrency() {
@@ -560,32 +552,122 @@ class _ProfileSettingsState extends State<ProfileSettings> with AutomaticKeepAli
 
   void _selectLanguage() {
     HapticFeedback.selectionClick();
-    // Show language selection dialog
+    _showComingSoonDialog(
+      title: 'Language Selection',
+      message: 'Multi-language support will be available in a future update. You\'ll be able to choose from multiple languages including Spanish, French, German, and more.',
+    );
   }
 
   void _configureSplitPreferences() {
     HapticFeedback.selectionClick();
-    // Navigate to split preferences
+    _showComingSoonDialog(
+      title: 'Default Split Preferences',
+      message: 'Default split preferences will be available in a future update. You\'ll be able to set how expenses are automatically split (equal, by percentage, custom ratios) for new groups.',
+    );
   }
 
   void _configureInvitations() {
     HapticFeedback.selectionClick();
-    // Navigate to invitation settings
+    _showComingSoonDialog(
+      title: 'Invitation Settings',
+      message: 'Invitation management settings will be available in a future update. You\'ll be able to control who can invite you to groups, set invitation preferences, and manage pending invitations.',
+    );
   }
 
   void _changePassword() {
     HapticFeedback.selectionClick();
-    // Navigate to change password screen
+    _showComingSoonDialog(
+      title: 'Change Password',
+      message: 'Password change functionality will be available in a future update. You\'ll be able to update your account password securely with email verification.',
+    );
   }
 
   void _openHelpCenter() {
     HapticFeedback.selectionClick();
-    // Open help center
+    _showComingSoonDialog(
+      title: 'Help Center',
+      message: 'Help center with FAQs and support articles will be available in a future update. You\'ll have access to comprehensive guides and troubleshooting resources.',
+    );
   }
 
   void _contactSupport() {
     HapticFeedback.selectionClick();
-    // Open contact support
+    _showComingSoonDialog(
+      title: 'Contact Support',
+      message: 'Direct support contact will be available in a future update. You\'ll be able to reach our support team through in-app messaging, email, or live chat.',
+    );
+  }
+
+  void _showComingSoonDialog({required String title, required String message}) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              Icons.info_outline,
+              color: AppTheme.lightTheme.primaryColor,
+              size: 24,
+            ),
+            SizedBox(width: 8),
+            Text(title),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(message),
+            SizedBox(height: 16),
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.lightTheme.primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: AppTheme.lightTheme.primaryColor.withOpacity(0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.schedule,
+                    color: AppTheme.lightTheme.primaryColor,
+                    size: 20,
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Coming in a future update',
+                      style: TextStyle(
+                        color: AppTheme.lightTheme.primaryColor,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Got it',
+              style: TextStyle(
+                color: AppTheme.lightTheme.primaryColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    );
   }
 
   void _handleLogout() {

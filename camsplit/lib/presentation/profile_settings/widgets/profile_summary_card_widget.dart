@@ -123,7 +123,7 @@ class ProfileSummaryCardWidget extends StatelessWidget {
                 'Groups',
                 userStats['totalGroups'].toString(),
                 CustomIconWidget(
-                  iconName: 'group_outlined',
+                  iconName: 'group',
                   color: AppTheme.lightTheme.primaryColor,
                   size: 20,
                 ),
@@ -133,7 +133,7 @@ class ProfileSummaryCardWidget extends StatelessWidget {
                 'Expenses',
                 userStats['totalExpenses'].toString(),
                 CustomIconWidget(
-                  iconName: 'receipt_outlined',
+                  iconName: 'receipt',
                   color: AppTheme.successLight,
                   size: 20,
                 ),

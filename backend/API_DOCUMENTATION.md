@@ -591,6 +591,37 @@ PUT /api/groups/{groupId}
 }
 ```
 
+#### Upload Group Image
+```http
+PUT /api/groups/{groupId}/image
+```
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Request Body:** `multipart/form-data`
+- `image`: Image file (JPEG, PNG, WebP, max 5MB)
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Group image uploaded successfully",
+  "data": {
+    "group": {
+      "id": 1,
+      "name": "Roommates",
+      "description": "Monthly expenses",
+      "image_url": "https://res.cloudinary.com/example/image/upload/v1234567890/groups/group_123.jpg",
+      "currency": "USD",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    },
+    "image_url": "https://res.cloudinary.com/example/image/upload/v1234567890/groups/group_123.jpg",
+    "public_id": "groups/group_123"
+  }
+}
+```
+
 #### Delete Group
 ```http
 DELETE /api/groups/{groupId}

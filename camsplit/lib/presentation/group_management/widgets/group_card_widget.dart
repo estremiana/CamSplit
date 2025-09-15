@@ -3,6 +3,7 @@ import 'package:sizer/sizer.dart';
 
 import '../../../core/app_export.dart';
 import '../../../models/group.dart';
+import '../../../services/group_image_service.dart';
 
 import '../../../widgets/custom_image_widget.dart';
 import '../../../widgets/currency_display_widget.dart';
@@ -215,6 +216,18 @@ class _GroupCardWidgetState extends State<GroupCardWidget> {
                             size: 16,
                           )
                         : null,
+                  ),
+                ] else ...[
+                  // Group image
+                  Container(
+                    margin: EdgeInsets.only(right: 3.w),
+                    child: GroupImageService.buildGroupAvatar(
+                      imageUrl: widget.group.imageUrl,
+                      groupName: widget.group.name,
+                      size: 12.w,
+                      backgroundColor: AppTheme.lightTheme.colorScheme.primaryContainer,
+                      textColor: AppTheme.lightTheme.colorScheme.onPrimaryContainer,
+                    ),
                   ),
                 ],
                 Expanded(

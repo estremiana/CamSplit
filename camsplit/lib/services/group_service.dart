@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:currency_picker/currency_picker.dart';
 import '../models/group.dart';
 import '../models/group_member.dart';
@@ -263,6 +264,7 @@ class GroupService {
   static Future<Group> createGroup(String groupName, List<String> memberEmails, {
     Currency? currency,
     String? description,
+    String? imagePath,
   }) async {
     try {
       final selectedCurrency = currency ?? CamSplitCurrencyService.getDefaultCurrency();
@@ -276,6 +278,24 @@ class GroupService {
       
       if (response['success']) {
         final newGroup = Group.fromJson(response['data']);
+        
+        // Upload image if provided
+        if (imagePath != null) {
+          try {
+            final imageFile = File(imagePath);
+            final imageResponse = await _apiService.uploadGroupImage(newGroup.id.toString(), imageFile);
+            if (imageResponse['success']) {
+              // Update the group with the new image URL
+              final updatedGroup = Group.fromJson(imageResponse['data']['group']);
+              _invalidateCache(); // Clear cache to force refresh
+              return updatedGroup;
+            }
+          } catch (e) {
+            // If image upload fails, still return the group without image
+            print('Failed to upload group image: $e');
+          }
+        }
+        
         _invalidateCache(); // Clear cache to force refresh
         
         // Optimistic update: Increment groups count

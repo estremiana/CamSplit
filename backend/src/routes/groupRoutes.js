@@ -1,6 +1,23 @@
 const express = require('express');
+const multer = require('multer');
 const GroupController = require('../controllers/groupController');
 const { authenticateToken, requireGroupMember, requireGroupAdmin } = require('../middleware/auth');
+
+// Configure multer for file uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only JPEG, PNG, and WebP images are allowed'), false);
+    }
+  }
+});
 
 const router = express.Router();
 
@@ -17,6 +34,7 @@ router.get('/invitable', GroupController.getInvitableGroups);
 router.get('/:groupId', requireGroupMember, GroupController.getGroup);
 router.get('/:groupId/with-members', requireGroupMember, GroupController.getGroupWithMembers);
 router.put('/:groupId', requireGroupAdmin, GroupController.updateGroup);
+router.put('/:groupId/image', requireGroupAdmin, upload.single('image'), GroupController.uploadGroupImage);
 router.delete('/:groupId', requireGroupAdmin, GroupController.deleteGroup);
 router.delete('/:groupId/cascade', requireGroupAdmin, GroupController.deleteGroupWithCascade);
 

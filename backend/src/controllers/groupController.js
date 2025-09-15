@@ -1,4 +1,5 @@
 const GroupService = require('../services/groupService');
+const UserService = require('../services/userService');
 
 class GroupController {
   // Create a new group
@@ -349,10 +350,10 @@ class GroupController {
       const { email, nickname } = req.body;
 
       // Validate required fields
-      if (!email || !nickname) {
+      if (!nickname) {
         return res.status(400).json({
           success: false,
-          message: 'Email and nickname are required'
+          message: 'Nickname is required'
         });
       }
 
@@ -494,6 +495,63 @@ class GroupController {
       res.status(500).json({
         success: false,
         message: error.message
+      });
+    }
+  }
+
+  // Upload group image
+  static async uploadGroupImage(req, res) {
+    try {
+      const { groupId } = req.params;
+      const userId = req.user.id;
+      
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: 'No image file provided'
+        });
+      }
+
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+      if (!allowedTypes.includes(req.file.mimetype)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid file type. Only JPEG, PNG, and WebP images are allowed'
+        });
+      }
+
+      // Validate file size (max 5MB)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (req.file.size > maxSize) {
+        return res.status(400).json({
+          success: false,
+          message: 'File size too large. Maximum size is 5MB'
+        });
+      }
+
+      // Upload image using the same service as profile images
+      const result = await UserService.uploadProfileImage(userId, req.file);
+
+      // Update group with new image URL
+      const updatedGroup = await GroupService.updateGroup(groupId, {
+        image_url: result.avatar_url
+      }, userId);
+
+      res.status(200).json({
+        success: true,
+        message: 'Group image uploaded successfully',
+        data: {
+          group: updatedGroup,
+          image_url: result.avatar_url,
+          public_id: result.public_id
+        }
+      });
+    } catch (error) {
+      console.error('Group image upload error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to upload group image'
       });
     }
   }

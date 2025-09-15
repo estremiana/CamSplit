@@ -379,7 +379,7 @@ class GroupService {
     }
   }
 
-  // Invite user to group (create non-user member with email)
+  // Invite user to group (create non-user member with optional email)
   static async inviteUserToGroup(groupId, email, nickname, userId) {
     try {
       const group = await Group.findById(groupId);
@@ -394,13 +394,16 @@ class GroupService {
         throw new Error('You must be a member of the group to invite users');
       }
       
-      // Check if user with this email already exists
-      const existingUser = await User.findByEmail(email);
+      // Check if user with this email already exists (only if email is provided)
+      let existingUser = null;
+      if (email) {
+        existingUser = await User.findByEmail(email);
+      }
       
       const memberData = {
         user_id: existingUser ? existingUser.id : null,
         nickname: nickname,
-        email: email,
+        email: email || null,
         role: 'member'
       };
       
@@ -411,7 +414,7 @@ class GroupService {
         is_registered_user: !!existingUser,
         message: existingUser 
           ? 'User added to group successfully' 
-          : 'Invitation created successfully'
+          : 'Member added to group successfully'
       };
     } catch (error) {
       throw new Error(`Failed to invite user: ${error.message}`);

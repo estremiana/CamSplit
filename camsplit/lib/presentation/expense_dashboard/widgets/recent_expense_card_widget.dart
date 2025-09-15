@@ -42,36 +42,16 @@ class RecentExpenseCardWidget extends StatelessWidget {
 
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
-      child: Dismissible(
-        key: Key(expense["id"].toString()),
-        background: _buildSwipeBackground(isLeft: false),
-        secondaryBackground: _buildSwipeBackground(isLeft: true),
-        onDismissed: (direction) {
-          if (direction == DismissDirection.endToStart) {
-            onDelete();
-          } else {
-            // Show quick actions
-            _showQuickActions(context);
-          }
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
         },
-        confirmDismiss: (direction) async {
-          if (direction == DismissDirection.endToStart) {
-            return await _showDeleteConfirmation(context);
-          } else {
-            _showQuickActions(context);
-            return false;
-          }
+        onLongPress: () {
+          HapticFeedback.mediumImpact();
+          _showContextMenu(context);
         },
-        child: GestureDetector(
-          onTap: () {
-            HapticFeedback.selectionClick();
-            onTap();
-          },
-          onLongPress: () {
-            HapticFeedback.mediumImpact();
-            _showContextMenu(context);
-          },
-          child: Card(
+        child: Card(
             elevation: 1.0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12.0),
@@ -219,138 +199,9 @@ class RecentExpenseCardWidget extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
+      );
   }
 
-  Widget _buildSwipeBackground({required bool isLeft}) {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
-      decoration: BoxDecoration(
-        color: isLeft ? AppTheme.errorLight : AppTheme.lightTheme.primaryColor,
-        borderRadius: BorderRadius.circular(12.0),
-      ),
-      child: Align(
-        alignment: isLeft ? Alignment.centerRight : Alignment.centerLeft,
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 4.w),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CustomIconWidget(
-                iconName: isLeft ? 'delete' : 'more_horiz',
-                color: AppTheme.onPrimaryLight,
-                size: 24,
-              ),
-              SizedBox(height: 0.5.h),
-              Text(
-                isLeft ? 'Delete' : 'Actions',
-                style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-                  color: AppTheme.onPrimaryLight,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showQuickActions(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16.0)),
-      ),
-      builder: (context) => Container(
-        padding: EdgeInsets.all(4.w),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 10.w,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppTheme.borderLight,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            SizedBox(height: 2.h),
-            Text(
-              'Quick Actions',
-              style: AppTheme.lightTheme.textTheme.titleLarge,
-            ),
-            SizedBox(height: 2.h),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildActionButton(
-                  icon: 'edit',
-                  label: 'Edit',
-                  onTap: () {
-                    Navigator.pop(context);
-                    onEdit();
-                  },
-                ),
-                _buildActionButton(
-                  icon: 'content_copy',
-                  label: 'Duplicate',
-                  onTap: () {
-                    Navigator.pop(context);
-                    onDuplicate();
-                  },
-                ),
-                _buildActionButton(
-                  icon: 'share',
-                  label: 'Share',
-                  onTap: () {
-                    Navigator.pop(context);
-                    onShare();
-                  },
-                ),
-              ],
-            ),
-            SizedBox(height: 2.h),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionButton({
-    required String icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.all(3.w),
-        decoration: BoxDecoration(
-          color: AppTheme.lightTheme.primaryColor.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12.0),
-        ),
-        child: Column(
-          children: [
-            CustomIconWidget(
-              iconName: icon,
-              color: AppTheme.lightTheme.primaryColor,
-              size: 24,
-            ),
-            SizedBox(height: 1.h),
-            Text(
-              label,
-              style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-                color: AppTheme.lightTheme.primaryColor,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   void _showContextMenu(BuildContext context) {
     showModalBottomSheet(
@@ -447,30 +298,6 @@ class RecentExpenseCardWidget extends StatelessWidget {
     );
   }
 
-  Future<bool> _showDeleteConfirmation(BuildContext context) async {
-    return await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Delete Expense'),
-            content: Text(
-                'Are you sure you want to delete "${expense["description"]}"?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: Text(
-                  'Delete',
-                  style: TextStyle(color: AppTheme.errorLight),
-                ),
-              ),
-            ],
-          ),
-        ) ??
-        false;
-  }
 
   String _formatDate(DateTime date) {
     final now = DateTime.now();

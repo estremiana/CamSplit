@@ -404,9 +404,9 @@ class _ExpenseDetailPageState extends State<ExpenseDetailPage> {
         print('Payer ID unchanged: $_selectedPayerId');
       }
       
-      // Repopulate form fields to ensure consistency
-      _populateFormFields();
-      print('Form fields repopulated');
+      // Note: We don't repopulate form fields here to preserve user edits
+      // Form fields are only populated during initial load
+      print('UI state refreshed without repopulating form fields');
     } catch (e) {
       print('Failed to refresh UI state: $e');
     }
@@ -757,7 +757,7 @@ class _ExpenseDetailPageState extends State<ExpenseDetailPage> {
       
       // Create updated expense data
       final updatedExpense = _expense!.copyWith(
-        title: _expense!.title, // Title is not editable in current implementation
+        title: _titleController.text.trim(), // Use the edited title from the controller
         amount: newTotal,
         category: _selectedCategory,
         date: _selectedDate,
@@ -1573,7 +1573,7 @@ class _ExpenseDetailPageState extends State<ExpenseDetailPage> {
 
                       // Expense Details
                       ExpenseDetailsWidget(
-                        key: ValueKey('expense_details_${_selectedPayerId}_${_groupMembers.length}'),
+                        key: ValueKey('expense_details_${widget.expenseId}_${_isEditMode}'),
                         selectedGroup: _selectedGroup,
                         selectedCategory: _selectedCategory,
                         selectedDate: _selectedDate,
@@ -1628,7 +1628,7 @@ class _ExpenseDetailPageState extends State<ExpenseDetailPage> {
 
                       // Split Options
                       SplitOptionsWidget(
-                        key: ValueKey('split_options_${_splitType}_${_memberPercentages.length}_${_isEditMode}'),
+                        key: ValueKey('split_options_${widget.expenseId}_${_splitType}_${_isEditMode}'),
                         splitType: _splitType,
                         onSplitTypeChanged: _isEditMode 
                             ? (value) => _onSplitTypeChanged(value)
