@@ -213,8 +213,6 @@ class UserService {
       preferences: UserPreferences(
         currency: CurrencyMigrationService.parseFromBackend('USD'),
         language: 'en',
-        notifications: true,
-        emailNotifications: true,
         darkMode: false,
         biometricAuth: true,
         autoSync: true,

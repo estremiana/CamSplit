@@ -208,46 +208,7 @@ class _SettlementCardWidgetState extends State<SettlementCardWidget> {
               if (status == 'active' && _canProcessSettlement())
                 Row(
                   children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: _isReminding ? null : _handleRemind,
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(
-                            color: AppTheme.textSecondaryLight,
-                            width: 1.0,
-                          ),
-                        ),
-                        child: _isReminding
-                            ? SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    AppTheme.textSecondaryLight,
-                                  ),
-                                ),
-                              )
-                            : Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  CustomIconWidget(
-                                    iconName: 'notifications',
-                                    color: AppTheme.textSecondaryLight,
-                                    size: 16,
-                                  ),
-                                  SizedBox(width: 1.w),
-                                  Text(
-                                    'Remind',
-                                    style: AppTheme.lightTheme.textTheme.bodyMedium
-                                        ?.copyWith(
-                                      color: AppTheme.textSecondaryLight,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                      ),
-                    ),
+                    // Reminder action removed per requirement
                     SizedBox(width: 3.w),
                     Expanded(
                       child: ElevatedButton(
@@ -467,58 +428,5 @@ class _SettlementCardWidgetState extends State<SettlementCardWidget> {
     }
   }
 
-  Future<void> _handleRemind() async {
-    if (_isReminding) return;
-
-    setState(() {
-      _isReminding = true;
-    });
-
-    try {
-      HapticFeedback.selectionClick();
-      
-      final success = await _settlementService.sendSettlementReminder(
-        widget.settlement.id.toString(),
-      );
-
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Reminder sent successfully!'),
-            backgroundColor: AppTheme.lightTheme.primaryColor,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8.0),
-            ),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to send reminder'),
-            backgroundColor: AppTheme.errorLight,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8.0),
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error sending reminder: ${e.toString()}'),
-          backgroundColor: AppTheme.errorLight,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8.0),
-          ),
-        ),
-      );
-    } finally {
-      setState(() {
-        _isReminding = false;
-      });
-    }
-  }
+  // Reminder handler removed per requirement
 }

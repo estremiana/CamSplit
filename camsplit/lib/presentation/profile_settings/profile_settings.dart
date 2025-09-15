@@ -37,8 +37,6 @@ class _ProfileSettingsState extends State<ProfileSettings> with AutomaticKeepAli
   };
 
   final Map<String, dynamic> _appSettings = {
-    "notifications": true,
-    "emailNotifications": true,
     "darkMode": false,
     "currency": CamSplitCurrencyService.getDefaultCurrency(),
     "language": "English",
@@ -67,8 +65,6 @@ class _ProfileSettingsState extends State<ProfileSettings> with AutomaticKeepAli
           };
           // Update app settings from user preferences
           _appSettings['currency'] = user.preferences.currency;
-          _appSettings['notifications'] = user.preferences.notifications;
-          _appSettings['emailNotifications'] = user.preferences.emailNotifications;
           _appSettings['darkMode'] = user.preferences.darkMode;
           _appSettings['autoSync'] = user.preferences.autoSync;
         });
@@ -154,22 +150,6 @@ class _ProfileSettingsState extends State<ProfileSettings> with AutomaticKeepAli
               SettingsSectionWidget(
                 title: 'Account Settings',
                 settings: [
-                  {
-                    'title': 'Notifications',
-                    'subtitle': 'Push notifications and alerts',
-                    'value': _appSettings['notifications'],
-                    'type': 'toggle',
-                    'onChanged': (value) =>
-                        _updateSetting('notifications', value),
-                  },
-                  {
-                    'title': 'Email Notifications',
-                    'subtitle': 'Expense summaries and reminders',
-                    'value': _appSettings['emailNotifications'],
-                    'type': 'toggle',
-                    'onChanged': (value) =>
-                        _updateSetting('emailNotifications', value),
-                  },
                   {
                     'title': 'Privacy Controls',
                     'subtitle': 'Manage your privacy settings',
@@ -393,8 +373,6 @@ class _ProfileSettingsState extends State<ProfileSettings> with AutomaticKeepAli
           };
           // Update app settings from user preferences
           _appSettings['currency'] = user.preferences.currency;
-          _appSettings['notifications'] = user.preferences.notifications;
-          _appSettings['emailNotifications'] = user.preferences.emailNotifications;
           _appSettings['darkMode'] = user.preferences.darkMode;
           _appSettings['autoSync'] = user.preferences.autoSync;
         });
@@ -463,12 +441,6 @@ class _ProfileSettingsState extends State<ProfileSettings> with AutomaticKeepAli
           } else {
             preferences['currency'] = value;
           }
-          break;
-        case 'notifications':
-          preferences['notifications'] = value;
-          break;
-        case 'emailNotifications':
-          preferences['email_notifications'] = value;
           break;
         case 'darkMode':
           preferences['dark_mode'] = value;

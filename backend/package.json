@@ -1,6 +1,7 @@
 {
   "name": "camsplit-backend",
   "version": "1.0.0",
+  "license": "MIT",
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",

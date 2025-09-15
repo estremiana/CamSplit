@@ -129,8 +129,6 @@ class UserModel {
 class UserPreferences {
   final Currency currency;
   final String language;
-  final bool notifications;
-  final bool emailNotifications;
   final bool darkMode;
   final bool biometricAuth;
   final bool autoSync;
@@ -138,8 +136,6 @@ class UserPreferences {
   UserPreferences({
     required this.currency,
     required this.language,
-    required this.notifications,
-    required this.emailNotifications,
     required this.darkMode,
     required this.biometricAuth,
     required this.autoSync,
@@ -158,8 +154,6 @@ class UserPreferences {
     return UserPreferences(
       currency: currency,
       language: json['language'] ?? 'en',
-      notifications: json['notifications'] ?? true,
-      emailNotifications: json['email_notifications'] ?? true,
       darkMode: json['dark_mode'] ?? false,
       biometricAuth: json['biometric_auth'] ?? false,
       autoSync: json['auto_sync'] ?? true,
@@ -170,8 +164,6 @@ class UserPreferences {
     return {
       'currency': CurrencyMigrationService.prepareForBackend(currency, format: 'code'),
       'language': language,
-      'notifications': notifications,
-      'email_notifications': emailNotifications,
       'dark_mode': darkMode,
       'biometric_auth': biometricAuth,
       'auto_sync': autoSync,
@@ -181,8 +173,6 @@ class UserPreferences {
   UserPreferences copyWith({
     Currency? currency,
     String? language,
-    bool? notifications,
-    bool? emailNotifications,
     bool? darkMode,
     bool? biometricAuth,
     bool? autoSync,
@@ -190,8 +180,6 @@ class UserPreferences {
     return UserPreferences(
       currency: currency ?? this.currency,
       language: language ?? this.language,
-      notifications: notifications ?? this.notifications,
-      emailNotifications: emailNotifications ?? this.emailNotifications,
       darkMode: darkMode ?? this.darkMode,
       biometricAuth: biometricAuth ?? this.biometricAuth,
       autoSync: autoSync ?? this.autoSync,

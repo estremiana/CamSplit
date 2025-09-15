@@ -492,30 +492,7 @@ class _ExpenseDashboardState extends State<ExpenseDashboard>
                   ),
                 ),
               ),
-              IconButton(
-                onPressed: _showNotifications,
-                icon: Stack(
-                  children: [
-                    CustomIconWidget(
-                      iconName: 'notifications_outlined',
-                      color: AppTheme.textPrimaryLight,
-                      size: 24,
-                    ),
-                    Positioned(
-                      right: 0,
-                      top: 0,
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: AppTheme.errorLight,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              // Notifications icon removed per requirement
             ],
           ),
         ),
@@ -730,57 +707,7 @@ class _ExpenseDashboardState extends State<ExpenseDashboard>
     }
   }
 
-  void _showNotifications() {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16.0)),
-      ),
-      builder: (context) => Container(
-        padding: EdgeInsets.all(4.w),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 10.w,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppTheme.borderLight,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            SizedBox(height: 2.h),
-            Text(
-              'Notifications',
-              style: AppTheme.lightTheme.textTheme.titleLarge,
-            ),
-            SizedBox(height: 2.h),
-            ListTile(
-              leading: CustomIconWidget(
-                iconName: 'receipt',
-                color: AppTheme.lightTheme.primaryColor,
-                size: 24,
-              ),
-              title: const Text('New expense added'),
-              subtitle: const Text('Sarah added dinner expense'),
-              trailing: const Text('2h ago'),
-            ),
-            ListTile(
-              leading: CustomIconWidget(
-                iconName: 'payment',
-                color: AppTheme.successLight,
-                size: 24,
-              ),
-              title: const Text('Payment received'),
-              subtitle: const Text('John settled movie tickets'),
-              trailing: const Text('1d ago'),
-            ),
-            SizedBox(height: 2.h),
-          ],
-        ),
-      ),
-    );
-  }
+  // Notifications bottom sheet removed per requirement
 
 
 
