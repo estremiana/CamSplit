@@ -183,9 +183,9 @@ class _MyAppState extends State<MyApp> {
         }
       }
       
-      // Handle https://camsplit.onrender.com/join/{inviteCode} links (Universal Links)
+      // Handle https://cam-split.vercel.app/join/{inviteCode} links (Universal Links)
       else if (uri.scheme == 'https' && 
-               uri.host == 'camsplit.onrender.com' && 
+               uri.host == 'cam-split.vercel.app' && 
                uri.pathSegments.isNotEmpty && 
                uri.pathSegments.first == 'join') {
         final inviteCode = uri.pathSegments.last;

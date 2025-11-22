@@ -29,7 +29,12 @@ const corsOptions = {
       return callback(null, true);
     }
     
-    // Allow Render deployment domain
+    // Allow Vercel deployment domain
+    if (origin.includes('cam-split.vercel.app')) {
+      return callback(null, true);
+    }
+    
+    // Allow Render deployment domain (legacy)
     if (origin.includes('camsplit.onrender.com')) {
       return callback(null, true);
     }

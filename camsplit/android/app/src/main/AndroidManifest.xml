@@ -52,7 +52,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" 
-                      android:host="camsplit.onrender.com" 
+                      android:host="cam-split.vercel.app" 
                       android:pathPrefix="/join" />
             </intent-filter>
         </activity>

@@ -64,7 +64,7 @@
 	<!-- Universal Links for invite links -->
 	<key>com.apple.developer.associated-domains</key>
 	<array>
-		<string>applinks:camsplit.onrender.com</string>
+		<string>applinks:cam-split.vercel.app</string>
 	</array>
 </dict>
 </plist>

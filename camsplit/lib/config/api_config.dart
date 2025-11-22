@@ -2,12 +2,12 @@ import 'device_config.dart';
 
 class ApiConfig {
   // Production environment
-  // Render deployment URL
-  static const String prodBaseUrl = 'https://camsplit.onrender.com/api';
-  static const String prodBackendUrl = 'https://camsplit.onrender.com';
+  // Vercel deployment URL
+  static const String prodBaseUrl = 'https://cam-split.vercel.app/api';
+  static const String prodBackendUrl = 'https://cam-split.vercel.app';
   
   // Current environment (change this to switch between dev/prod)
-  // Set to true when using Render deployment
+  // Set to true when using Vercel deployment
   static const bool isProduction = true;
   
   // Get the appropriate base URL based on environment and platform
