@@ -1,0 +1,7 @@
+{
+  "name": "SplitSmart",
+  "description": "A modern, AI-powered expense splitting application that simplifies group costs.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

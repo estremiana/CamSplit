@@ -12,6 +12,8 @@ class Group {
     this.updated_at = data.updated_at;
     // Include member_count if provided (from getGroupsForUser query)
     this.member_count = data.member_count;
+    // Include user_balance if provided (from getGroupsForUser query)
+    this.user_balance = data.user_balance;
   }
 
   // Create a new group
@@ -122,7 +124,17 @@ class Group {
           g.*,
           gm.role,
           gm.joined_at,
-          COALESCE(member_counts.member_count, 0) as member_count
+          COALESCE(member_counts.member_count, 0) as member_count,
+          COALESCE(
+            (SELECT 
+              COALESCE(SUM(CASE WHEN s.to_group_member_id = gm.id THEN s.amount ELSE 0 END), 0) - 
+              COALESCE(SUM(CASE WHEN s.from_group_member_id = gm.id THEN s.amount ELSE 0 END), 0)
+            FROM settlements s
+            WHERE (s.from_group_member_id = gm.id OR s.to_group_member_id = gm.id)
+              AND s.status = 'active'
+              AND s.group_id = g.id
+            ), 0
+          ) as user_balance
         FROM groups g
         JOIN group_members gm ON g.id = gm.group_id
         LEFT JOIN (
@@ -607,6 +619,11 @@ class Group {
     // Include member_count if available (from getGroupsForUser query)
     if (this.member_count !== undefined) {
       json.member_count = parseInt(this.member_count);
+    }
+    
+    // Include user_balance if available (from getGroupsForUser query)
+    if (this.user_balance !== undefined) {
+      json.user_balance = parseFloat(this.user_balance);
     }
     
     return json;

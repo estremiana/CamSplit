@@ -10,6 +10,7 @@ import '../presentation/camera_receipt_capture/camera_receipt_capture.dart';
 import '../presentation/receipt_ocr_review/receipt_ocr_review.dart';
 import '../presentation/settlement_summary/settlement_summary.dart';
 import '../presentation/edit_profile/edit_profile.dart';
+import '../presentation/expense_wizard/expense_wizard.dart';
 import '../widgets/main_navigation_container.dart';
 import '../models/receipt_mode_data.dart';
 
@@ -37,6 +38,7 @@ class AppRoutes {
   static const String receiptOcrReview = '/receipt-ocr-review';
   static const String settlementSummary = '/settlement-summary';
   static const String editProfile = '/edit-profile';
+  static const String expenseWizard = '/expense-wizard';
   
   // Page indices for main navigation
   static const int dashboardPageIndex = 0;
@@ -63,6 +65,7 @@ class AppRoutes {
         receiptOcrReview: (context) => const ReceiptOcrReview(),
         settlementSummary: (context) => const SettlementSummary(),
         editProfile: (context) => const EditProfile(),
+        expenseWizard: (context) => const ExpenseWizard(),
       };
 
   static Route<dynamic>? onGenerateRoute(RouteSettings settings) {
@@ -179,7 +182,13 @@ class AppRoutes {
           builder: (context) => const EditProfile(),
           settings: settings,
         );
-        
+      
+      case expenseWizard:
+        return MaterialPageRoute(
+          builder: (context) => const ExpenseWizard(),
+          settings: settings,
+        );
+      
       default:
         return null;
     }

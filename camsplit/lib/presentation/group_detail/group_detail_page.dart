@@ -4,14 +4,17 @@ import 'package:sizer/sizer.dart';
 
 import '../../core/app_export.dart';
 import '../../models/group_detail_model.dart';
+import '../../models/group_member.dart';
 
 import '../../services/group_detail_service.dart';
 import '../../services/currency_migration_service.dart';
 import '../../utils/snackbar_utils.dart';
+import '../../utils/currency_utils.dart';
 import '../../utils/loading_overlay.dart';
 import '../../utils/error_recovery.dart';
 import '../../utils/real_time_updates.dart';
 import '../../widgets/loading_states.dart';
+import '../../widgets/stacked_avatars_widget.dart';
 import 'widgets/group_header_widget.dart';
 import 'widgets/balance_summary_widget.dart';
 import 'widgets/expense_list_widget.dart';
@@ -48,28 +51,23 @@ class _GroupDetailPageState extends State<GroupDetailPage> with RealTimeUpdateMi
   bool _isNewGroup = false;
   bool _hasShownWelcomeMessage = false;
 
-  // FAB menu state
-  late AnimationController _fabController;
-  late Animation<double> _fabRotation;
-  late Animation<double> _fabTranslation;
+
+
+  // FAB Menu state
   bool _fabMenuOpen = false;
+  late AnimationController _fabController;
 
   @override
   void initState() {
     super.initState();
-    // Initialize FAB controller
+    // Initialize real-time updates
+    initializeRealTimeUpdates(widget.groupId);
+    
     _fabController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 250),
     );
-    _fabRotation = Tween<double>(begin: 0, end: 0.25).animate(
-      CurvedAnimation(parent: _fabController, curve: Curves.easeInOut),
-    );
-    _fabTranslation = Tween<double>(begin: 0, end: 70).animate(
-      CurvedAnimation(parent: _fabController, curve: Curves.easeInOut),
-    );
-    // Initialize real-time updates
-    initializeRealTimeUpdates(widget.groupId);
+    
     _loadGroupData();
   }
 
@@ -267,12 +265,6 @@ class _GroupDetailPageState extends State<GroupDetailPage> with RealTimeUpdateMi
 
   /// Handle back navigation with state preservation
   Future<bool> _onWillPop() async {
-    // Close FAB menu if open
-    if (_fabMenuOpen) {
-      _closeFabMenu();
-      return false;
-    }
-    
     // If this is a new group, navigate back to groups page with refresh flag
     if (_isNewGroup) {
       Navigator.pop(context);
@@ -419,24 +411,6 @@ class _GroupDetailPageState extends State<GroupDetailPage> with RealTimeUpdateMi
     });
   }
 
-  void _openCameraCapture() {
-    HapticFeedback.mediumImpact();
-    Navigator.pushNamed(
-      context, 
-      AppRoutes.cameraReceiptCapture,
-      arguments: {
-        'groupId': widget.groupId,
-        'source': 'group_detail',
-      },
-    );
-    _closeFabMenu();
-  }
-
-  void _openExpenseCreation() {
-    HapticFeedback.mediumImpact();
-    _onAddExpense();
-    _closeFabMenu();
-  }
 
   void _onExpenseItemTap(GroupExpense expense) {
     Navigator.pushNamed(
@@ -482,195 +456,35 @@ class _GroupDetailPageState extends State<GroupDetailPage> with RealTimeUpdateMi
   @override
   Widget build(BuildContext context) {
     return PopScope(
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) {
+          await _onWillPop();
+        }
+      },
       child: Scaffold(
         backgroundColor: AppTheme.lightTheme.scaffoldBackgroundColor,
-        appBar: AppBar(
-          backgroundColor: AppTheme.lightTheme.appBarTheme.backgroundColor,
-          elevation: AppTheme.lightTheme.appBarTheme.elevation,
-          title: Text(
-            _groupDetail?.name ?? 'Group Details',
-            style: AppTheme.lightTheme.appBarTheme.titleTextStyle,
-          ),
-          actions: [
-            IconButton(
-              onPressed: _showGroupActions,
-              icon: CustomIconWidget(
-                iconName: 'more_vert',
-                color: AppTheme.lightTheme.colorScheme.onSurface,
-                size: 24,
-              ),
-            ),
-          ],
-        ),
-        body: Stack(
-          children: [
-            _isLoading
-                ? _buildLoadingState()
-                : _groupDetail == null
-                    ? _buildErrorState()
-                    : _buildContent(),
-            // Modal barrier for closing FAB menu on outside tap
-            if (_fabMenuOpen)
-              Positioned.fill(
-                child: GestureDetector(
-                  onTap: _closeFabMenu,
-                  behavior: HitTestBehavior.opaque,
-                  child: Container(),
-                ),
-              ),
-          ],
-        ),
-        floatingActionButton: _buildFabMenu(),
+        body: _isLoading
+            ? _buildLoadingState()
+            : _groupDetail == null
+                ? _buildErrorState()
+                : _buildContent(),
+        floatingActionButton: _groupDetail != null ? _buildFab() : null,
       ),
     );
   }
 
-  Widget _buildFabMenu() {
-    return Stack(
-      alignment: Alignment.bottomRight,
-      children: [
-        // Camera FAB (secondary)
-        AnimatedBuilder(
-          animation: _fabController,
-          builder: (context, child) {
-            return Positioned(
-              right: 0,
-              bottom: 0 + _fabTranslation.value,
-              child: IgnorePointer(
-                ignoring: !_fabMenuOpen && _fabController.value == 0,
-                child: Opacity(
-                  opacity: _fabController.value,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Label
-                      AnimatedOpacity(
-                        opacity: _fabMenuOpen ? 1 : 0,
-                        duration: const Duration(milliseconds: 200),
-                        child: Padding(
-                          padding: const EdgeInsets.only(right: 12.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Container(
-                                margin: const EdgeInsets.only(bottom: 8),
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(8),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.05),
-                                      blurRadius: 4,
-                                    ),
-                                  ],
-                                ),
-                                child: Text(
-                                  'Scan receipt',
-                                  style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
-                                    color: AppTheme.lightTheme.primaryColor,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      FloatingActionButton(
-                        heroTag: 'fab_camera',
-                        backgroundColor: AppTheme.lightTheme.primaryColor,
-                        foregroundColor: AppTheme.onPrimaryLight,
-                        elevation: 3.0,
-                        onPressed: _fabMenuOpen ? _openCameraCapture : null,
-                        child: CustomIconWidget(
-                          iconName: 'camera_alt',
-                          color: AppTheme.onPrimaryLight,
-                          size: 28,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-        // Main FAB (plus)
-        Positioned(
-          right: 0,
-          bottom: 0,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Only show label when menu is open
-              if (_fabMenuOpen)
-                AnimatedOpacity(
-                  opacity: 1,
-                  duration: const Duration(milliseconds: 200),
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 12.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 4,
-                              ),
-                            ],
-                          ),
-                          child: Text(
-                            'Create new expense',
-                            style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
-                              color: AppTheme.lightTheme.primaryColor,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              GestureDetector(
-                onTap: () {
-                  if (_fabMenuOpen) {
-                    _openExpenseCreation();
-                  } else {
-                    _toggleFabMenu();
-                  }
-                },
-                child: AnimatedBuilder(
-                  animation: _fabController,
-                  builder: (context, child) {
-                    return Transform.rotate(
-                      angle: _fabRotation.value * 2 * 3.1415926535,
-                      child: FloatingActionButton(
-                        heroTag: 'fab_plus',
-                        backgroundColor: AppTheme.lightTheme.floatingActionButtonTheme.backgroundColor,
-                        foregroundColor: AppTheme.lightTheme.floatingActionButtonTheme.foregroundColor,
-                        elevation: 3.0,
-                        onPressed: null, // Handled by GestureDetector
-                        child: CustomIconWidget(
-                          iconName: 'add',
-                          color: AppTheme.lightTheme.floatingActionButtonTheme.foregroundColor,
-                          size: 24,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+  Widget _buildFab() {
+    return FloatingActionButton(
+      heroTag: 'fab_add_expense',
+      backgroundColor: AppTheme.lightTheme.primaryColor,
+      foregroundColor: AppTheme.onPrimaryLight,
+      elevation: 3.0,
+      onPressed: _onAddExpense,
+      child: CustomIconWidget(
+        iconName: 'add',
+        color: AppTheme.onPrimaryLight,
+        size: 28,
+      ),
     );
   }
 
@@ -737,126 +551,641 @@ class _GroupDetailPageState extends State<GroupDetailPage> with RealTimeUpdateMi
   }
 
   Widget _buildContent() {
-    return RefreshIndicator(
-      onRefresh: _refreshData,
-      color: AppTheme.lightTheme.primaryColor,
-      child: SingleChildScrollView(
-        padding: EdgeInsets.all(4.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-                         // Optimistic update indicator
-             if (_isOptimisticUpdate)
-               Container(
-                 width: double.infinity,
-                 padding: EdgeInsets.symmetric(vertical: 1.h, horizontal: 3.w),
-                 margin: EdgeInsets.only(bottom: 2.h),
-                 decoration: BoxDecoration(
-                   color: Colors.blue.withOpacity(0.1),
-                   borderRadius: BorderRadius.circular(8),
-                   border: Border.all(color: Colors.blue.withOpacity(0.3)),
-                 ),
-                 child: Row(
-                   children: [
-                     Icon(
-                       Icons.sync,
-                       size: 16,
-                       color: Colors.blue,
-                     ),
-                     SizedBox(width: 2.w),
-                     Expanded(
-                       child: Text(
-                         'Updating balances and settlements...',
-                         style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-                           color: Colors.blue,
-                         ),
-                       ),
-                     ),
-                   ],
-                 ),
-               ),
-            
-            // Group Header Section
-            GroupHeaderWidget(groupDetail: _groupDetail!),
-            SizedBox(height: 3.h),
-            
-            // Balance Summary Section
-            BalanceSummaryWidget(
-              balance: _groupDetail!.userBalance,
-              currency: CurrencyMigrationService.parseFromBackend(_groupDetail!.currency),
+    return DefaultTabController(
+      length: 2,
+      child: Column(
+        children: [
+          // Parallax-like Header
+          _buildHeader(),
+          
+          // Member Strip
+          _buildMemberStrip(),
+          
+          // Tabs
+          _buildTabs(),
+          
+          // Content
+          Expanded(
+            child: TabBarView(
+              children: [
+                RefreshIndicator(
+                  onRefresh: _refreshData,
+                  color: AppTheme.lightTheme.primaryColor,
+                  child: _buildExpensesTab(),
+                ),
+                RefreshIndicator(
+                  onRefresh: _refreshData,
+                  color: AppTheme.lightTheme.primaryColor,
+                  child: _buildBalancesTab(),
+                ),
+              ],
             ),
-            SizedBox(height: 3.h),
-            
-            // Expenses Section
-            _buildExpensesSection(),
-            SizedBox(height: 3.h),
-            
-            // Participants Section
-            ParticipantListWidget(
-              groupDetail: _groupDetail!,
-              onParticipantAdded: _loadGroupData,
-              onParticipantRemoved: _loadGroupData,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      height: 48.w, // h-48 equivalent
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Cover Image
+          if (_groupDetail!.imageUrl != null)
+            CustomImageWidget(
+              imageUrl: _groupDetail!.imageUrl!,
+              width: double.infinity,
+              height: 48.w,
+              fit: BoxFit.cover,
+            )
+          else
+            Container(
+              color: AppTheme.lightTheme.colorScheme.primaryContainer,
             ),
-            SizedBox(height: 3.h),
-            
-            // Settlements Section
-            SettlementsWidget(
-              settlements: _groupDetail!.settlements,
-              currentUserId: _getCurrentUserId(),
+          
+          // Gradient Overlay
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
+                  Colors.black.withOpacity(0.8),
+                ],
+              ),
             ),
-            SizedBox(height: 10.h), // Extra space for FAB
-          ],
+          ),
+          
+          // Top buttons
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              child: Padding(
+                padding: EdgeInsets.all(4.w),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: CustomIconWidget(
+                        iconName: 'arrow_back',
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: _showGroupActions,
+                      icon: CustomIconWidget(
+                        iconName: 'settings',
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          
+          // Title and description at bottom
+          Positioned(
+            bottom: 4.w,
+            left: 6.w,
+            right: 6.w,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _groupDetail!.name,
+                  style: AppTheme.lightTheme.textTheme.headlineSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black.withOpacity(0.5),
+                        blurRadius: 4,
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 0.5.h),
+                Text(
+                  _groupDetail!.description.isNotEmpty 
+                      ? _groupDetail!.description 
+                      : 'No description',
+                  style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+                    color: Colors.white.withOpacity(0.9),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMemberStrip() {
+    final totalSpent = _groupDetail!.expenses.fold<double>(
+      0.0,
+      (sum, expense) => sum + expense.amount,
+    );
+    
+    return Container(
+      color: Colors.white,
+      padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 4.w),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Member avatars
+          Row(
+            children: [
+              _buildAvatarStack(),
+              SizedBox(width: 2.w),
+              GestureDetector(
+                onTap: _showAddParticipantDialog,
+                child: Text(
+                  '+ Invite',
+                  style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+                    color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          
+          // Total Spent
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                'Total Spent',
+                style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+                  color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                  fontSize: 10,
+                ),
+              ),
+              SizedBox(height: 0.25.h),
+              Text(
+                CamSplitCurrencyUtils.formatAmount(
+                  totalSpent,
+                  CurrencyMigrationService.parseFromBackend(_groupDetail!.currency),
+                ),
+                style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.lightTheme.colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAvatarStack() {
+    return StackedAvatarsWidget(
+      members: _groupDetail!.members,
+      maxVisible: 3,
+      size: 32.0,
+      spacing: 24.0,
+    );
+  }
+
+  Widget _buildTabs() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          bottom: BorderSide(
+            color: AppTheme.lightTheme.colorScheme.outline.withOpacity(0.1),
+            width: 1,
+          ),
+        ),
+      ),
+      child: TabBar(
+        labelColor: AppTheme.lightTheme.primaryColor,
+        unselectedLabelColor: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+        indicatorColor: AppTheme.lightTheme.primaryColor,
+        indicatorWeight: 3,
+        labelStyle: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+          fontWeight: FontWeight.w600,
+        ),
+        unselectedLabelStyle: AppTheme.lightTheme.textTheme.bodyMedium,
+        tabs: [
+          Tab(text: 'Expenses'),
+          Tab(text: 'Balances'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExpensesTab() {
+    if (_groupDetail!.expenses.isEmpty) {
+      return Center(
+        child: Text(
+          'No expenses yet.',
+          style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+            color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: EdgeInsets.all(4.w),
+      itemCount: _groupDetail!.expenses.length,
+      itemBuilder: (context, index) {
+        final expense = _groupDetail!.expenses[index];
+        return _buildExpenseCard(expense);
+      },
+    );
+  }
+
+  Widget _buildExpenseCard(GroupExpense expense) {
+    final currentUserId = _getCurrentUserId();
+    final isPayer = expense.payerId == currentUserId;
+    
+    // Calculate user's share (simplified - would need to check splits in real implementation)
+    final userShare = expense.amount / (_groupDetail!.members.length);
+    
+    return Container(
+      margin: EdgeInsets.only(bottom: 3.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppTheme.lightTheme.colorScheme.outline.withOpacity(0.1),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: InkWell(
+        onTap: () => _onExpenseItemTap(expense),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: EdgeInsets.all(4.w),
+          child: Row(
+            children: [
+              // Date badge
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppTheme.lightTheme.colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      '${expense.date.day}',
+                      style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+                        color: AppTheme.lightTheme.primaryColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                    Text(
+                      _getMonthAbbreviation(expense.date.month),
+                      style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+                        color: AppTheme.lightTheme.primaryColor,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(width: 3.w),
+              
+              // Expense info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      expense.title,
+                      style: AppTheme.lightTheme.textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: 0.5.h),
+                    Text(
+                      '${isPayer ? "You" : expense.payerName} paid ${CamSplitCurrencyUtils.formatAmount(expense.amount, CurrencyMigrationService.parseFromBackend(expense.currency))}',
+                      style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+                        color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // User's share
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    'You lent',
+                    style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+                      color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                      fontSize: 10,
+                    ),
+                  ),
+                  SizedBox(height: 0.25.h),
+                  Text(
+                    CamSplitCurrencyUtils.formatAmount(
+                      userShare,
+                      CurrencyMigrationService.parseFromBackend(expense.currency),
+                    ),
+                    style: AppTheme.lightTheme.textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.lightTheme.colorScheme.tertiary,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildExpensesSection() {
-    return Card(
-      elevation: 1.0,
-      color: AppTheme.lightTheme.cardColor,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.0),
+  Widget _buildBalancesTab() {
+    return ListView(
+      padding: EdgeInsets.all(4.w),
+      children: [
+        Text(
+          'Who owes who',
+          style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        SizedBox(height: 3.h),
+        ..._buildBalanceItems(),
+      ],
+    );
+  }
+
+  List<Widget> _buildBalanceItems() {
+    final currentUserId = _getCurrentUserId();
+    
+    // Build balance items from ALL settlements (show who owes who in the group)
+    final userSettlements = <Widget>[];
+    final otherSettlements = <Widget>[];
+    
+    for (final settlement in _groupDetail!.settlements) {
+      // Only show active settlements
+      if (settlement.status != 'active') {
+        continue;
+      }
+      
+      // Find the members involved in this settlement
+      final fromMember = _groupDetail!.members.firstWhere(
+        (m) => m.id == settlement.fromGroupMemberId,
+        orElse: () => _groupDetail!.members.first,
+      );
+      
+      final toMember = _groupDetail!.members.firstWhere(
+        (m) => m.id == settlement.toGroupMemberId,
+        orElse: () => _groupDetail!.members.first,
+      );
+      
+      final settlementCard = _buildSettlementCard(
+        fromMember,
+        toMember,
+        settlement.amount,
+        settlement.currency,
+      );
+      
+      // Separate user settlements from others
+      if (fromMember.userId == currentUserId || toMember.userId == currentUserId) {
+        userSettlements.add(settlementCard);
+      } else {
+        otherSettlements.add(settlementCard);
+      }
+    }
+    
+    // Combine with user settlements on top
+    final balanceItems = [...userSettlements, ...otherSettlements];
+    
+    if (balanceItems.isEmpty) {
+      return [
+        Center(
+          child: Padding(
+            padding: EdgeInsets.all(4.h),
+            child: Text(
+              'All settled up!',
+              style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ),
+      ];
+    }
+    
+    return balanceItems;
+  }
+
+  Widget _buildSettlementCard(GroupMember fromMember, GroupMember toMember, double amount, String currency) {
+    final currentUserId = _getCurrentUserId();
+    final isCurrentUserInvolved = fromMember.userId == currentUserId || toMember.userId == currentUserId;
+    final isUserDebtor = fromMember.userId == currentUserId;
+    
+    return Container(
+      margin: EdgeInsets.only(bottom: 2.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isCurrentUserInvolved 
+              ? AppTheme.lightTheme.primaryColor.withOpacity(0.3)
+              : AppTheme.lightTheme.colorScheme.outline.withOpacity(0.1),
+          width: isCurrentUserInvolved ? 2 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: Padding(
-        padding: EdgeInsets.all(4.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 3.w),
+        child: Row(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Recent Expenses',
-                  style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
+            // Settlement info
+            Expanded(
+              child: RichText(
+                text: TextSpan(
+                  style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                    fontSize: 14,
                   ),
-                ),
-                if (_isRefreshing)
-                  SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppTheme.lightTheme.colorScheme.primary,
+                  children: [
+                    TextSpan(
+                      text: isUserDebtor ? 'You' : fromMember.displayName,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.lightTheme.colorScheme.onSurface,
+                      ),
                     ),
-                  ),
-              ],
+                    TextSpan(
+                      text: isUserDebtor ? ' owe ' : ' owes ',
+                      style: TextStyle(
+                        color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    TextSpan(
+                      text: toMember.userId == currentUserId ? 'you' : toMember.displayName,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.lightTheme.colorScheme.onSurface,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            SizedBox(height: 2.h),
-            SizedBox(
-              height: 40.h, // Restored scrollable height for the expense list
-              child: ExpenseListWidget(
-                expenses: _groupDetail?.expenses ?? [],
-                onRefresh: _loadGroupData,
-                isLoading: _isRefreshing,
-                onExpenseItemTap: _onExpenseItemTap,
+            
+            SizedBox(width: 3.w),
+            
+            // Amount
+            Text(
+              CamSplitCurrencyUtils.formatAmount(
+                amount,
+                CurrencyMigrationService.parseFromBackend(currency),
+              ),
+              style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                color: AppTheme.lightTheme.colorScheme.tertiary,
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  void _showAddParticipantDialog() {
+    final TextEditingController nameController = TextEditingController();
+    final TextEditingController emailController = TextEditingController();
+    final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Add Member'),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Name',
+                    hintText: 'Enter member name',
+                    prefixIcon: CustomIconWidget(
+                      iconName: 'person',
+                      color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                      size: 20,
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Name is required';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 2.h),
+                TextFormField(
+                  controller: emailController,
+                  decoration: InputDecoration(
+                    labelText: 'Email',
+                    hintText: 'Enter member email',
+                    prefixIcon: CustomIconWidget(
+                      iconName: 'email',
+                      color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                      size: 20,
+                    ),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Email is required';
+                    }
+                    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+                      return 'Please enter a valid email';
+                    }
+                    return null;
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (formKey.currentState!.validate()) {
+                  Navigator.of(context).pop();
+                  _addParticipant(
+                    nameController.text.trim(),
+                    emailController.text.trim(),
+                  );
+                }
+              },
+              child: Text('Add'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _addParticipant(String name, String email) async {
+    try {
+      await GroupDetailService.addParticipant(
+        _groupDetail!.id,
+        email,
+        name,
+      );
+      
+      SnackBarUtils.showSuccess(context, 'Member added successfully!');
+      _loadGroupData(showLoading: false);
+    } catch (e) {
+      SnackBarUtils.showError(context, 'Failed to add member: $e');
+    }
+  }
+
+
+  String _getMonthAbbreviation(int month) {
+    const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 
+                    'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+    if (month >= 1 && month <= 12) {
+      return months[month - 1];
+    }
+    return '';
   }
 
   @override

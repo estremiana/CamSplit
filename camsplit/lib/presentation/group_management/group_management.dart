@@ -292,90 +292,76 @@ class _GroupManagementState extends State<GroupManagement>
   Widget build(BuildContext context) {
     super.build(context);
     return Scaffold(
-      backgroundColor: AppTheme.lightTheme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: AppTheme.lightTheme.appBarTheme.backgroundColor,
-        elevation: AppTheme.lightTheme.appBarTheme.elevation,
-        automaticallyImplyLeading: false,
-        title: _isSearching
-            ? TextField(
-                controller: _searchController,
-                autofocus: true,
-                onChanged: _onSearchChanged,
-                decoration: InputDecoration(
-                  hintText: 'Search groups...',
-                  border: InputBorder.none,
-                  hintStyle: TextStyle(
-                    color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+      backgroundColor: Colors.grey[50], // bg-gray-50
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header Section
+            Container(
+              color: Colors.white,
+              padding: EdgeInsets.all(6.w),
+              child: Column(
+                children: [
+                  // Title and Add Button
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Your Groups',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[900],
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                style: AppTheme.lightTheme.textTheme.titleMedium,
-              )
-            : Text(
-                'Groups',
-                style: AppTheme.lightTheme.appBarTheme.titleTextStyle,
-              ),
-        actions: [
-          if (_isMultiSelectMode) ...[
-            IconButton(
-              onPressed: () => _handleBatchOperation('archive'),
-              icon: CustomIconWidget(
-                iconName: 'archive',
-                color: AppTheme.lightTheme.colorScheme.onSurface,
-                size: 24,
-              ),
-            ),
-            IconButton(
-              onPressed: () => _handleBatchOperation('delete'),
-              icon: CustomIconWidget(
-                iconName: 'delete',
-                color: AppTheme.errorLight,
-                size: 24,
+                  SizedBox(height: 2.h),
+                  // Search Bar
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: _onSearchChanged,
+                      decoration: InputDecoration(
+                        hintText: 'Search groups...',
+                        prefixIcon: Icon(Icons.search, color: Colors.grey[400], size: 18),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.5.h),
+                        hintStyle: TextStyle(fontSize: 14, color: Colors.grey[400]),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            IconButton(
-              onPressed: _toggleMultiSelect,
-              icon: CustomIconWidget(
-                iconName: 'close',
-                color: AppTheme.lightTheme.colorScheme.onSurface,
-                size: 24,
-              ),
-            ),
-          ] else ...[
-            IconButton(
-              onPressed: _toggleSearch,
-              icon: CustomIconWidget(
-                iconName: _isSearching ? 'close' : 'search',
-                color: AppTheme.lightTheme.colorScheme.onSurface,
-                size: 24,
-              ),
-            ),
-            IconButton(
-              onPressed: _toggleMultiSelect,
-              icon: CustomIconWidget(
-                iconName: 'checklist',
-                color: AppTheme.lightTheme.colorScheme.onSurface,
-                size: 24,
-              ),
+            // Divider
+            Container(height: 1, color: Colors.grey[200]),
+            
+            // Content
+            Expanded(
+              child: _isLoading
+                  ? Center(
+                      child: CircularProgressIndicator(
+                        color: AppTheme.lightTheme.primaryColor,
+                      ),
+                    )
+                  : _filteredGroups.isEmpty && _searchQuery.isNotEmpty
+                      ? _buildNoSearchResults()
+                      : _filteredGroups.isEmpty
+                          ? EmptyStateWidget(onCreateGroup: _showCreateGroupModal)
+                          : RefreshIndicator(
+                              key: _refreshIndicatorKey,
+                              onRefresh: _onRefresh,
+                              child: _buildGroupsList(),
+                            ),
             ),
           ],
-        ],
+        ),
       ),
-      body: _isLoading
-          ? Center(
-              child: CircularProgressIndicator(
-                color: AppTheme.lightTheme.primaryColor,
-              ),
-            )
-          : _filteredGroups.isEmpty && _searchQuery.isNotEmpty
-              ? _buildNoSearchResults()
-              : _filteredGroups.isEmpty
-                  ? EmptyStateWidget(onCreateGroup: _showCreateGroupModal)
-                  : RefreshIndicator(
-                      key: _refreshIndicatorKey,
-                      onRefresh: _onRefresh,
-                      child: _buildGroupsList(),
-                    ),
       floatingActionButton: _isMultiSelectMode
           ? null
           : FloatingActionButton(

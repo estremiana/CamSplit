@@ -11,6 +11,7 @@ class Assignment {
     this.people_count = parseInt(data.people_count);
     this.price_per_person = parseFloat(data.price_per_person);
     this.notes = data.notes;
+    this.assignment_type = data.assignment_type || 'simple'; // 'simple' or 'advanced'
     this.created_at = data.created_at;
     this.updated_at = data.updated_at;
   }
@@ -30,8 +31,8 @@ class Assignment {
       }
 
       const query = `
-        INSERT INTO assignments (expense_id, item_id, quantity, unit_price, total_price, people_count, price_per_person, notes)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        INSERT INTO assignments (expense_id, item_id, quantity, unit_price, total_price, people_count, price_per_person, notes, assignment_type)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING *
       `;
 
@@ -43,7 +44,8 @@ class Assignment {
         assignmentData.total_price,
         assignmentData.people_count,
         assignmentData.price_per_person,
-        assignmentData.notes
+        assignmentData.notes,
+        assignmentData.assignment_type || 'simple'
       ];
 
       const result = await db.query(query, values);
@@ -201,8 +203,9 @@ class Assignment {
             people_count = COALESCE($4, people_count),
             price_per_person = COALESCE($5, price_per_person),
             notes = COALESCE($6, notes),
+            assignment_type = COALESCE($7, assignment_type),
             updated_at = NOW()
-        WHERE id = $7
+        WHERE id = $8
         RETURNING *
       `;
 
@@ -213,6 +216,7 @@ class Assignment {
         updateData.people_count,
         updateData.price_per_person,
         updateData.notes,
+        updateData.assignment_type,
         this.id
       ];
 
@@ -340,6 +344,7 @@ class Assignment {
       people_count: this.people_count,
       price_per_person: this.price_per_person,
       notes: this.notes,
+      assignment_type: this.assignment_type,
       created_at: this.created_at,
       updated_at: this.updated_at
     };
@@ -373,6 +378,12 @@ class Assignment {
       errors.push('Price per person must be greater than 0');
     }
 
+    // Validate assignment_type if provided
+    if (assignmentData.assignment_type && 
+        !['simple', 'advanced'].includes(assignmentData.assignment_type)) {
+      errors.push('Assignment type must be "simple" or "advanced"');
+    }
+
     // Validate that quantity doesn't exceed item's max_quantity
     if (assignmentData.quantity && assignmentData.item_id) {
       // This would need to be checked at the service level with a database query
@@ -402,6 +413,12 @@ class Assignment {
 
     if (updateData.price_per_person !== undefined && updateData.price_per_person <= 0) {
       errors.push('Price per person must be greater than 0');
+    }
+
+    // Validate assignment_type if provided
+    if (updateData.assignment_type !== undefined && 
+        !['simple', 'advanced'].includes(updateData.assignment_type)) {
+      errors.push('Assignment type must be "simple" or "advanced"');
     }
 
     return {
