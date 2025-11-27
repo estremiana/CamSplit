@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
 
 import '../../core/app_export.dart';
-import '../../routes/app_routes.dart';
 
 
 
@@ -176,12 +175,6 @@ class _ExpenseDashboardState extends State<ExpenseDashboard>
   void _openExpenseCreation() {
     HapticFeedback.mediumImpact();
     Navigator.pushNamed(context, '/expense-creation');
-    _closeFabMenu();
-  }
-
-  void _openExpenseWizard() {
-    HapticFeedback.mediumImpact();
-    Navigator.pushNamed(context, AppRoutes.expenseWizard);
     _closeFabMenu();
   }
 
@@ -391,38 +384,6 @@ class _ExpenseDashboardState extends State<ExpenseDashboard>
                             style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
                               color: AppTheme.lightTheme.primaryColor,
                               fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        // Wizard button
-                        Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: _openExpenseWizard,
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 4.w,
-                                vertical: 2.h,
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.auto_awesome,
-                                    color: AppTheme.lightTheme.primaryColor,
-                                    size: 24,
-                                  ),
-                                  SizedBox(width: 3.w),
-                                  Text(
-                                    'Create Expense (Wizard)',
-                                    style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
-                                      color: AppTheme.lightTheme.primaryColor,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
                             ),
                           ),
                         ),
