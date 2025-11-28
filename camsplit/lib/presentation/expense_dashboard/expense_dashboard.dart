@@ -178,11 +178,70 @@ class _ExpenseDashboardState extends State<ExpenseDashboard>
     _closeFabMenu();
   }
 
+  void _openExpenseWizard() {
+    HapticFeedback.mediumImpact();
+    Navigator.pushNamed(context, '/expense-creation-wizard');
+    _closeFabMenu();
+  }
+
   void _closeFabMenu() {
     setState(() {
       _fabMenuOpen = false;
       _fabController.reverse();
     });
+  }
+
+  void _showExpenseCreationOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: EdgeInsets.all(4.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: EdgeInsets.only(bottom: 2.h),
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Text(
+              'Create Expense',
+              style: TextStyle(
+                fontSize: 20.sp,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 2.h),
+            ListTile(
+              leading: Icon(Icons.auto_awesome, color: AppTheme.primaryLight),
+              title: Text('New Expense (Wizard)'),
+              subtitle: Text('Step-by-step expense creation'),
+              onTap: () {
+                Navigator.pop(context);
+                _openExpenseWizard();
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.edit, color: AppTheme.primaryLight),
+              title: Text('Create Expense (Classic)'),
+              subtitle: Text('Traditional expense creation'),
+              onTap: () {
+                Navigator.pop(context);
+                _openExpenseCreation();
+              },
+            ),
+            SizedBox(height: 2.h),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -394,7 +453,8 @@ class _ExpenseDashboardState extends State<ExpenseDashboard>
               GestureDetector(
                 onTap: () {
                   if (_fabMenuOpen) {
-                    _openExpenseCreation();
+                    // Show options menu
+                    _showExpenseCreationOptions();
                   } else {
                     _toggleFabMenu();
                   }

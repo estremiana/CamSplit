@@ -351,6 +351,54 @@ class _GroupDetailPageState extends State<GroupDetailPage> with RealTimeUpdateMi
   }
 
   void _onAddExpense() async {
+    // Show options menu
+    final option = await showModalBottomSheet<String>(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: EdgeInsets.all(4.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: EdgeInsets.only(bottom: 2.h),
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Text(
+              'Create Expense',
+              style: TextStyle(
+                fontSize: 20.sp,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 2.h),
+            ListTile(
+              leading: Icon(Icons.auto_awesome, color: AppTheme.primaryLight),
+              title: Text('New Expense (Wizard)'),
+              subtitle: Text('Step-by-step expense creation'),
+              onTap: () => Navigator.pop(context, 'wizard'),
+            ),
+            ListTile(
+              leading: Icon(Icons.edit, color: AppTheme.primaryLight),
+              title: Text('Create Expense (Classic)'),
+              subtitle: Text('Traditional expense creation'),
+              onTap: () => Navigator.pop(context, 'classic'),
+            ),
+            SizedBox(height: 2.h),
+          ],
+        ),
+      ),
+    );
+
+    if (option == null) return;
+
     // Show loading overlay briefly while preparing navigation
     _loadingOverlay.show(context: context, message: 'Opening expense creation...');
     
@@ -359,15 +407,28 @@ class _GroupDetailPageState extends State<GroupDetailPage> with RealTimeUpdateMi
     _loadingOverlay.hide();
     
     try {
-      // Navigate to expense creation without timeout
-      final result = await Navigator.pushNamed(
-        context,
-        AppRoutes.expenseCreation,
-        arguments: {
-          'groupId': widget.groupId,
-          'refreshOnReturn': true,
-        },
-      );
+      Map<String, dynamic>? result;
+      
+      if (option == 'wizard') {
+        // Navigate to wizard
+        result = await Navigator.pushNamed(
+          context,
+          AppRoutes.expenseCreationWizard,
+          arguments: {
+            'groupId': widget.groupId,
+          },
+        ) as Map<String, dynamic>?;
+      } else {
+        // Navigate to classic expense creation
+        result = await Navigator.pushNamed(
+          context,
+          AppRoutes.expenseCreation,
+          arguments: {
+            'groupId': widget.groupId,
+            'refreshOnReturn': true,
+          },
+        ) as Map<String, dynamic>?;
+      }
       
       // Check if expense was created successfully
       if (result != null && result is Map<String, dynamic>) {

@@ -4,6 +4,7 @@ import '../presentation/login_screen/login_screen.dart';
 import '../presentation/registration_screen/registration_screen.dart';
 import '../presentation/group_detail/group_detail_page.dart';
 import '../presentation/expense_creation/expense_creation.dart';
+import '../presentation/expense_creation_wizard/expense_creation_wizard.dart';
 import '../presentation/expense_detail/expense_detail_page.dart';
 import '../presentation/item_assignment/item_assignment.dart';
 import '../presentation/camera_receipt_capture/camera_receipt_capture.dart';
@@ -31,6 +32,7 @@ class AppRoutes {
   // Other routes remain unchanged
   static const String groupDetail = '/group-detail';
   static const String expenseCreation = '/expense-creation';
+  static const String expenseCreationWizard = '/expense-creation-wizard';
   static const String expenseDetail = '/expense-detail';
   static const String itemAssignment = '/item-assignment';
   static const String cameraReceiptCapture = '/camera-receipt-capture';
@@ -58,6 +60,7 @@ class AppRoutes {
         
         // Other routes remain unchanged
         expenseCreation: (context) => const ExpenseCreation(),
+        expenseCreationWizard: (context) => const ExpenseCreationWizard(),
         itemAssignment: (context) => const ItemAssignment(),
         cameraReceiptCapture: (context) => const CameraReceiptCapture(),
         receiptOcrReview: (context) => const ReceiptOcrReview(),
@@ -141,6 +144,14 @@ class AppRoutes {
             mode: mode,
             receiptData: receiptData != null ? ReceiptModeData.fromJson(receiptData) : null,
           ),
+          settings: settings,
+        );
+        
+      case expenseCreationWizard:
+        final args = settings.arguments as Map<String, dynamic>?;
+        final groupId = args?['groupId'] as int?;
+        return MaterialPageRoute(
+          builder: (context) => ExpenseCreationWizard(groupId: groupId),
           settings: settings,
         );
         
