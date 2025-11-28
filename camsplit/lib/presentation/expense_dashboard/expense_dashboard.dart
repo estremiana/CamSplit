@@ -178,6 +178,12 @@ class _ExpenseDashboardState extends State<ExpenseDashboard>
     _closeFabMenu();
   }
 
+  void _openExpenseWizard() {
+    HapticFeedback.mediumImpact();
+    Navigator.pushNamed(context, AppRoutes.expenseWizard);
+    _closeFabMenu();
+  }
+
   void _closeFabMenu() {
     setState(() {
       _fabMenuOpen = false;
@@ -281,7 +287,74 @@ class _ExpenseDashboardState extends State<ExpenseDashboard>
     return Stack(
       alignment: Alignment.bottomRight,
       children: [
-        // Camera FAB (secondary)
+        // Wizard FAB (tertiary - top)
+        AnimatedBuilder(
+          animation: _fabController,
+          builder: (context, child) {
+            return Positioned(
+              right: 0,
+              bottom: 0 + (_fabTranslation.value * 2),
+              child: IgnorePointer(
+                ignoring: !_fabMenuOpen && _fabController.value == 0,
+                child: Opacity(
+                  opacity: _fabController.value,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Label
+                      AnimatedOpacity(
+                        opacity: _fabMenuOpen ? 1 : 0,
+                        duration: const Duration(milliseconds: 200),
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 12.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.05),
+                                      blurRadius: 4,
+                                    ),
+                                  ],
+                                ),
+                                child: Text(
+                                  'Wizard (New)',
+                                  style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                                    color: AppTheme.lightTheme.primaryColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      FloatingActionButton(
+                        heroTag: 'fab_wizard',
+                        backgroundColor: AppTheme.lightTheme.primaryColor,
+                        foregroundColor: AppTheme.onPrimaryLight,
+                        elevation: 3.0,
+                        onPressed: _fabMenuOpen ? _openExpenseWizard : null,
+                        child: CustomIconWidget(
+                          iconName: 'auto_awesome',
+                          color: AppTheme.onPrimaryLight,
+                          size: 28,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+        // Camera FAB (secondary - middle)
         AnimatedBuilder(
           animation: _fabController,
           builder: (context, child) {
@@ -331,17 +404,87 @@ class _ExpenseDashboardState extends State<ExpenseDashboard>
                       ),
                       FloatingActionButton(
                         heroTag: 'fab_camera',
-                        // Remove mini: true to make it same size as plus FAB
-        backgroundColor: AppTheme.lightTheme.primaryColor,
-        foregroundColor: AppTheme.onPrimaryLight,
+                        backgroundColor: AppTheme.lightTheme.primaryColor,
+                        foregroundColor: AppTheme.onPrimaryLight,
                         elevation: 3.0,
                         onPressed: _fabMenuOpen ? _openCameraCapture : null,
-        child: CustomIconWidget(
-          iconName: 'camera_alt',
-          color: AppTheme.onPrimaryLight,
+                        child: CustomIconWidget(
+                          iconName: 'camera_alt',
+                          color: AppTheme.onPrimaryLight,
                           size: 28,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         ),
-      ),
+        // Manual Expense FAB (bottom - just above main FAB)
+        AnimatedBuilder(
+          animation: _fabController,
+          builder: (context, child) {
+            return Positioned(
+              right: 0,
+              bottom: 0,
+              child: IgnorePointer(
+                ignoring: !_fabMenuOpen && _fabController.value == 0,
+                child: Opacity(
+                  opacity: _fabController.value,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Only show label when menu is open
+                      if (_fabMenuOpen)
+                        AnimatedOpacity(
+                          opacity: 1,
+                          duration: const Duration(milliseconds: 200),
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 12.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Container(
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(8),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.05),
+                                        blurRadius: 4,
+                                      ),
+                                    ],
+                                  ),
+                                  child: Text(
+                                    'Manual entry',
+                                    style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                                      color: AppTheme.lightTheme.primaryColor,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      GestureDetector(
+                        onTap: _fabMenuOpen ? _openExpenseCreation : null,
+                        child: FloatingActionButton(
+                          heroTag: 'fab_manual',
+                          backgroundColor: AppTheme.lightTheme.primaryColor,
+                          foregroundColor: AppTheme.onPrimaryLight,
+                          elevation: 3.0,
+                          onPressed: null, // Use GestureDetector's onTap
+                          child: CustomIconWidget(
+                            iconName: 'edit',
+                            color: AppTheme.onPrimaryLight,
+                            size: 28,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -353,74 +496,28 @@ class _ExpenseDashboardState extends State<ExpenseDashboard>
         Positioned(
           right: 0,
           bottom: 0,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Only show label when menu is open
-              if (_fabMenuOpen)
-                AnimatedOpacity(
-                  opacity: 1,
-                  duration: const Duration(milliseconds: 200),
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 12.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 4,
-                              ),
-                            ],
-                          ),
-                          child: Text(
-                            'Create new expense',
-                            style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
-                              color: AppTheme.lightTheme.primaryColor,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
+          child: GestureDetector(
+            onTap: _toggleFabMenu,
+            child: AnimatedBuilder(
+              animation: _fabController,
+              builder: (context, child) {
+                return Transform.rotate(
+                  angle: _fabRotation.value * 2 * 3.1415926535,
+                  child: FloatingActionButton(
+                    heroTag: 'fab_plus',
+                    backgroundColor: AppTheme.lightTheme.primaryColor,
+                    foregroundColor: AppTheme.onPrimaryLight,
+                    elevation: 4.0,
+                    onPressed: null, // Use GestureDetector's onTap
+                    child: CustomIconWidget(
+                      iconName: 'add',
+                      color: AppTheme.onPrimaryLight,
+                      size: 28,
                     ),
                   ),
-                ),
-              GestureDetector(
-                onTap: () {
-                  if (_fabMenuOpen) {
-                    _openExpenseCreation();
-                  } else {
-                    _toggleFabMenu();
-                  }
-                },
-                child: AnimatedBuilder(
-                  animation: _fabController,
-                  builder: (context, child) {
-                    return Transform.rotate(
-                      angle: _fabRotation.value * 2 * 3.1415926535,
-                      child: FloatingActionButton(
-                        heroTag: 'fab_plus',
-                        backgroundColor: AppTheme.lightTheme.primaryColor,
-                        foregroundColor: AppTheme.onPrimaryLight,
-                        elevation: 4.0,
-                        onPressed: null, // Use GestureDetector's onTap
-                        child: CustomIconWidget(
-                          iconName: 'add',
-                          color: AppTheme.onPrimaryLight,
-                          size: 28,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
+                );
+              },
+            ),
           ),
         ),
       ],

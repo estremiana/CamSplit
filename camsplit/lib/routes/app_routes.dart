@@ -10,6 +10,7 @@ import '../presentation/camera_receipt_capture/camera_receipt_capture.dart';
 import '../presentation/receipt_ocr_review/receipt_ocr_review.dart';
 import '../presentation/settlement_summary/settlement_summary.dart';
 import '../presentation/edit_profile/edit_profile.dart';
+import '../presentation/create_expense_wizard/expense_wizard_screen.dart';
 import '../widgets/main_navigation_container.dart';
 import '../models/receipt_mode_data.dart';
 
@@ -31,6 +32,7 @@ class AppRoutes {
   // Other routes remain unchanged
   static const String groupDetail = '/group-detail';
   static const String expenseCreation = '/expense-creation';
+  static const String expenseWizard = '/expense-wizard';
   static const String expenseDetail = '/expense-detail';
   static const String itemAssignment = '/item-assignment';
   static const String cameraReceiptCapture = '/camera-receipt-capture';
@@ -58,6 +60,7 @@ class AppRoutes {
         
         // Other routes remain unchanged
         expenseCreation: (context) => const ExpenseCreation(),
+        expenseWizard: (context) => const ExpenseWizardScreen(),
         itemAssignment: (context) => const ItemAssignment(),
         cameraReceiptCapture: (context) => const CameraReceiptCapture(),
         receiptOcrReview: (context) => const ReceiptOcrReview(),
@@ -141,6 +144,12 @@ class AppRoutes {
             mode: mode,
             receiptData: receiptData != null ? ReceiptModeData.fromJson(receiptData) : null,
           ),
+          settings: settings,
+        );
+        
+      case expenseWizard:
+        return MaterialPageRoute(
+          builder: (context) => const ExpenseWizardScreen(),
           settings: settings,
         );
         
