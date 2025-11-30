@@ -7,6 +7,7 @@ import '../../../services/group_image_service.dart';
 
 import '../../../widgets/custom_image_widget.dart';
 import '../../../widgets/currency_display_widget.dart';
+import '../../../widgets/stacked_avatars_widget.dart';
 
 class GroupCardWidget extends StatefulWidget {
   final Group group;
@@ -45,256 +46,146 @@ class _GroupCardWidgetState extends State<GroupCardWidget> {
   }
 
   Widget _buildMemberAvatars() {
-    final members = widget.group.members;
-    final maxVisible = 3; // Show up to 3 avatars
-    final visibleMembers = members.take(maxVisible).toList();
-    final remainingCount = members.length - maxVisible;
-
-    // Debug logging
-    print('GroupCardWidget: Building avatars for group "${widget.group.name}"');
-    print('GroupCardWidget: Members count: ${members.length}');
-    print('GroupCardWidget: Visible members: ${visibleMembers.length}');
-    for (var member in visibleMembers) {
-      print('GroupCardWidget: Member: ${member.nickname}, Avatar: ${member.avatarUrl}, UserId: ${member.userId}');
-    }
-
-    // If no members, show a placeholder
-    if (members.isEmpty) {
-      return Container(
-        width: 7.w,
-        height: 7.w,
-        decoration: BoxDecoration(
-          color: AppTheme.lightTheme.colorScheme.surfaceContainerHighest,
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: AppTheme.lightTheme.colorScheme.outline,
-            width: 1.5,
-          ),
-        ),
-        child: Center(
-          child: Icon(
-            Icons.group,
-            size: 12,
-            color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-      );
-    }
-
-    return Row(
-      children: [
-        ...visibleMembers.map((member) => Container(
-          margin: EdgeInsets.only(right: 0.5.w),
-          child: Container(
-            width: 7.w,
-            height: 7.w,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: AppTheme.lightTheme.colorScheme.outline,
-                width: 1.5,
-              ),
-            ),
-            child: ClipOval(
-              child: CustomImageWidget(
-                imageUrl: member.avatarUrl,
-                width: 7.w,
-                height: 7.w,
-                userName: member.nickname,
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-        )),
-        if (remainingCount > 0)
-          Container(
-            width: 7.w,
-            height: 7.w,
-            margin: EdgeInsets.only(left: 0.5.w),
-            decoration: BoxDecoration(
-              color: AppTheme.lightTheme.colorScheme.surfaceContainerHighest,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: AppTheme.lightTheme.colorScheme.outline,
-                width: 1.5,
-              ),
-            ),
-            child: Center(
-              child: Text(
-                '+$remainingCount',
-                style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-                  color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 10,
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildBalanceDisplay() {
-    final balance = widget.group.userBalance;
-    if (balance == null) return SizedBox.shrink();
-
-    Color balanceColor;
-    if (balance > 0) {
-      balanceColor = const Color(0xFF10B981); // Brighter green for positive balance
-    } else if (balance < 0) {
-      balanceColor = const Color(0xFFEF4444); // Brighter red for negative balance
-    } else {
-      balanceColor = AppTheme.lightTheme.colorScheme.onSurfaceVariant; // Balanced
-    }
-
-    return CurrencyDisplayWidget(
-      amount: balance,
-      currency: widget.group.currency,
-      style: AppTheme.getMonospaceStyle(
-        isLight: true,
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-      ).copyWith(
-        color: balanceColor,
-      ),
+    return StackedAvatarsWidget(
+      members: widget.group.members,
+      maxVisible: 3,
+      size: 32.0,
+      spacing: 24.0,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Use Group model properties
-    final memberCount = widget.group.memberCount;
-    // Display created_at as the reference timestamp per requirement
-    final createdAt = widget.group.createdAt;
+    final balance = widget.group.userBalance ?? 0;
+    final isPositive = balance >= 0;
+    final balanceColor = isPositive ? Color(0xFF059669) : Color(0xFFEF4444); // emerald-600 : red-500
 
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 4.w, vertical: 0.5.h),
-      child: Card(
-        elevation: widget.isSelected ? 4.0 : 0.0,
-        color: widget.isSelected
-            ? AppTheme.lightTheme.colorScheme.primaryContainer
-            : AppTheme.lightTheme.cardColor,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16.0),
-          side: widget.isSelected
-              ? BorderSide(
-                  color: AppTheme.lightTheme.colorScheme.primary,
-                  width: 2.0,
-                )
-              : BorderSide.none,
-        ),
+      margin: EdgeInsets.symmetric(horizontal: 6.w, vertical: 1.h), // p-6 space-y-4
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12), // rounded-xl
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 2,
+            offset: Offset(0, 1),
+          ),
+        ],
+        border: Border.all(color: Colors.grey[100]!),
+      ),
+      child: Material(
+        color: Colors.transparent,
         child: InkWell(
-          key: Key('group_card_main_inkwell'),
           onTap: widget.onTap,
-          onLongPress: widget.onLongPress,
-          borderRadius: BorderRadius.circular(16.0),
-          child: Padding(
-            padding: EdgeInsets.all(4.w),
-            child: Row(
-              children: [
-                if (widget.isMultiSelectMode) ...[
-                  Container(
-                    width: 6.w,
-                    height: 6.w,
-                    margin: EdgeInsets.only(right: 3.w),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: widget.isSelected
-                            ? AppTheme.lightTheme.colorScheme.primary
-                            : AppTheme.lightTheme.colorScheme.outline,
-                        width: 2.0,
-                      ),
-                      color: widget.isSelected
-                          ? AppTheme.lightTheme.colorScheme.primary
-                          : Colors.transparent,
-                    ),
-                    child: widget.isSelected
-                        ? CustomIconWidget(
-                            iconName: 'check',
-                            color:
-                                AppTheme.lightTheme.colorScheme.onPrimary,
-                            size: 16,
-                          )
-                        : null,
-                  ),
-                ] else ...[
-                  // Group image
-                  Container(
-                    margin: EdgeInsets.only(right: 3.w),
-                    child: GroupImageService.buildGroupAvatar(
-                      imageUrl: widget.group.imageUrl,
-                      groupName: widget.group.name,
-                      size: 12.w,
-                      backgroundColor: AppTheme.lightTheme.colorScheme.primaryContainer,
-                      textColor: AppTheme.lightTheme.colorScheme.onPrimaryContainer,
-                    ),
-                  ),
-                ],
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          borderRadius: BorderRadius.circular(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Image Header Section
+              Container(
+                height: 96, // h-24
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                  child: Stack(
+                    fit: StackFit.expand,
                     children: [
-                      // Header row with title and balance
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              widget.group.name,
-                              style: AppTheme
-                                  .lightTheme.textTheme.titleLarge
-                                  ?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 18,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          if (!widget.isMultiSelectMode) ...[
-                            SizedBox(width: 2.w),
-                            _buildBalanceDisplay(),
-                          ],
-                        ],
-                      ),
-                      SizedBox(height: 0.5.h),
-                      // Description
-                      Text(
-                        widget.group.description ?? 'No description',
-                        style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
-                          color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
-                          fontSize: 14,
+                      // Cover Image
+                      if (widget.group.imageUrl != null)
+                        CustomImageWidget(
+                          imageUrl: widget.group.imageUrl,
+                          width: double.infinity,
+                          height: 96,
+                          fit: BoxFit.cover,
+                          userName: widget.group.name,
+                        )
+                      else
+                        Container(color: Colors.grey[300]),
+                    
+                      // Gradient Overlay
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.2),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                      SizedBox(height: 1.h),
-                      // Bottom row with avatars and time (member count removed)
-                      Row(
-                        children: [
-                          _buildMemberAvatars(),
-                          Spacer(),
-                          Text(
-                            _getTimeAgo(createdAt),
-                            style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-                              color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
-                              fontSize: 12,
+                      
+                      // Text Overlay
+                      Positioned(
+                        bottom: 12,
+                        left: 16,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.group.name,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                shadows: [
+                                  Shadow(
+                                    offset: Offset(0, 1),
+                                    blurRadius: 2,
+                                    color: Colors.black.withOpacity(0.5),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          if (!widget.isMultiSelectMode) ...[
-                            SizedBox(width: 1.w),
-                            CustomIconWidget(
-                              iconName: 'chevron_right',
-                              color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
-                              size: 16,
+                            Text(
+                              '${widget.group.memberCount} members',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.9),
+                                fontSize: 12,
+                              ),
                             ),
                           ],
-                        ],
+                        ),
                       ),
                     ],
                   ),
                 ),
-              ],
-            ),
+              ),
+              
+              // Bottom Info Section
+              Padding(
+                padding: EdgeInsets.all(16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Avatars
+                    _buildMemberAvatars(),
+                    
+                    // Balance
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          isPositive ? 'you are owed' : 'you owe',
+                          style: TextStyle(
+                            color: balanceColor,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        CurrencyDisplayWidget(
+                          amount: balance.abs(),
+                          currency: widget.group.currency,
+                          style: TextStyle(
+                            color: balanceColor,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),

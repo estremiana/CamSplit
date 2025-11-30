@@ -34,14 +34,16 @@ class RecentExpenseCardWidget extends StatelessWidget {
     final amount = expense["amount"] as double;
     final description = expense["description"] as String;
     final group = expense["group"] as String;
-    final receiptUrl = expense["receiptUrl"] as String;
+    final String? receiptUrl = expense["receiptUrl"] as String?;
+    final hasReceiptImage =
+        receiptUrl != null && receiptUrl.trim().isNotEmpty;
     final paidBy = expense["paidBy"] as String;
     final date = expense["date"] as DateTime;
     final splitWith = expense["splitWith"] as List;
     final amountOwed = (expense["amountOwed"] as num?)?.toDouble() ?? 0.0;
 
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
+      margin: EdgeInsets.symmetric(horizontal: 4.w, vertical: 0.8.h),
       child: GestureDetector(
         onTap: () {
           HapticFeedback.selectionClick();
@@ -51,61 +53,101 @@ class RecentExpenseCardWidget extends StatelessWidget {
           HapticFeedback.mediumImpact();
           _showContextMenu(context);
         },
-        child: Card(
-            elevation: 1.0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12.0),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 3.5.w, vertical: 2.8.w),
+          decoration: BoxDecoration(
+            color: AppTheme.cardLight,
+            borderRadius: BorderRadius.circular(18.0),
+            border: Border.all(
+              color: AppTheme.borderGreyLight,
+              width: 1.15,
             ),
-            child: Container(
-              padding: EdgeInsets.all(3.w),
-              child: Row(
-                children: [
-                  // Receipt thumbnail
-                  Container(
-                    width: 15.w,
-                    height: 15.w,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8.0),
-                      border: Border.all(
-                        color: AppTheme.borderLight,
-                        width: 1.0,
-                      ),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8.0),
-                      child: CustomImageWidget(
-                        imageUrl: receiptUrl,
-                        width: 15.w,
-                        height: 15.w,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 3.w),
-                  // Expense details
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          description,
-                          style: AppTheme.lightTheme.textTheme.titleMedium
-                              ?.copyWith(
-                            fontWeight: FontWeight.w600,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 24,
+                offset: const Offset(0, 14),
+                spreadRadius: -6,
+              ),
+            ],
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Receipt thumbnail
+              Container(
+                width: 13.w,
+                height: 13.w,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12.0),
+                  color: AppTheme.surfaceLight,
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12.0),
+                  child: hasReceiptImage
+                      ? CustomImageWidget(
+                          imageUrl: receiptUrl!,
+                          width: 13.w,
+                          height: 13.w,
+                          fit: BoxFit.cover,
+                        )
+                      : Center(
+                          child: CustomIconWidget(
+                            iconName: 'receipt_long',
+                            size: 20,
+                            color: AppTheme.secondaryLight,
                           ),
-                          overflow: TextOverflow.ellipsis,
                         ),
-                        SizedBox(height: 0.5.h),
+                ),
+              ),
+              SizedBox(width: 3.w),
+              // Expense details
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      description,
+                      style: AppTheme.lightTheme.textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w600),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    SizedBox(height: 0.4.h),
+                    Row(
+                      children: [
+                        CustomIconWidget(
+                          iconName: 'group',
+                          color: AppTheme.textSecondaryLight,
+                          size: 13,
+                        ),
+                        SizedBox(width: 1.w),
+                        Flexible(
+                          child: Text(
+                            group,
+                            style: AppTheme.lightTheme.textTheme.bodySmall
+                                ?.copyWith(
+                              color: AppTheme.textSecondaryLight,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        SizedBox(width: 1.w),
+                        const Text('•'),
+                        SizedBox(width: 1.w),
                         Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             CustomIconWidget(
-                              iconName: 'group',
+                              iconName: 'schedule',
                               color: AppTheme.textSecondaryLight,
-                              size: 14,
+                              size: 12,
                             ),
-                            SizedBox(width: 1.w),
+                            SizedBox(width: 0.8.w),
                             Text(
-                              group,
+                              _formatDate(date),
                               style: AppTheme.lightTheme.textTheme.bodySmall
                                   ?.copyWith(
                                 color: AppTheme.textSecondaryLight,
@@ -113,93 +155,68 @@ class RecentExpenseCardWidget extends StatelessWidget {
                             ),
                           ],
                         ),
-                        SizedBox(height: 0.5.h),
-                        Text(
-                          'Paid by $paidBy',
-                          style: AppTheme.lightTheme.textTheme.bodySmall
-                              ?.copyWith(
-                            color: AppTheme.textSecondaryLight,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
                       ],
                     ),
-                  ),
-                  SizedBox(width: 2.w),
-                  // Amount, amount owed, and timestamp info
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      isPrivacyMode
-                          ? Text(
-                              '••••••',
-                              style: AppTheme.getMonospaceStyle(
-                                isLight: true,
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            )
-                          : CurrencyDisplayWidget(
-                              amount: amount,
-                              currency: currency,
-                              style: AppTheme.getMonospaceStyle(
-                                isLight: true,
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                      if (amountOwed > 0) ...[
-                        SizedBox(height: 0.3.h),
-                        isPrivacyMode
-                            ? Text(
-                                '••••••',
-                                style: AppTheme.getMonospaceStyle(
-                                  isLight: true,
-                                  fontSize: 12.sp,
-                                  fontWeight: FontWeight.w500,
-                                ).copyWith(
-                                  color: AppTheme.errorLight,
-                                ),
-                              )
-                            : CurrencyDisplayWidget(
-                                amount: amountOwed,
-                                currency: currency,
-                                style: AppTheme.getMonospaceStyle(
-                                  isLight: true,
-                                  fontSize: 12.sp,
-                                  fontWeight: FontWeight.w500,
-                                ).copyWith(
-                                  color: AppTheme.errorLight,
-                                ),
-                              ),
-                      ],
-                      SizedBox(height: 0.5.h),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          CustomIconWidget(
-                            iconName: 'schedule',
-                            color: AppTheme.textSecondaryLight,
-                            size: 12,
+
+                  ],
+                ),
+              ),
+              SizedBox(width: 2.w),
+              // Amount, amount owed, and timestamp info
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  isPrivacyMode
+                      ? Text(
+                          '••••••',
+                          style: AppTheme.getMonospaceStyle(
+                            isLight: true,
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
                           ),
-                          SizedBox(width: 1.w),
-                          Text(
-                            _formatDate(date),
-                            style: AppTheme.lightTheme.textTheme.bodySmall
-                                ?.copyWith(
-                              color: AppTheme.textSecondaryLight,
+                        )
+                      : CurrencyDisplayWidget(
+                          amount: amount,
+                          currency: currency,
+                          style: AppTheme.getMonospaceStyle(
+                            isLight: true,
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                  if (amountOwed > 0) ...[
+                    SizedBox(height: 0.2.h),
+                    isPrivacyMode
+                        ? Text(
+                            '••••••',
+                            style: AppTheme.getMonospaceStyle(
+                              isLight: true,
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w500,
+                            ).copyWith(
+                              color: AppTheme.errorLight,
+                            ),
+                          )
+                        : CurrencyDisplayWidget(
+                            amount: amountOwed,
+                            currency: currency,
+                            style: AppTheme.getMonospaceStyle(
+                              isLight: true,
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w500,
+                            ).copyWith(
+                              color: AppTheme.errorLight,
                             ),
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
+                  ],
                 ],
               ),
-            ),
+            ],
           ),
         ),
-      );
+      ),
+    );
   }
 
 

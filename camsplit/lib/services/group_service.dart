@@ -44,40 +44,8 @@ class GroupService {
         for (final json in groupsData) {
           try {
             final group = Group.fromJson(json);
-            
-            // Fetch user balance for this group
-            try {
-              final balanceResponse = await _apiService.getUserBalanceForGroup(group.id.toString());
-              if (balanceResponse['success'] && balanceResponse['data'] != null) {
-                final balanceData = balanceResponse['data'];
-                final balanceString = balanceData['balance']?.toString() ?? '0.0';
-                final userBalance = double.tryParse(balanceString) ?? 0.0;
-                
-                // Create a new group with balance data
-                final groupWithBalance = Group(
-                  id: group.id,
-                  name: group.name,
-                  currency: group.currency,
-                  description: group.description,
-                  createdBy: group.createdBy,
-                  members: group.members,
-                  memberCountFromApi: group.memberCountFromApi,
-                  lastUsed: group.lastUsed,
-                  createdAt: group.createdAt,
-                  updatedAt: group.updatedAt,
-                  userBalance: userBalance,
-                  imageUrl: group.imageUrl,
-                );
-                groups.add(groupWithBalance);
-              } else {
-                // If balance fetch fails, add group without balance
-                groups.add(group);
-              }
-            } catch (balanceError) {
-              print('Failed to fetch balance for group ${group.id}: $balanceError');
-              // Add group without balance if balance fetch fails
-              groups.add(group);
-            }
+            // Balance is now calculated from settlements, no need for separate API call
+            groups.add(group);
           } catch (e) {
             print('Error parsing group JSON: $e');
             print('JSON data: $json');

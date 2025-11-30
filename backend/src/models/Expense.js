@@ -695,9 +695,15 @@ class Expense {
   static validateSplits(splits, totalAmount, splitType) {
     const errors = [];
 
+    // For itemized expenses, splits can be empty if they will be calculated from item assignments
+    // However, if splits are provided, they should still be validated
     if (!splits || splits.length === 0) {
-      errors.push('At least one split is required');
-      return { isValid: false, errors };
+      if (splitType !== 'itemized') {
+        errors.push('At least one split is required');
+        return { isValid: false, errors };
+      }
+      // For itemized expenses, empty splits are allowed (will be calculated from assignments)
+      return { isValid: true, errors: [] };
     }
 
     let totalOwed = 0;

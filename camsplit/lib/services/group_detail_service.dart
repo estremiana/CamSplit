@@ -77,40 +77,7 @@ class GroupDetailService {
   }
 
   /// Retrieve user's balance for a specific group
-  /// 
-  /// This method fetches the current user's net balance within the group,
-  /// which is used to display whether they owe money or are owed money
-  /// 
-  /// [groupId] - The ID of the group to get balance for
-  /// 
-  /// Returns [Map] containing balance amount and currency
-  /// Throws [GroupDetailServiceException] on API errors
-  static Future<Map<String, dynamic>> getUserBalance(int groupId) async {
-    try {
-      // Get user balance from settlements using the new endpoint
-      final response = await _apiService.getUserBalanceForGroup(groupId.toString());
-      
-      if (response['success']) {
-        final balanceData = response['data'];
-        
-        // Extract balance from the settlements-based calculation
-        final balanceString = balanceData['balance']?.toString() ?? '0.0';
-        final userBalance = double.tryParse(balanceString) ?? 0.0;
-        
-        return {
-          'balance': userBalance,
-          'currency': 'EUR', // TODO: Get currency from group data
-        };
-      } else {
-        throw GroupDetailServiceException(response['message'] ?? 'Failed to load user balance');
-      }
-    } catch (e) {
-      if (e is GroupDetailServiceException) {
-        rethrow;
-      }
-      throw GroupDetailServiceException('Failed to load user balance: $e');
-    }
-  }
+
 
 
 
@@ -436,23 +403,6 @@ class GroupDetailService {
       print('Failed to fetch group settlements: $e');
     }
 
-    // Calculate user balance from settlements
-    double userBalance = 0.0;
-    try {
-      final balanceResponse = await _apiService.getUserBalanceForGroup(group.id.toString());
-      
-      if (balanceResponse['success'] && balanceResponse['data'] != null) {
-        final balanceData = balanceResponse['data'];
-        
-        // Extract balance from the settlements-based calculation
-        final balanceString = balanceData['balance']?.toString() ?? '0.0';
-        userBalance = double.tryParse(balanceString) ?? 0.0;
-      }
-    } catch (e) {
-      // Log error but don't fail the entire group detail fetch
-      print('Failed to fetch user balance: $e');
-    }
-
     return GroupDetailModel(
       id: group.id,
       name: group.name,
@@ -462,7 +412,7 @@ class GroupDetailService {
       members: enhancedMembers,
       expenses: expenses,
       settlements: settlements,
-      userBalance: userBalance,
+      userBalance: 0.0, // Deprecated: balance is now calculated from settlements
       lastActivity: group.lastUsed, // Use lastUsed as lastActivity
       canEdit: true, // TODO: Check user permissions
       canDelete: true, // TODO: Check if user is admin

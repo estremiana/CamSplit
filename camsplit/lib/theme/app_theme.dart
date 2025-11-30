@@ -16,6 +16,7 @@ class AppTheme {
   static const Color surfaceLight = Color(0xFFF8FAFC); // Clean background
   static const Color cardLight = Color(0xFFFFFFFF); // Pure white cards
   static const Color borderLight = Color(0xFFE2E8F0); // Subtle definition
+  static const Color borderGreyLight = Color(0xFFF7FAFC); // Subtler definition
   static const Color textPrimaryLight =
       Color(0xFF0F172A); // Maximum readability
   static const Color textSecondaryLight =

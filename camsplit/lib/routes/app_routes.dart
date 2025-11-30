@@ -4,7 +4,10 @@ import '../presentation/login_screen/login_screen.dart';
 import '../presentation/registration_screen/registration_screen.dart';
 import '../presentation/group_detail/group_detail_page.dart';
 import '../presentation/expense_creation/expense_creation.dart';
+import '../presentation/expense_creation_wizard/expense_creation_wizard.dart';
 import '../presentation/expense_detail/expense_detail_page.dart';
+import '../presentation/expense_detail_summary/expense_detail_summary_page.dart';
+import '../presentation/expense_split_edit/expense_split_edit_page.dart';
 import '../presentation/item_assignment/item_assignment.dart';
 import '../presentation/camera_receipt_capture/camera_receipt_capture.dart';
 import '../presentation/receipt_ocr_review/receipt_ocr_review.dart';
@@ -31,7 +34,10 @@ class AppRoutes {
   // Other routes remain unchanged
   static const String groupDetail = '/group-detail';
   static const String expenseCreation = '/expense-creation';
+  static const String expenseCreationWizard = '/expense-creation-wizard';
   static const String expenseDetail = '/expense-detail';
+  static const String expenseDetailSummary = '/expense-detail-summary';
+  static const String expenseSplitEdit = '/expense-split-edit';
   static const String itemAssignment = '/item-assignment';
   static const String cameraReceiptCapture = '/camera-receipt-capture';
   static const String receiptOcrReview = '/receipt-ocr-review';
@@ -58,6 +64,7 @@ class AppRoutes {
         
         // Other routes remain unchanged
         expenseCreation: (context) => const ExpenseCreation(),
+        expenseCreationWizard: (context) => const ExpenseCreationWizard(),
         itemAssignment: (context) => const ItemAssignment(),
         cameraReceiptCapture: (context) => const CameraReceiptCapture(),
         receiptOcrReview: (context) => const ReceiptOcrReview(),
@@ -132,6 +139,14 @@ class AppRoutes {
           settings: settings,
         );
         
+      case expenseDetailSummary:
+        final args = settings.arguments as Map<String, dynamic>?;
+        final expenseId = args?['expenseId'] as int? ?? 1;
+        return MaterialPageRoute(
+          builder: (context) => ExpenseDetailSummaryPage(expenseId: expenseId),
+          settings: settings,
+        );
+        
       case expenseCreation:
         final args = settings.arguments as Map<String, dynamic>?;
         final mode = args?['mode'] as String? ?? 'manual';
@@ -141,6 +156,14 @@ class AppRoutes {
             mode: mode,
             receiptData: receiptData != null ? ReceiptModeData.fromJson(receiptData) : null,
           ),
+          settings: settings,
+        );
+        
+      case expenseCreationWizard:
+        final args = settings.arguments as Map<String, dynamic>?;
+        final groupId = args?['groupId'] as int?;
+        return MaterialPageRoute(
+          builder: (context) => ExpenseCreationWizard(groupId: groupId),
           settings: settings,
         );
         

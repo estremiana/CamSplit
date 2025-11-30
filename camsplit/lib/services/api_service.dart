@@ -392,14 +392,7 @@ class ApiService {
     }
   }
   
-  Future<Map<String, dynamic>> getUserBalanceForGroup(String groupId) async {
-    try {
-      final response = await _dio.get('${ApiConfig.groupsEndpoint}/$groupId/user-balance');
-      return response.data;
-    } on DioException catch (e) {
-      throw _handleDioError(e);
-    }
-  }
+
   
   Future<Map<String, dynamic>> searchGroups(String query) async {
     try {
