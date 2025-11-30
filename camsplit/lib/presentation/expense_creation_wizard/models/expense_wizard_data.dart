@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'receipt_item.dart';
 
 enum SplitType {
@@ -53,6 +54,21 @@ class ExpenseWizardData {
     List<ReceiptItem>? items,
     String? notes,
   }) {
+    final oldItemsCount = this.items.length;
+    final newItems = items ?? this.items;
+    final newItemsCount = newItems.length;
+    
+    // Debug if items are being lost
+    if (oldItemsCount > 0 && newItemsCount == 0 && items == null) {
+      // items parameter is null, so it should use this.items, but if newItemsCount is 0, something is wrong
+      // This shouldn't happen, but let's log it
+    } else if (oldItemsCount > 0 && newItemsCount == 0 && items != null) {
+      // items parameter was explicitly set to empty/null
+      debugPrint('⚠️ [MODEL] copyWith - Items explicitly cleared! Old: $oldItemsCount, New: $newItemsCount');
+    } else if (oldItemsCount != newItemsCount) {
+      debugPrint('🔍 [MODEL] copyWith - Items count changed: $oldItemsCount -> $newItemsCount');
+    }
+    
     return ExpenseWizardData(
       amount: amount ?? this.amount,
       title: title ?? this.title,
@@ -64,14 +80,14 @@ class ExpenseWizardData {
       splitDetails: splitDetails ?? this.splitDetails,
       involvedMembers: involvedMembers ?? this.involvedMembers,
       receiptImage: receiptImage ?? this.receiptImage,
-      items: items ?? this.items,
+      items: newItems,
       notes: notes ?? this.notes,
     );
   }
 
   // Validation for step 1 (Amount)
   bool validateStep1() {
-    return amount > 0;
+    return amount > 0 && title.trim().isNotEmpty;
   }
 
   // Validation for step 2 (Details)

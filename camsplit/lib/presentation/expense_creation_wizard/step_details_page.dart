@@ -34,7 +34,7 @@ class _StepDetailsPageState extends State<StepDetailsPage> {
   Group? _selectedGroup;
   GroupMember? _selectedPayer;
   DateTime _selectedDate = DateTime.now();
-  final List<String> _categories = [
+  final List<String> _defaultCategories = [
     'Food & Dining',
     'Transport',
     'Accommodation',
@@ -42,6 +42,17 @@ class _StepDetailsPageState extends State<StepDetailsPage> {
     'Groceries',
     'Other',
   ];
+
+  List<String> get _availableCategories {
+    final categories = List<String>.from(_defaultCategories);
+    // If OCR provided a category that's not in the default list, add it
+    if (widget.data.category != null && 
+        widget.data.category!.isNotEmpty && 
+        !_defaultCategories.contains(widget.data.category)) {
+      categories.insert(0, widget.data.category!); // Add OCR category at the beginning
+    }
+    return categories;
+  }
 
   @override
   void initState() {
@@ -79,7 +90,9 @@ class _StepDetailsPageState extends State<StepDetailsPage> {
           }
           
           if (_selectedGroup != null) {
-            widget.onDataChanged(widget.data.copyWith(groupId: _selectedGroup!.id.toString()));
+            final newData = widget.data.copyWith(groupId: _selectedGroup!.id.toString());
+            debugPrint('🔍 [STEP2] Setting groupId - items count before: ${widget.data.items.length}, after: ${newData.items.length}');
+            widget.onDataChanged(newData);
             _loadGroupMembers(_selectedGroup!.id);
           }
         });
@@ -144,14 +157,18 @@ class _StepDetailsPageState extends State<StepDetailsPage> {
       setState(() {
         _selectedPayer = payer;
       });
-      widget.onDataChanged(widget.data.copyWith(payerId: payer.id.toString()));
+      final newData = widget.data.copyWith(payerId: payer.id.toString());
+      debugPrint('🔍 [STEP2] Setting payerId - items count before: ${widget.data.items.length}, after: ${newData.items.length}');
+      widget.onDataChanged(newData);
     } catch (e) {
       debugPrint('Error setting default payer: $e');
       if (_groupMembers.isNotEmpty) {
         setState(() {
           _selectedPayer = _groupMembers.first;
         });
-        widget.onDataChanged(widget.data.copyWith(payerId: _groupMembers.first.id.toString()));
+        final newData = widget.data.copyWith(payerId: _groupMembers.first.id.toString());
+        debugPrint('🔍 [STEP2] Setting default payerId - items count before: ${widget.data.items.length}, after: ${newData.items.length}');
+        widget.onDataChanged(newData);
       }
     }
   }
@@ -167,9 +184,9 @@ class _StepDetailsPageState extends State<StepDetailsPage> {
       setState(() {
         _selectedDate = picked;
       });
-      widget.onDataChanged(
-        widget.data.copyWith(date: DateFormat('yyyy-MM-dd').format(picked)),
-      );
+      final newData = widget.data.copyWith(date: DateFormat('yyyy-MM-dd').format(picked));
+      debugPrint('🔍 [STEP2] Setting date - items count before: ${widget.data.items.length}, after: ${newData.items.length}');
+      widget.onDataChanged(newData);
     }
   }
 
@@ -177,7 +194,9 @@ class _StepDetailsPageState extends State<StepDetailsPage> {
     setState(() {
       _selectedGroup = group;
     });
-    widget.onDataChanged(widget.data.copyWith(groupId: group.id.toString()));
+    final newData = widget.data.copyWith(groupId: group.id.toString());
+    debugPrint('🔍 [STEP2] Selecting group - items count before: ${widget.data.items.length}, after: ${newData.items.length}');
+    widget.onDataChanged(newData);
     _loadGroupMembers(group.id);
   }
 
@@ -185,7 +204,9 @@ class _StepDetailsPageState extends State<StepDetailsPage> {
     setState(() {
       _selectedPayer = member;
     });
-    widget.onDataChanged(widget.data.copyWith(payerId: member.id.toString()));
+    final newData = widget.data.copyWith(payerId: member.id.toString());
+    debugPrint('🔍 [STEP2] Selecting payer - items count before: ${widget.data.items.length}, after: ${newData.items.length}');
+    widget.onDataChanged(newData);
   }
 
   @override
@@ -232,17 +253,22 @@ class _StepDetailsPageState extends State<StepDetailsPage> {
             ),
             // Content
             Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: 4.w),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+              child: GestureDetector(
+                onTap: () {
+                  FocusScope.of(context).unfocus();
+                },
+                behavior: HitTestBehavior.translucent,
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(horizontal: 4.w),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                     SizedBox(height: 2.h),
                     // Title
                     Text(
-                      'The Details',
+                      'Details',
                       style: TextStyle(
-                        fontSize: 28.sp,
+                        fontSize: 20.sp,
                         fontWeight: FontWeight.bold,
                         color: AppTheme.textPrimaryLight,
                       ),
@@ -270,6 +296,7 @@ class _StepDetailsPageState extends State<StepDetailsPage> {
                   ],
                 ),
               ),
+              ),
             ),
           ],
         ),
@@ -283,8 +310,8 @@ class _StepDetailsPageState extends State<StepDetailsPage> {
       child: Text(
         label,
         style: TextStyle(
-          fontSize: 10.sp,
-          fontWeight: FontWeight.w700,
+          fontSize: 14.sp,
+          fontWeight: FontWeight.w600,
           letterSpacing: 1.2,
           color: AppTheme.textSecondaryLight,
         ),
@@ -319,8 +346,8 @@ class _StepDetailsPageState extends State<StepDetailsPage> {
             border: Border.all(color: AppTheme.borderLight),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.02),
-                blurRadius: 4,
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 8,
                 offset: Offset(0, 2),
               ),
             ],
@@ -335,7 +362,7 @@ class _StepDetailsPageState extends State<StepDetailsPage> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
-                  Icons.people,
+                  Icons.people_outline,
                   color: AppTheme.primaryLight,
                   size: 5.w,
                 ),
@@ -357,7 +384,7 @@ class _StepDetailsPageState extends State<StepDetailsPage> {
                       Text(
                         '${_selectedGroup!.memberCount} Members',
                         style: TextStyle(
-                          fontSize: 12.sp,
+                          fontSize: 14.sp,
                           color: AppTheme.textSecondaryLight,
                         ),
                       ),
@@ -396,38 +423,24 @@ class _StepDetailsPageState extends State<StepDetailsPage> {
         border: Border.all(color: AppTheme.borderLight),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 4,
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
             offset: Offset(0, 2),
           ),
         ],
       ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<GroupMember>(
-          value: _selectedPayer,
-          isExpanded: true,
-          padding: EdgeInsets.symmetric(horizontal: 4.w),
-          icon: Icon(Icons.arrow_drop_down, color: AppTheme.textSecondaryLight),
-          items: _groupMembers.map((member) {
-            return DropdownMenuItem<GroupMember>(
-              value: member,
-              child: Row(
-                children: [
-                  Container(
-                    width: 8.w,
-                    height: 8.w,
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryLight.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      Icons.person,
-                      color: AppTheme.primaryLight,
-                      size: 4.w,
-                    ),
-                  ),
-                  SizedBox(width: 3.w),
-                  Text(
+      child: Stack(
+        children: [
+          DropdownButtonHideUnderline(
+            child: DropdownButton<GroupMember>(
+              value: _selectedPayer,
+              isExpanded: true,
+              padding: EdgeInsets.only(left: 12.w, right: 4.w),
+              icon: Icon(Icons.arrow_drop_down, color: AppTheme.textSecondaryLight),
+              items: _groupMembers.map((member) {
+                return DropdownMenuItem<GroupMember>(
+                  value: member,
+                  child: Text(
                     member.nickname,
                     style: TextStyle(
                       fontSize: 16.sp,
@@ -435,16 +448,28 @@ class _StepDetailsPageState extends State<StepDetailsPage> {
                       color: AppTheme.textPrimaryLight,
                     ),
                   ),
-                ],
+                );
+              }).toList(),
+              onChanged: (GroupMember? member) {
+                if (member != null) {
+                  _selectPayer(member);
+                }
+              },
+            ),
+          ),
+          Positioned(
+            left: 4.w,
+            top: 0,
+            bottom: 0,
+            child: Center(
+              child: Icon(
+                Icons.person_outline,
+                color: AppTheme.primaryLight,
+                size: 5.w,
               ),
-            );
-          }).toList(),
-          onChanged: (GroupMember? member) {
-            if (member != null) {
-              _selectPayer(member);
-            }
-          },
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -462,20 +487,22 @@ class _StepDetailsPageState extends State<StepDetailsPage> {
             onTap: () => _selectDate(context),
             borderRadius: BorderRadius.circular(16),
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 3.h),
+              padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 2.5.h),
+              height: 8.h,
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: AppTheme.borderLight),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.02),
-                    blurRadius: 4,
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 8,
                     offset: Offset(0, 2),
                   ),
                 ],
               ),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Icon(
                     Icons.calendar_today,
@@ -501,47 +528,81 @@ class _StepDetailsPageState extends State<StepDetailsPage> {
   }
 
   Widget _buildCategorySelector() {
+    final categories = _availableCategories;
+    final selectedCategory = widget.data.category?.isNotEmpty == true 
+        ? widget.data.category 
+        : null;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionLabel('CATEGORY'),
         SizedBox(height: 1.h),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppTheme.borderLight),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.02),
-                blurRadius: 4,
-                offset: Offset(0, 2),
-              ),
-            ],
-          ),
-          child: TextField(
-            controller: TextEditingController(text: widget.data.category),
-            onChanged: (value) {
-              widget.onDataChanged(widget.data.copyWith(category: value));
-            },
-            style: TextStyle(
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w600,
-              color: AppTheme.textPrimaryLight,
+        Material(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 2.5.h),
+            height: 8.h,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppTheme.borderLight),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
             ),
-            decoration: InputDecoration(
-              hintText: 'General',
-              hintStyle: TextStyle(
-                fontSize: 14.sp,
-                color: AppTheme.textSecondaryLight.withOpacity(0.5),
-              ),
-              prefixIcon: Icon(
-                Icons.local_offer,
-                size: 4.w,
-                color: AppTheme.textSecondaryLight,
-              ),
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 3.h),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.local_offer,
+                  size: 4.w,
+                  color: AppTheme.textSecondaryLight,
+                ),
+                SizedBox(width: 2.w),
+                Expanded(
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: selectedCategory,
+                      isExpanded: true,
+                      hint: Text(
+                        'General',
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textSecondaryLight.withOpacity(0.5),
+                        ),
+                      ),
+                      icon: Icon(Icons.arrow_drop_down, color: AppTheme.textSecondaryLight),
+                      items: categories.map((category) {
+                        return DropdownMenuItem<String>(
+                          value: category,
+                          child: Text(
+                            category,
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textPrimaryLight,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (String? value) {
+                        if (value != null) {
+                          final newData = widget.data.copyWith(category: value);
+                          debugPrint('🔍 [STEP2] Setting category - items count before: ${widget.data.items.length}, after: ${newData.items.length}');
+                          widget.onDataChanged(newData);
+                        }
+                      },
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -592,7 +653,7 @@ class _StepDetailsPageState extends State<StepDetailsPage> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(
-                        Icons.people,
+                        Icons.people_outline,
                         color: AppTheme.primaryLight,
                       ),
                     ),

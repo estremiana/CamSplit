@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:sizer/sizer.dart';
@@ -50,17 +51,145 @@ class _StepAmountPageState extends State<StepAmountPage> {
 
   void _onAmountChanged() {
     final amount = double.tryParse(_amountController.text.replaceAll(',', '.')) ?? 0.0;
-    widget.onDataChanged(widget.data.copyWith(amount: amount));
+    // Explicitly preserve items when updating amount (prevents losing items when controller text is set)
+    widget.onDataChanged(widget.data.copyWith(
+      amount: amount,
+      items: widget.data.items, // Preserve items
+    ));
+    setState(() {}); // Trigger rebuild to update width
   }
 
   void _onTitleChanged() {
-    widget.onDataChanged(widget.data.copyWith(title: _titleController.text));
+    // Explicitly preserve items when updating title
+    widget.onDataChanged(widget.data.copyWith(
+      title: _titleController.text,
+      items: widget.data.items, // Preserve items
+    ));
   }
 
   Future<void> _pickAndScanReceipt() async {
+    if (_isScanning) return;
+    _showImageSourceDialog();
+  }
+
+  void _showImageSourceDialog() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(height: 1.h),
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                SizedBox(height: 2.h),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4.w),
+                  child: Text(
+                    'Select Image Source',
+                    style: TextStyle(
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textPrimaryLight,
+                    ),
+                  ),
+                ),
+                SizedBox(height: 2.h),
+                ListTile(
+                  leading: Container(
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryLight.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.camera_alt,
+                      color: AppTheme.primaryLight,
+                      size: 24,
+                    ),
+                  ),
+                  title: Text(
+                    'Camera',
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w500,
+                      color: AppTheme.textPrimaryLight,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Take a photo of your receipt',
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      color: AppTheme.textSecondaryLight,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickImageFromSource(ImageSource.camera);
+                  },
+                ),
+                ListTile(
+                  leading: Container(
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryLight.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.photo_library,
+                      color: AppTheme.primaryLight,
+                      size: 24,
+                    ),
+                  ),
+                  title: Text(
+                    'Gallery',
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w500,
+                      color: AppTheme.textPrimaryLight,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Choose from your photos',
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      color: AppTheme.textSecondaryLight,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickImageFromSource(ImageSource.gallery);
+                  },
+                ),
+                SizedBox(height: 2.h),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickImageFromSource(ImageSource source) async {
     try {
       final XFile? image = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
+        source: source,
         imageQuality: 85,
       );
 
@@ -77,43 +206,78 @@ class _StepAmountPageState extends State<StepAmountPage> {
       if (result['success'] == true && result['data'] != null) {
         final data = result['data'];
         
-        // Parse items
+        // Parse items (matching the working implementation in receipt_ocr_review)
         final List<ReceiptItem> receiptItems = [];
         if (data['items'] != null && data['items'] is List) {
           final items = data['items'] as List;
           for (int i = 0; i < items.length; i++) {
             final item = items[i];
+            // Use total_price from backend (same as working implementation)
+            var totalPrice = (item['total_price'] ?? 0.0).toDouble();
             final qty = (item['quantity'] ?? 1).toDouble();
-            final unitPrice = (item['unit_price'] ?? item['price'] ?? 0.0).toDouble();
-            final totalPrice = unitPrice * qty;
+            var unitPrice = (item['unit_price'] ?? 0.0).toDouble();
+            
+            // If total_price is missing or 0, calculate from unit_price * quantity (backend fallback logic)
+            if (totalPrice <= 0 && unitPrice > 0) {
+              totalPrice = unitPrice * qty;
+            }
+            // If unit_price is missing or 0, calculate from total_price / quantity (backend fallback logic)
+            if (unitPrice <= 0 && totalPrice > 0 && qty > 0) {
+              unitPrice = totalPrice / qty;
+            }
 
             receiptItems.add(ReceiptItem(
               id: 'item-${DateTime.now().millisecondsSinceEpoch}-$i',
               name: item['description'] ?? item['name'] ?? 'Unknown Item',
               quantity: qty,
               unitPrice: unitPrice,
-              price: totalPrice,
+              price: totalPrice, // Use total_price from backend
               assignments: {},
               isCustomSplit: false,
             ));
           }
         }
 
-        // Update wizard data
-        widget.onDataChanged(
-          widget.data.copyWith(
-            amount: (data['total_amount'] ?? 0.0).toDouble(),
-            title: data['title'] ?? data['merchant'] ?? widget.data.title,
-            date: data['date'] ?? widget.data.date,
-            category: data['category'] ?? widget.data.category,
-            receiptImage: _receiptImageFile!.path,
-            items: receiptItems,
-          ),
+        // Extract OCR values
+        final ocrAmount = (data['total_amount'] ?? 0.0).toDouble();
+        final ocrTitle = data['title'] ?? data['merchant'];
+        final ocrDate = data['date'];
+        final ocrCategory = data['category'];
+
+        // Update wizard data with OCR results (always overwrite with OCR data)
+        // Auto-set split type to items if items were detected
+        final updatedData = widget.data.copyWith(
+          amount: ocrAmount,
+          title: ocrTitle != null && ocrTitle.toString().isNotEmpty 
+              ? ocrTitle.toString() 
+              : widget.data.title,
+          date: ocrDate ?? widget.data.date,
+          category: ocrCategory ?? widget.data.category,
+          receiptImage: _receiptImageFile!.path,
+          items: receiptItems,
+          splitType: receiptItems.isNotEmpty ? SplitType.items : widget.data.splitType,
         );
 
-        // Update controllers
-        _amountController.text = widget.data.amount.toStringAsFixed(2);
-        _titleController.text = widget.data.title;
+        widget.onDataChanged(updatedData);
+
+        // Update controllers with OCR results (always overwrite)
+        // Temporarily remove listeners to prevent _onAmountChanged/_onTitleChanged from overwriting items
+        _amountController.removeListener(_onAmountChanged);
+        _titleController.removeListener(_onTitleChanged);
+        
+        _amountController.text = ocrAmount.toStringAsFixed(2);
+        if (ocrTitle != null && ocrTitle.toString().isNotEmpty) {
+          _titleController.text = ocrTitle.toString();
+        }
+        
+        // Re-add listeners after updating controllers
+        _amountController.addListener(_onAmountChanged);
+        _titleController.addListener(_onTitleChanged);
+
+        // Trigger rebuild to update button state
+        if (mounted) {
+          setState(() {});
+        }
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -171,7 +335,7 @@ class _StepAmountPageState extends State<StepAmountPage> {
                   TextButton(
                     onPressed: widget.onCancel,
                     child: Text(
-                      'Discard',
+                      'Cancel',
                       style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
                         color: AppTheme.textSecondaryLight,
                       ),
@@ -201,58 +365,105 @@ class _StepAmountPageState extends State<StepAmountPage> {
             ),
             // Content
             Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: 4.w),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(height: 4.h),
-                    // Amount Input
-                    Container(
-                      width: double.infinity,
-                      alignment: Alignment.center,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: EdgeInsets.only(top: 1.h, right: 1.w),
-                            child: Text(
-                              '€',
-                              style: TextStyle(
-                                fontSize: 36.sp,
-                                color: AppTheme.textSecondaryLight,
-                                fontWeight: FontWeight.w400,
-                              ),
+              child: Column(
+                children: [
+                  // Spacer to push content above middle
+                  Spacer(flex: 2),
+                  // Amount Input - positioned above middle
+                  Center(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final text = _amountController.text.isEmpty ? '0' : _amountController.text;
+                        
+                        // Measure the euro symbol width
+                        final euroPainter = TextPainter(
+                          text: TextSpan(
+                            text: '€',
+                            style: TextStyle(
+                              fontSize: 28.sp,
+                              color: AppTheme.textSecondaryLight,
+                              fontWeight: FontWeight.w400,
                             ),
                           ),
-                          SizedBox(
-                            width: 60.w,
-                            child: TextField(
-                              controller: _amountController,
-                              keyboardType: TextInputType.numberWithOptions(decimal: true),
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 56.sp,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.textPrimaryLight,
-                              ),
-                              decoration: InputDecoration(
-                                border: InputBorder.none,
-                                hintText: '0.00',
-                                hintStyle: TextStyle(
-                                  fontSize: 56.sp,
-                                  color: AppTheme.textSecondaryLight.withOpacity(0.3),
+                          textDirection: TextDirection.ltr,
+                        );
+                        euroPainter.layout();
+                        final euroWidth = euroPainter.size.width;
+                        
+                        // Measure the amount text width
+                        final textPainter = TextPainter(
+                          text: TextSpan(
+                            text: text,
+                            style: TextStyle(
+                              fontSize: 36.sp,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.textPrimaryLight,
+                            ),
+                          ),
+                          textDirection: TextDirection.ltr,
+                        );
+                        textPainter.layout();
+                        final textWidth = textPainter.size.width;
+                        
+                        // Calculate max width: screen width minus euro symbol width, padding, and margins
+                        final maxWidth = constraints.maxWidth - euroWidth - (1.w) - (4.w * 2) - 20;
+                        // Ensure field is at least as wide as the text plus adequate padding for cursor
+                        final minFieldWidth = textWidth + 30; // Adequate padding for cursor and rendering
+                        final fieldWidth = math.min(minFieldWidth, maxWidth);
+                        
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Padding(
+                              padding: EdgeInsets.only(right: 1.w),
+                              child: Text(
+                                '€',
+                                style: TextStyle(
+                                  fontSize: 28.sp,
+                                  color: AppTheme.textSecondaryLight,
+                                  fontWeight: FontWeight.w400,
                                 ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
+                            SizedBox(
+                              width: fieldWidth,
+                              child: TextField(
+                                scrollPadding: EdgeInsets.zero,
+                                controller: _amountController,
+                                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                                textAlign: TextAlign.left,
+                                style: TextStyle(
+                                  fontSize: 36.sp,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.textPrimaryLight,
+                                ),
+                                decoration: InputDecoration(
+                                  enabledBorder: InputBorder.none,
+                                  focusedBorder: InputBorder.none,
+                                  errorBorder: InputBorder.none,
+                                  disabledBorder: InputBorder.none,
+                                  hintText: '0',
+                                  hintStyle: TextStyle(
+                                    fontSize: 36.sp,
+                                    color: AppTheme.textSecondaryLight.withOpacity(0.3),
+                                  ),
+                                  contentPadding: EdgeInsets.zero,
+                                  isDense: true,
+                                  isCollapsed: true,
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
-                    SizedBox(height: 2.h),
-                    // Title Input
-                    Container(
+                  ),
+                  SizedBox(height: 2.h),
+                  // Title Input
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 4.w),
+                    child: Container(
                       width: double.infinity,
                       constraints: BoxConstraints(maxWidth: 80.w),
                       margin: EdgeInsets.symmetric(horizontal: 10.w),
@@ -260,14 +471,14 @@ class _StepAmountPageState extends State<StepAmountPage> {
                         controller: _titleController,
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 20.sp,
+                          fontSize: 18.sp,
                           fontWeight: FontWeight.w500,
                           color: AppTheme.textPrimaryLight,
                         ),
                         decoration: InputDecoration(
                           hintText: 'What is this for?',
                           hintStyle: TextStyle(
-                            fontSize: 20.sp,
+                            fontSize: 18.sp,
                             color: AppTheme.textSecondaryLight.withOpacity(0.5),
                           ),
                           border: UnderlineInputBorder(
@@ -291,54 +502,62 @@ class _StepAmountPageState extends State<StepAmountPage> {
                         ),
                       ),
                     ),
-                    SizedBox(height: 4.h),
-                    // AI Scanner Button or Receipt Preview
-                    Container(
+                  ),
+                  // Spacer to separate amount/title from scan button
+                  Spacer(flex: 1),
+                  // AI Scanner Button or Receipt Preview
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 4.w),
+                    child: Container(
                       width: double.infinity,
                       constraints: BoxConstraints(maxWidth: 80.w),
                       margin: EdgeInsets.symmetric(horizontal: 10.w),
-                      child: _receiptImageFile == null
+                      child: _isScanning || _receiptImageFile == null
                           ? _buildScanButton()
                           : _buildReceiptPreview(),
                     ),
-                    // Items count badge
-                    if (widget.data.items.isNotEmpty) ...[
-                      SizedBox(height: 2.h),
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.h),
-                        decoration: BoxDecoration(
-                          color: Colors.green[50],
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.green[100]!),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.check_circle, size: 16, color: Colors.green[700]),
-                            SizedBox(width: 1.w),
-                            Text(
-                              '${widget.data.items.length} items found',
-                              style: TextStyle(
-                                fontSize: 12.sp,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.green[700],
-                              ),
-                            ),
-                          ],
-                        ),
+                  ),
+                  // Items count badge
+                  if (widget.data.items.isNotEmpty) ...[
+                    SizedBox(height: 2.h),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.h),
+                      decoration: BoxDecoration(
+                        color: Colors.green[50],
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.green[100]!),
                       ),
-                    ],
-                    SizedBox(height: 4.h),
-                    // Footer hint
-                    Text(
-                      'Start by adding an amount or scanning a receipt',
-                      style: TextStyle(
-                        fontSize: 10.sp,
-                        color: AppTheme.textSecondaryLight.withOpacity(0.6),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.check_circle, size: 16, color: Colors.green[700]),
+                          SizedBox(width: 1.w),
+                          Text(
+                            '${widget.data.items.length} items found',
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.green[700],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
-                ),
+                  // Spacer to push footer to bottom
+                  Spacer(flex: 2),
+                  // Footer hint at bottom
+                  Padding(
+                    padding: EdgeInsets.only(bottom: 2.h),
+                    child: Text(
+                      'Start by adding an amount or scanning a receipt',
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        color: AppTheme.textSecondaryLight.withOpacity(0.6),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

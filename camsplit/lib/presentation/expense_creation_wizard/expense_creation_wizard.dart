@@ -34,9 +34,16 @@ class _ExpenseCreationWizardState extends State<ExpenseCreationWizard> {
   }
 
   void _updateData(ExpenseWizardData newData) {
+    debugPrint('🔍 [WIZARD] _updateData called - items count: ${newData.items.length}, splitType: ${newData.splitType}');
+    debugPrint('🔍 [WIZARD] Previous items count: ${_wizardData.items.length}');
+    if (_wizardData.items.isNotEmpty && newData.items.isEmpty) {
+      debugPrint('⚠️ [WIZARD] WARNING: Items were lost! Previous had ${_wizardData.items.length} items, new has 0');
+      debugPrint('⚠️ [WIZARD] Stack trace: ${StackTrace.current}');
+    }
     setState(() {
       _wizardData = newData;
     });
+    debugPrint('🔍 [WIZARD] After setState - _wizardData.items count: ${_wizardData.items.length}');
   }
 
   void _nextStep() {
@@ -131,7 +138,7 @@ class _ExpenseCreationWizardState extends State<ExpenseCreationWizard> {
             final totalPrice = qty * item.unitPrice;
             
             assignments.add({
-              'group_member_ids': [int.parse(memberId)],
+              'user_ids': [int.parse(memberId)],
               'quantity': qty,
               'unit_price': item.unitPrice,
               'total_price': totalPrice,
@@ -161,7 +168,7 @@ class _ExpenseCreationWizardState extends State<ExpenseCreationWizard> {
       case SplitType.percentage:
         return 'percentage';
       case SplitType.custom:
-        return 'exact';
+        return 'custom';
       case SplitType.items:
         return 'itemized';
     }
@@ -187,7 +194,7 @@ class _ExpenseCreationWizardState extends State<ExpenseCreationWizard> {
 
       return {
         'group_member_id': int.parse(memberId),
-        'amount': amount,
+        'amount_owed': amount,
       };
     }).toList();
   }
