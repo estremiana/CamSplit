@@ -476,14 +476,12 @@ class _GroupDetailPageState extends State<GroupDetailPage> with RealTimeUpdateMi
   void _onExpenseItemTap(GroupExpense expense) {
     Navigator.pushNamed(
       context,
-      AppRoutes.expenseDetail,
+      AppRoutes.expenseDetailSummary,
       arguments: {'expenseId': expense.id},
     ).then((result) {
       // Refresh data when returning from expense detail
-      if (result != null && result is Map<String, dynamic>) {
-        if (result['expenseUpdated'] == true) {
-          _refreshData();
-        }
+      if (result == true || (result != null && result is Map<String, dynamic> && result['expenseUpdated'] == true)) {
+        _refreshData();
       }
     });
   }

@@ -846,7 +846,7 @@ class _ExpenseDashboardState extends State<ExpenseDashboard>
     // Navigate to expense details screen
     Navigator.pushNamed(
       context,
-      AppRoutes.expenseDetail,
+      AppRoutes.expenseDetailSummary,
       arguments: {'expenseId': expense['id']},
     );
   }

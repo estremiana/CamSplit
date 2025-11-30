@@ -165,7 +165,7 @@ class ExpenseDetailModel {
 
   /// Validate split type
   bool _isValidSplitType() {
-    const validSplitTypes = ['equal', 'custom', 'percentage'];
+    const validSplitTypes = ['equal', 'custom', 'percentage', 'itemized'];
     return validSplitTypes.contains(splitType);
   }
 
@@ -195,10 +195,13 @@ class ExpenseDetailModel {
   /// Validate timestamps
   bool _hasValidTimestamps() {
     final now = DateTime.now();
+    // Allow dates up to 1 year in the future for expenses (e.g., planned expenses)
+    final maxFutureDate = now.add(const Duration(days: 365));
     return createdAt.isBefore(now.add(const Duration(minutes: 1))) &&
            updatedAt.isBefore(now.add(const Duration(minutes: 1))) &&
            !createdAt.isAfter(updatedAt) &&
-           date.isBefore(now.add(const Duration(days: 1)));
+           date.isBefore(maxFutureDate) &&
+           date.isAfter(now.subtract(const Duration(days: 365))); // Allow up to 1 year in the past
   }
 
   /// Get total amount from participant amounts (for validation)
@@ -332,7 +335,7 @@ class ExpenseUpdateRequest {
 
   /// Validate split type
   bool _isValidSplitType() {
-    const validSplitTypes = ['equal', 'custom', 'percentage'];
+    const validSplitTypes = ['equal', 'custom', 'percentage', 'itemized'];
     return validSplitTypes.contains(splitType);
   }
 
