@@ -176,8 +176,26 @@ class _ExpenseCreationWizardState extends State<ExpenseCreationWizard> {
 
   List<Map<String, dynamic>> _buildSplits(ExpenseWizardData data) {
     if (data.splitType == SplitType.items) {
-      // For items mode, splits are handled via item assignments
-      return [];
+      // For items mode, calculate splits from item assignments
+      // Sum up the total amount owed by each member based on their item assignments
+      final Map<String, double> memberAmounts = {};
+      
+      for (var item in data.items) {
+        item.assignments.forEach((memberId, quantity) {
+          if (quantity > 0) {
+            final amountOwed = quantity * item.unitPrice;
+            memberAmounts[memberId] = (memberAmounts[memberId] ?? 0.0) + amountOwed;
+          }
+        });
+      }
+      
+      // Convert to splits array format
+      return memberAmounts.entries.map((entry) {
+        return {
+          'group_member_id': int.parse(entry.key),
+          'amount_owed': entry.value,
+        };
+      }).toList();
     }
 
     return data.involvedMembers.map((memberId) {
