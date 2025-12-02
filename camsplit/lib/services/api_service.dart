@@ -983,6 +983,35 @@ class ApiService {
     }
   }
   
+  // ==================== IMAGE ENDPOINTS ====================
+  
+  Future<Map<String, dynamic>> uploadImage(File imageFile) async {
+    try {
+      // Determine MIME type from file extension
+      String mimeType = 'image/jpeg'; // default
+      final fileName = imageFile.path.toLowerCase();
+      if (fileName.endsWith('.png')) {
+        mimeType = 'image/png';
+      } else if (fileName.endsWith('.gif')) {
+        mimeType = 'image/gif';
+      } else if (fileName.endsWith('.webp')) {
+        mimeType = 'image/webp';
+      }
+      
+      final formData = FormData.fromMap({
+        'image': await MultipartFile.fromFile(
+          imageFile.path,
+          filename: imageFile.path.split('/').last,
+          contentType: MediaType.parse(mimeType),
+        ),
+      });
+      final response = await _dio.post('/images/upload', data: formData);
+      return response.data;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+  
   // ==================== OCR ENDPOINTS ====================
   
   Future<Map<String, dynamic>> processReceipt(File imageFile) async {

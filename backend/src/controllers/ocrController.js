@@ -27,37 +27,10 @@ class OCRController {
       }
 
       // Upload image to Cloudinary first
-      const cloudinary = require('../config/cloudinary');
-      
-      // Handle Flutter's application/octet-stream MIME type
-      let mimeType = imageFile.mimetype;
-      if (mimeType === 'application/octet-stream') {
-        const fileName = imageFile.originalname.toLowerCase();
-        if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) {
-          mimeType = 'image/jpeg';
-        } else if (fileName.endsWith('.png')) {
-          mimeType = 'image/png';
-        } else if (fileName.endsWith('.gif')) {
-          mimeType = 'image/gif';
-        } else if (fileName.endsWith('.webp')) {
-          mimeType = 'image/webp';
-        }
-        console.log('Corrected MIME type from application/octet-stream to:', mimeType);
-      }
-      
-      // Convert buffer to base64 for Cloudinary upload
-      const base64Image = imageFile.buffer.toString('base64');
-      const dataURI = `data:${mimeType};base64,${base64Image}`;
+      const ImageService = require('../services/imageService');
       
       console.log('Uploading to Cloudinary...');
-      const uploadResult = await cloudinary.uploader.upload(dataURI, {
-        folder: 'receipts',
-        resource_type: 'image',
-        transformation: [
-          { quality: 'auto:good' },
-          { fetch_format: 'auto' }
-        ]
-      });
+      const uploadResult = await ImageService.uploadImageToCloudinary(imageFile);
 
       console.log('Cloudinary upload successful:', uploadResult.secure_url);
 

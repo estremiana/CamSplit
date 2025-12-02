@@ -188,90 +188,94 @@ class _ExpenseDetailsCardState extends State<ExpenseDetailsCard> {
   }
 
   Widget _buildReceiptSection(BuildContext context, bool hasReceipt, String? receiptUrl) {
-    return Container(
-      padding: EdgeInsets.all(4.w),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: AppTheme.primaryLight.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.receipt,
-              size: 16,
-              color: AppTheme.primaryLight,
-            ),
-          ),
-          SizedBox(width: 3.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'RECEIPT',
-                  style: SplitTextStyles.labelLarge(AppTheme.textPrimaryLight),
+    return Column(
+      children: [
+        // Label Row: Icon + Label on left, content on right
+        Container(
+          padding: EdgeInsets.all(4.w),
+          child: Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryLight.withOpacity(0.1),
+                  shape: BoxShape.circle,
                 ),
-                SizedBox(height: 0.5.h),
-                if (hasReceipt)
-                  _buildReceiptPreview(context, receiptUrl!)
-                else
-                  _buildEmptyReceiptState(context),
-              ],
-            ),
+                child: Icon(
+                  Icons.receipt,
+                  size: 16,
+                  color: AppTheme.primaryLight,
+                ),
+              ),
+              SizedBox(width: 3.w),
+              Text(
+                'RECEIPT',
+                style: SplitTextStyles.labelLarge(AppTheme.textPrimaryLight),
+              ),
+              Spacer(),
+              if (_isUploadingReceipt)
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryLight),
+                  ),
+                )
+              else if (hasReceipt)
+                // In read mode, show nothing on the right when receipt exists
+                SizedBox.shrink()
+              else
+                // No receipt - show text or button on the right, filling available space
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: widget.isEditMode
+                        ? InkWell(
+                            onTap: () => _showImageSourceDialog(context),
+                            child: Container(
+                              width: double.infinity,
+                              padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primaryLight.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: AppTheme.primaryLight.withOpacity(0.3),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Text(
+                                'Add receipt image',
+                                style: SplitTextStyles.bodyMedium(AppTheme.primaryLight),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          )
+                        : Text(
+                            'No receipt attached',
+                            style: SplitTextStyles.bodyMedium(AppTheme.textSecondaryLight),
+                            textAlign: TextAlign.right,
+                          ),
+                  ),
+                ),
+            ],
           ),
-        ],
-      ),
+        ),
+        // Image Row: Below label row, only shown when receipt exists
+        if (hasReceipt)
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4.w),
+            child: _buildReceiptPreview(context, receiptUrl!),
+          ),
+      ],
     );
   }
 
-  Widget _buildEmptyReceiptState(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(3.w),
-      decoration: BoxDecoration(
-        color: AppTheme.lightTheme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: widget.isEditMode
-          ? InkWell(
-              onTap: _isUploadingReceipt ? null : () => _showImageSourceDialog(context),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.add_photo_alternate,
-                    size: 32,
-                    color: AppTheme.textSecondaryLight,
-                  ),
-                  SizedBox(height: 1.h),
-                  Text(
-                    'Add Receipt Image',
-                    style: SplitTextStyles.bodyMedium(AppTheme.textSecondaryLight),
-                  ),
-                ],
-              ),
-            )
-          : Row(
-              children: [
-                Icon(
-                  Icons.image_outlined,
-                  size: 20,
-                  color: AppTheme.textSecondaryLight,
-                ),
-                SizedBox(width: 2.w),
-                Text(
-                  'No receipt attached',
-                  style: SplitTextStyles.bodyMedium(AppTheme.textSecondaryLight),
-                ),
-              ],
-            ),
-    );
-  }
 
   Widget _buildReceiptPreview(BuildContext context, String receiptUrl) {
     return Container(
+      margin: EdgeInsets.only(bottom: 4.w),
       decoration: BoxDecoration(
         color: AppTheme.lightTheme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(8),
@@ -282,17 +286,46 @@ class _ExpenseDetailsCardState extends State<ExpenseDetailsCard> {
       ),
       child: Stack(
         children: [
-          ClipRRect(
+          // Make the entire image tappable
+          InkWell(
+            onTap: () => _showFullReceipt(context, receiptUrl),
             borderRadius: BorderRadius.circular(8),
-            child: _tempReceiptImageFile != null
-                ? Image.file(
-                    _tempReceiptImageFile!,
-                    width: double.infinity,
-                    height: 40.h,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        height: 40.h,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: _tempReceiptImageFile != null
+                  ? Image.file(
+                      _tempReceiptImageFile!,
+                      width: double.infinity,
+                      height: 150.0, // Fixed height as specified
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          height: 150.0,
+                          color: AppTheme.lightTheme.colorScheme.surfaceContainerHighest,
+                          child: Center(
+                            child: Icon(
+                              Icons.broken_image,
+                              size: 48,
+                              color: AppTheme.textSecondaryLight,
+                            ),
+                          ),
+                        );
+                      },
+                    )
+                  : CachedNetworkImage(
+                      imageUrl: receiptUrl,
+                      width: double.infinity,
+                      height: 150.0, // Fixed height as specified
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        height: 150.0,
+                        color: AppTheme.lightTheme.colorScheme.surfaceContainerHighest,
+                        child: Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        height: 150.0,
                         color: AppTheme.lightTheme.colorScheme.surfaceContainerHighest,
                         child: Center(
                           child: Icon(
@@ -301,34 +334,11 @@ class _ExpenseDetailsCardState extends State<ExpenseDetailsCard> {
                             color: AppTheme.textSecondaryLight,
                           ),
                         ),
-                      );
-                    },
-                  )
-                : CachedNetworkImage(
-                    imageUrl: receiptUrl,
-                    width: double.infinity,
-                    height: 40.h,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(
-                      height: 40.h,
-                      color: AppTheme.lightTheme.colorScheme.surfaceContainerHighest,
-                      child: Center(
-                        child: CircularProgressIndicator(),
                       ),
                     ),
-                    errorWidget: (context, url, error) => Container(
-                      height: 40.h,
-                      color: AppTheme.lightTheme.colorScheme.surfaceContainerHighest,
-                      child: Center(
-                        child: Icon(
-                          Icons.broken_image,
-                          size: 48,
-                          color: AppTheme.textSecondaryLight,
-                        ),
-                      ),
-                    ),
-                  ),
+            ),
           ),
+          // Edit/Delete buttons in edit mode
           if (widget.isEditMode)
             Positioned(
               top: 8,
@@ -378,34 +388,15 @@ class _ExpenseDetailsCardState extends State<ExpenseDetailsCard> {
                   ),
                 ],
               ),
-            )
-          else
-            Positioned(
-              bottom: 8,
-              right: 8,
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.6),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: InkWell(
-                  onTap: () => _showFullReceipt(context, receiptUrl),
-                  child: Text(
-                    'View Full',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ),
             ),
+          // Loading overlay during upload
           if (_isUploadingReceipt)
             Positioned.fill(
               child: Container(
-                color: Colors.black.withOpacity(0.3),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 child: Center(
                   child: CircularProgressIndicator(
                     valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
@@ -489,7 +480,7 @@ class _ExpenseDetailsCardState extends State<ExpenseDetailsCard> {
   Future<void> _uploadReceiptImage(File imageFile) async {
     try {
       final apiService = ApiService.instance;
-      final response = await apiService.processReceipt(imageFile);
+      final response = await apiService.uploadImage(imageFile);
 
       if (response['success'] == true && response['data'] != null) {
         final imageUrl = response['data']['image_url'];

@@ -11,6 +11,7 @@ const itemRoutes = require('./routes/itemRoutes');
 const assignmentRoutes = require('./routes/assignmentRoutes');
 const settlementRoutes = require('./routes/settlementRoutes');
 const inviteRoutes = require('./routes/inviteRoutes');
+const imageRoutes = require('./routes/imageRoutes');
 
 // Import existing routes (to be updated later)
 const ocrRoutes = require('./routes/ocrRoutes');
@@ -74,6 +75,7 @@ app.use('/api/items', itemRoutes);
 app.use('/api/assignments', assignmentRoutes);
 app.use('/api', settlementRoutes);
 app.use('/api/invites', inviteRoutes);
+app.use('/api/images', imageRoutes);
 
 // Legacy routes (to be updated in Phase 5)
 app.use('/api/ocr', ocrRoutes);

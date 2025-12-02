@@ -1,6 +1,6 @@
 const ocrService = require('../ai/ocrService');
 const parserService = require('../ai/parserService');
-const cloudinary = require('../config/cloudinary');
+const ImageService = require('./imageService');
 const db = require('../../database/connection');
 
 class OCRService {
@@ -8,7 +8,7 @@ class OCRService {
   async processReceiptImage(imageFile, groupId, userId) {
     try {
       // Upload image to Cloudinary
-      const uploadResult = await this.uploadImageToCloudinary(imageFile);
+      const uploadResult = await ImageService.uploadImageToCloudinary(imageFile);
       
       // Extract structured data using OCR
       const ocrData = await ocrService.extractStructuredDataFromImage(uploadResult.secure_url);
@@ -46,23 +46,9 @@ class OCRService {
     }
   }
 
-  // Upload image to Cloudinary
+  // Upload image to Cloudinary - DEPRECATED: Use ImageService directly
   async uploadImageToCloudinary(imageFile) {
-    try {
-      const uploadResult = await cloudinary.uploader.upload(imageFile.path, {
-        folder: 'receipts',
-        resource_type: 'image',
-        transformation: [
-          { quality: 'auto:good' },
-          { fetch_format: 'auto' }
-        ]
-      });
-
-      return uploadResult;
-    } catch (error) {
-      console.error('Cloudinary upload error:', error);
-      throw new Error('Failed to upload image');
-    }
+    return ImageService.uploadImageToCloudinary(imageFile);
   }
 
   // Store receipt image record in database
@@ -138,10 +124,7 @@ class OCRService {
 
       // Delete from Cloudinary
       if (imageUrl) {
-        const publicId = this.extractPublicIdFromUrl(imageUrl);
-        if (publicId) {
-          await cloudinary.uploader.destroy(publicId);
-        }
+        await ImageService.deleteImage(imageUrl);
       }
 
       // Delete from database
@@ -154,17 +137,9 @@ class OCRService {
     }
   }
 
-  // Extract public ID from Cloudinary URL
+  // Extract public ID from Cloudinary URL - DEPRECATED: Use ImageService directly
   extractPublicIdFromUrl(url) {
-    try {
-      const urlParts = url.split('/');
-      const filename = urlParts[urlParts.length - 1];
-      const publicId = filename.split('.')[0];
-      return `receipts/${publicId}`;
-    } catch (error) {
-      console.error('Error extracting public ID:', error);
-      return null;
-    }
+    return ImageService.extractPublicIdFromUrl(url);
   }
 
   // Re-process OCR for an existing receipt image
