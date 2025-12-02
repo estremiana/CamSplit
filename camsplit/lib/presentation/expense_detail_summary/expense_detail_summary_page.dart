@@ -43,6 +43,8 @@ class _ExpenseDetailSummaryPageState extends State<ExpenseDetailSummaryPage> {
   final TextEditingController _categoryController = TextEditingController();
   DateTime? _selectedDate;
   int? _selectedPayerId;
+  String? _updatedReceiptImageUrl;
+  bool _receiptRemoved = false;
 
   @override
   void initState() {
@@ -138,6 +140,9 @@ class _ExpenseDetailSummaryPageState extends State<ExpenseDetailSummaryPage> {
           _expense = _originalExpense;
           _populateFormFields();
         }
+        // Reset receipt changes
+        _updatedReceiptImageUrl = null;
+        _receiptRemoved = false;
       }
     });
   }
@@ -163,6 +168,8 @@ class _ExpenseDetailSummaryPageState extends State<ExpenseDetailSummaryPage> {
         category: newCategory,
         date: newDate,
         payerId: newPayerId,
+        receiptImageUrl: _receiptRemoved ? null : (_updatedReceiptImageUrl ?? _expense!.receiptImageUrl),
+        clearReceiptImageUrl: _receiptRemoved,
         updatedAt: DateTime.now(),
       );
 
@@ -189,6 +196,7 @@ class _ExpenseDetailSummaryPageState extends State<ExpenseDetailSummaryPage> {
         splitType: updatedExpense.splitType,
         participantAmounts: updatedExpense.participantAmounts,
         payers: payerData,
+        receiptImageUrl: updatedExpense.receiptImageUrl,
       );
 
       // Save expense
@@ -199,6 +207,8 @@ class _ExpenseDetailSummaryPageState extends State<ExpenseDetailSummaryPage> {
         _originalExpense = savedExpense;
         _isSaving = false;
         _isEditMode = false;
+        _updatedReceiptImageUrl = null; // Reset receipt URL after save
+        _receiptRemoved = false; // Reset receipt removal flag
       });
 
       if (mounted) {
@@ -509,6 +519,14 @@ class _ExpenseDetailSummaryPageState extends State<ExpenseDetailSummaryPage> {
                         onDateChanged: (date) => setState(() => _selectedDate = date),
                         onPayerChanged: (payerId) => setState(() => _selectedPayerId = payerId),
                         onCategoryChanged: (category) => setState(() {}),
+                        onReceiptImageUrlChanged: (url) => setState(() {
+                          _updatedReceiptImageUrl = url;
+                          _receiptRemoved = false;
+                        }),
+                        onReceiptRemoved: () => setState(() {
+                          _updatedReceiptImageUrl = null;
+                          _receiptRemoved = true;
+                        }),
                       ),
                       
                       SizedBox(height: 3.h),

@@ -3,6 +3,7 @@ import 'package:sizer/sizer.dart';
 import '../../core/app_export.dart';
 import '../../services/expense_detail_service.dart';
 import '../../services/api_service.dart';
+import '../../utils/split_logic.dart';
 import '../../presentation/expense_creation_wizard/models/expense_wizard_data.dart';
 import '../../presentation/expense_creation_wizard/step_split_page.dart';
 
@@ -77,11 +78,9 @@ class _ExpenseSplitEditPageState extends State<ExpenseSplitEditPage> {
       Map<String, double> memberAmounts = {};
       
       for (var item in _wizardData.items) {
-        item.assignments.forEach((memberId, quantity) {
-          if (quantity > 0) {
-            final amountOwed = quantity * item.unitPrice;
-            memberAmounts[memberId] = (memberAmounts[memberId] ?? 0.0) + amountOwed;
-          }
+        final costs = SplitLogic.calculateItemCosts(item);
+        costs.forEach((memberId, cost) {
+          memberAmounts[memberId] = (memberAmounts[memberId] ?? 0.0) + cost;
         });
       }
       
@@ -150,10 +149,11 @@ class _ExpenseSplitEditPageState extends State<ExpenseSplitEditPage> {
   List<Map<String, dynamic>> _buildItemsData() {
     return _wizardData.items.map((item) {
       List<Map<String, dynamic>> assignments = [];
+      final costs = SplitLogic.calculateItemCosts(item);
       
       item.assignments.forEach((memberId, qty) {
         if (qty > 0) {
-          final totalPrice = qty * item.unitPrice;
+          final totalPrice = costs[memberId] ?? (qty * item.unitPrice);
           assignments.add({
             'user_ids': [int.parse(memberId)],
             'quantity': qty,
@@ -247,6 +247,7 @@ class _ExpenseSplitEditPageState extends State<ExpenseSplitEditPage> {
             onDataChanged: _updateData,
             onBack: () => Navigator.pop(context),
             onSubmit: () => _saveChanges(), // Wrap in lambda to handle async
+            hideWizardHeader: true, // Hide "3 of 3" and back button since we have AppBar
           ),
           
           // Save button overlay

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 import '../../core/app_export.dart';
 import '../../services/api_service.dart';
+import '../../utils/split_logic.dart';
 import 'models/expense_wizard_data.dart';
 import 'step_amount_page.dart';
 import 'step_details_page.dart';
@@ -132,10 +133,11 @@ class _ExpenseCreationWizardState extends State<ExpenseCreationWizard> {
         // Transform assignments from map to array format
         // Each member gets their own assignment record
         final assignments = <Map<String, dynamic>>[];
+        final costs = SplitLogic.calculateItemCosts(item);
         
         item.assignments.forEach((memberId, qty) {
           if (qty > 0) {
-            final totalPrice = qty * item.unitPrice;
+            final totalPrice = costs[memberId] ?? (qty * item.unitPrice);
             
             assignments.add({
               'user_ids': [int.parse(memberId)],
@@ -181,11 +183,9 @@ class _ExpenseCreationWizardState extends State<ExpenseCreationWizard> {
       final Map<String, double> memberAmounts = {};
       
       for (var item in data.items) {
-        item.assignments.forEach((memberId, quantity) {
-          if (quantity > 0) {
-            final amountOwed = quantity * item.unitPrice;
-            memberAmounts[memberId] = (memberAmounts[memberId] ?? 0.0) + amountOwed;
-          }
+        final costs = SplitLogic.calculateItemCosts(item);
+        costs.forEach((memberId, cost) {
+          memberAmounts[memberId] = (memberAmounts[memberId] ?? 0.0) + cost;
         });
       }
       

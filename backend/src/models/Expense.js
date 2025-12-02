@@ -219,25 +219,46 @@ class Expense {
     }
 
     try {
-      const query = `
-        UPDATE expenses 
-        SET title = COALESCE($1, title),
-            total_amount = COALESCE($2, total_amount),
-            currency = COALESCE($3, currency),
-            date = COALESCE($4, date),
-            category = COALESCE($5, category),
-            notes = COALESCE($6, notes),
-            split_type = COALESCE($7, split_type),
-            receipt_image_url = COALESCE($8, receipt_image_url),
-            updated_at = NOW()
-        WHERE id = $9
-        RETURNING *
-      `;
+      // Handle receipt_image_url separately to allow clearing (null or empty string)
+      // Check if receipt_image_url is explicitly provided in updateData
+      const hasReceiptImageUrl = 'receipt_image_url' in updateData;
+      let query, values;
       
-      const values = [
-        title, total_amount, currency, date, category, notes, 
-        split_type, receipt_image_url, this.id
-      ];
+      if (hasReceiptImageUrl && (receipt_image_url === null || receipt_image_url === '')) {
+        // Clear receipt_image_url
+        query = `
+          UPDATE expenses 
+          SET title = COALESCE($1, title),
+              total_amount = COALESCE($2, total_amount),
+              currency = COALESCE($3, currency),
+              date = COALESCE($4, date),
+              category = COALESCE($5, category),
+              notes = COALESCE($6, notes),
+              split_type = COALESCE($7, split_type),
+              receipt_image_url = NULL,
+              updated_at = NOW()
+          WHERE id = $8
+          RETURNING *
+        `;
+        values = [title, total_amount, currency, date, category, notes, split_type, this.id];
+      } else {
+        // Update receipt_image_url normally or keep existing
+        query = `
+          UPDATE expenses 
+          SET title = COALESCE($1, title),
+              total_amount = COALESCE($2, total_amount),
+              currency = COALESCE($3, currency),
+              date = COALESCE($4, date),
+              category = COALESCE($5, category),
+              notes = COALESCE($6, notes),
+              split_type = COALESCE($7, split_type),
+              receipt_image_url = COALESCE($8, receipt_image_url),
+              updated_at = NOW()
+          WHERE id = $9
+          RETURNING *
+        `;
+        values = [title, total_amount, currency, date, category, notes, split_type, receipt_image_url, this.id];
+      }
       const result = await db.query(query, values);
       
       if (result.rows.length === 0) {

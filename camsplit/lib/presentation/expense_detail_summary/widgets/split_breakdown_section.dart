@@ -35,7 +35,7 @@ class SplitBreakdownSection extends StatelessWidget {
                 Text(
                   'Split Breakdown',
                   style: TextStyle(
-                    fontSize: 16.sp,
+                    fontSize: 18.sp,
                     fontWeight: FontWeight.bold,
                     color: AppTheme.textPrimaryLight,
                   ),
@@ -50,7 +50,7 @@ class SplitBreakdownSection extends StatelessWidget {
                   child: Text(
                     splitType,
                     style: TextStyle(
-                      fontSize: 10.sp,
+                      fontSize: 12.sp,
                       fontWeight: FontWeight.w500,
                       color: AppTheme.textSecondaryLight,
                     ),
@@ -69,7 +69,7 @@ class SplitBreakdownSection extends StatelessWidget {
                 'Edit Split',
                 style: TextStyle(
                   color: AppTheme.primaryLight,
-                  fontSize: 12.sp,
+                  fontSize: 14.sp,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -126,7 +126,7 @@ class SplitBreakdownSection extends StatelessWidget {
 
   Widget _buildMemberRow(GroupMember member, double amount) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 3.h),
+      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
@@ -139,7 +139,7 @@ class SplitBreakdownSection extends StatelessWidget {
         children: [
           // Avatar
           CircleAvatar(
-            radius: 16,
+            radius: 18.sp,
             backgroundColor: AppTheme.lightTheme.colorScheme.primaryContainer,
             child: Text(
               _getInitials(member.nickname),

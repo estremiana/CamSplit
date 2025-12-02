@@ -5,6 +5,7 @@ import '../../services/group_service.dart';
 import '../../models/group_member.dart';
 import 'models/expense_wizard_data.dart';
 import 'models/receipt_item.dart';
+import '../../utils/split_logic.dart';
 import 'widgets/split_type_tabs.dart';
 import 'widgets/member_split_card.dart';
 import 'widgets/split_bottom_button.dart';
@@ -17,6 +18,7 @@ class StepSplitPage extends StatefulWidget {
   final Function(ExpenseWizardData) onDataChanged;
   final VoidCallback onBack;
   final VoidCallback onSubmit;
+  final bool hideWizardHeader;
 
   const StepSplitPage({
     Key? key,
@@ -24,6 +26,7 @@ class StepSplitPage extends StatefulWidget {
     required this.onDataChanged,
     required this.onBack,
     required this.onSubmit,
+    this.hideWizardHeader = false,
   }) : super(key: key);
 
   @override
@@ -397,8 +400,10 @@ class _StepSplitPageState extends State<StepSplitPage> {
   double _getItemizedTotalForMember(String memberId) {
     double total = 0;
     for (var item in widget.data.items) {
-      final qty = item.assignments[memberId] ?? 0;
-      total += qty * item.unitPrice;
+      final costs = SplitLogic.calculateItemCosts(item);
+      if (costs.containsKey(memberId)) {
+        total += costs[memberId]!;
+      }
     }
     return total;
   }
@@ -441,32 +446,33 @@ class _StepSplitPageState extends State<StepSplitPage> {
             body: SafeArea(
               child: Column(
               children: [
-                // Header
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      TextButton(
-                        onPressed: widget.onBack,
-                        child: Text(
-                          'Back',
-                          style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
-                            color: AppTheme.textSecondaryLight,
+                // Header (only show if not hiding wizard header)
+                if (!widget.hideWizardHeader)
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        TextButton(
+                          onPressed: widget.onBack,
+                          child: Text(
+                            'Back',
+                            style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
+                              color: AppTheme.textSecondaryLight,
+                            ),
                           ),
                         ),
-                      ),
-                      Text(
-                        '3 of 3',
-                        style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.textPrimaryLight,
+                        Text(
+                          '3 of 3',
+                          style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textPrimaryLight,
+                          ),
                         ),
-                      ),
-                      SizedBox(width: 60), // Spacer for alignment
-                    ],
+                        SizedBox(width: 60), // Spacer for alignment
+                      ],
+                    ),
                   ),
-                ),
                 // Content with floating button
                 Expanded(
                   child: Stack(

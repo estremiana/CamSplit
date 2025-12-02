@@ -259,6 +259,7 @@ class ExpenseUpdateRequest {
   final String splitType;
   final List<ParticipantAmount> participantAmounts;
   final List<Map<String, dynamic>> payers; // Add payers for backend update
+  final String? receiptImageUrl; // Receipt image URL
 
   ExpenseUpdateRequest({
     required this.expenseId,
@@ -272,6 +273,7 @@ class ExpenseUpdateRequest {
     required this.splitType,
     required this.participantAmounts,
     required this.payers,
+    this.receiptImageUrl,
   });
 
   /// Create ExpenseUpdateRequest from ExpenseDetailModel
@@ -313,7 +315,7 @@ class ExpenseUpdateRequest {
       'category': category,
       'notes': notes,
       'split_type': splitType, // Backend expects 'split_type'
-      'receipt_image_url': null, // Backend expects this field
+      'receipt_image_url': receiptImageUrl, // Include receipt image URL if provided
       'participant_amounts': participantAmounts.map((p) => p.toJson()).toList(),
       'payers': payers, // Add payers for backend update
     };
