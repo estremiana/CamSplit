@@ -72,7 +72,7 @@ class ItemService {
       }
 
       // Get items for the expense
-      const items = await Item.getItemsByExpenseId(expenseId);
+      const items = await Item.findByExpenseId(expenseId);
       
       // For each item, get its assignments
       const itemsWithAssignments = await Promise.all(
