@@ -77,10 +77,10 @@ class ItemService {
       // For each item, get its assignments
       const itemsWithAssignments = await Promise.all(
         items.map(async (item) => {
-          const assignments = await Assignment.getAssignmentsByItemId(item.id);
+          const assignments = await Assignment.findByItemId(item.id);
           return {
             ...item.toJSON(),
-            assignments: assignments.map(assignment => assignment.toJSON())
+            assignments: assignments  // Already includes assigned_users, don't call toJSON()
           };
         })
       );
